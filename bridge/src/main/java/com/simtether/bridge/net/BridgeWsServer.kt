@@ -11,8 +11,8 @@ import java.nio.ByteBuffer
 
 /**
  * WS server on the bridge (hotspot host). First frame from a client is
- * its ephemeral X25519 pubkey → completes the session handshake; all
- * subsequent frames are ChaCha20-Poly1305 envelopes.
+ * Noise IK message 1 (token encrypted inside) → the bridge replies with
+ * msg2 and both sides split into ChaCha20-Poly1305 transport ciphers.
  */
 class BridgeWsServer(
     port: Int,
@@ -77,18 +77,24 @@ class BridgeWsServer(
         val bytes = ByteArray(message.remaining()).also { message.get(it) }
         val s = session
         if (s == null) {
-            // First frame: client ephemeral pubkey (32B) + pairing
-            // token (16B), plaintext. The token proves the QR scan —
-            // without it any LAN device could occupy the client slot.
-            if (bytes.size != 48) { conn.close(1002, "bad handshake"); return }
-            val ephPub = bytes.copyOfRange(0, 32)
-            val token = bytes.copyOfRange(32, 48)
-            if (!java.security.MessageDigest.isEqual(token, pairingToken)) {
+            // First frame: Noise IK message 1 — the pairing token rides
+            // inside as encrypted payload, so a mangled/wrong-key frame
+            // fails AEAD before any session exists.
+            if (bytes.size > 2048) { conn.close(1009, "oversize"); return }
+            val hs = runCatching {
+                SecureSession.bridgeHandshake(staticKeyPair.first, bytes)
+            }.getOrElse {
+                conn.close(1002, "bad handshake")
+                return
+            }
+            if (!java.security.MessageDigest.isEqual(hs.peerPayload, pairingToken)) {
                 Log.w(TAG, "rejected client: bad pairing token")
                 conn.close(4003, "bad token")
                 return
             }
-            session = SecureSession.bridgeHandshake(staticKeyPair.first, ephPub)
+            val (reply, sess) = hs.complete()
+            conn.send(reply)
+            session = sess
             Log.d(TAG, "session established")
             onClientReady()
         } else {

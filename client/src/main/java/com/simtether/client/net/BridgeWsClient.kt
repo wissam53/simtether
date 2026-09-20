@@ -15,9 +15,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Reconnecting WS client → bridge server. On connect it immediately
- * sends the ephemeral X25519 pubkey (binary frame 1), then all traffic
- * is encrypted envelopes.
+ * Reconnecting WS client → bridge server. On connect it sends Noise
+ * IK message 1 (with the pairing token as encrypted payload); the
+ * session goes live once the bridge's msg2 reply is verified, then
+ * all traffic is encrypted envelopes.
  */
 /** A located bridge: address + the Network that can actually reach it.
  *  socketFactory pins traffic to that network — without it Android
@@ -45,6 +46,7 @@ class BridgeWsClient(
     private val TAG = "SimTether.Client"
     private val MAX_OUTBOX = 100
     private var session: SecureSession? = null
+    private var pendingHandshake: SecureSession.ClientHandshake? = null
     private var ws: WebSocket? = null
     @Volatile private var closed = false
     private var backoffMs = 1_000L
@@ -85,25 +87,36 @@ class BridgeWsClient(
         } ?: http
         client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                val (ephPub, sess) = SecureSession.clientHandshake(bridgeStaticPub)
-                session = sess
+                val hs = SecureSession.clientHandshake(bridgeStaticPub, pairingToken)
+                pendingHandshake = hs
                 ws = webSocket
-                // First frame: ephPub(32B) + pairing token(16B) — proves
-                // the QR scan to the bridge.
-                webSocket.send((ephPub + pairingToken).toByteString())
+                // First frame: IK msg1 — e/es/s/ss + pairing token, all
+                // AEAD-bound. No session until the bridge's msg2 lands.
+                webSocket.send(hs.outgoing.toByteString())
                 backoffMs = 1_000L
-                emitState(true)
-                // WS frames are ordered — flushing right after the
-                // handshake frame is safe; the server decrypts in order.
-                while (true) {
-                    val (t, p) = outbox.poll() ?: break
-                    Log.d(TAG, "flushing queued $t")
-                    sendCommand(t, p)
-                }
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                val s = session ?: run { Log.w(TAG, "frame before session"); return }
+                val s = session ?: run {
+                    val hs = pendingHandshake
+                        ?: run { Log.w(TAG, "frame before handshake"); return }
+                    session = runCatching { hs.complete(bytes.toByteArray()) }
+                        .getOrElse {
+                            Log.e(TAG, "handshake failed", it)
+                            webSocket.close(4003, "handshake")
+                            return
+                        }
+                    pendingHandshake = null
+                    emitState(true)
+                    // WS frames are ordered — the session is live, flush
+                    // anything queued while we were offline.
+                    while (true) {
+                        val (t, p) = outbox.poll() ?: break
+                        Log.d(TAG, "flushing queued $t")
+                        sendCommand(t, p)
+                    }
+                    return
+                }
                 val env = runCatching {
                     Protocol.decode(s.decrypt(bytes.toByteArray()).decodeToString())
                 }.getOrElse {
@@ -144,6 +157,7 @@ class BridgeWsClient(
         if (closed) return
         emitState(false)
         session = null
+        pendingHandshake = null
         ws = null
         val delay = backoffMs + java.util.concurrent.ThreadLocalRandom.current()
             .nextLong(0, backoffMs / 2 + 1)

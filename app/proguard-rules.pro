@@ -1,10 +1,10 @@
 # SimTether release rules.
 
-# BouncyCastle is used through direct API calls (X25519Agreement,
-# ChaCha20Poly1305, HKDF) — no Provider reflection — but keep the
-# classes whole so R8 doesn't strip members the AEAD engine needs.
--keep class org.bouncycastle.** { *; }
--dontwarn org.bouncycastle.**
+# noise-java picks cipher/DH implementations via JCE lookups and
+# falls back to bundled plain-Java versions — keep the tree intact so
+# R8 can't strip a fallback the runtime may load by name.
+-keep class com.southernstorm.noise.** { *; }
+-dontwarn com.southernstorm.noise.**
 
 # kotlinSerialization is compiler-generated — no reflection keeps
 # needed. Keep generic signatures so Service/Activity entry points
