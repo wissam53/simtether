@@ -139,4 +139,10 @@
     <string name="disclosure_client_body">يحتاج SimTether إلى الكاميرا لمسح رمز الاقتران، وجهات الاتصال لعرض الأسماء، وأذونات المكالمات لعرض المكالمات المنقولة. تبقى جميع البيانات على شبكتك المحلية — لا يُرفع أو يُشارك أي شيء.</string>
     <string name="disclosure_agree">أوافق ومتابعة</string>
     <string name="disclosure_decline">ليس الآن</string>
+
+    <string name="paywall_title">SimTether Pro</string>
+    <string name="paywall_body">انقل المكالمات والرسائل بين هاتفيك — مشفّرة، على شبكتك، دون أي رفع. اشترك لتفعيل هذا الجهاز.</string>
+    <string name="paywall_subscribe">اشترك</string>
+    <string name="paywall_subscribe_price">اشترك — %1$s / شهريًا</string>
+    <string name="paywall_trial_line">7 أيام مجانًا، ثم %1$s / شهريًا. إلغاء في أي وقت.</string>
 </resources>

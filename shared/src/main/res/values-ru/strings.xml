@@ -139,4 +139,10 @@
     <string name="disclosure_client_body">SimTether запрашивает доступ к камере для сканирования кода сопряжения, к контактам для показа имён и к звонкам для отображения переадресованных вызовов. Все данные остаются в локальной сети — ничего не загружается и не передаётся.</string>
     <string name="disclosure_agree">Принять и продолжить</string>
     <string name="disclosure_decline">Не сейчас</string>
+
+    <string name="paywall_title">SimTether Pro</string>
+    <string name="paywall_body">Пересылайте звонки и SMS между телефонами — зашифровано, в вашей сети, ничего не загружается. Подпишитесь, чтобы активировать это устройство.</string>
+    <string name="paywall_subscribe">Подписаться</string>
+    <string name="paywall_subscribe_price">Подписаться — %1$s / месяц</string>
+    <string name="paywall_trial_line">7 дней бесплатно, затем %1$s / месяц. Отмена в любой момент.</string>
 </resources>

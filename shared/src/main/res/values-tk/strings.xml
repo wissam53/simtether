@@ -139,4 +139,10 @@
     <string name="disclosure_client_body">SimTether jübütleme koduny skanirlemek üçin kamera, atlary görkezmek üçin kontaktlar we gönükdirilen jaňlary görkezmek üçin jaň rugsatlaryny sorar. Ähli maglumatlar ýerli tordyňyzda galýar — hiç zat ýüklenmeýär ýa-da paýlaşylmaýar.</string>
     <string name="disclosure_agree">Razy we dowam et</string>
     <string name="disclosure_decline">Häzir däl</string>
+
+    <string name="paywall_title">SimTether Pro</string>
+    <string name="paywall_body">Telefonlaryňyzyň arasynda jaň we SMS gönükdiriň — şifrli, öz tordyňyzda, hiç zat ýüklenmeden. Bu enjamy işjeňleşdirmek üçin abuna boluň.</string>
+    <string name="paywall_subscribe">Abuna bol</string>
+    <string name="paywall_subscribe_price">Abuna bol — %1$s / aý</string>
+    <string name="paywall_trial_line">7 gün mugt, soňra %1$s / aý. Islenen wagt ýatyr.</string>
 </resources>

@@ -11,6 +11,9 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Resolve the subscription entitlement early — the client role
+        // gates on it and Play's cache answers offline.
+        com.simtether.billing.Billing.init(this)
         // Role-specific services start from MainActivity role selection.
     }
 }

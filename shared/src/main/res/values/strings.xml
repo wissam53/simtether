@@ -158,4 +158,11 @@
     <string name="disclosure_client_body">SimTether needs the camera to scan the pairing code, contacts to show names, and call permissions to display relayed calls. All data stays on your local network — nothing is uploaded or shared.</string>
     <string name="disclosure_agree">Agree &amp; continue</string>
     <string name="disclosure_decline">Not now</string>
+
+    <!-- Paywall (client role subscription gate) -->
+    <string name="paywall_title">SimTether Pro</string>
+    <string name="paywall_body">Relay calls and SMS between your phones — encrypted, on your own network, nothing uploaded. Subscribe to activate this device.</string>
+    <string name="paywall_subscribe">Subscribe</string>
+    <string name="paywall_subscribe_price">Subscribe — %1$s / month</string>
+    <string name="paywall_trial_line">7 days free, then %1$s / month. Cancel anytime.</string>
 </resources>

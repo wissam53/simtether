@@ -20,11 +20,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,12 +83,33 @@ class MainActivity : ComponentActivity() {
                         )
                     } else when (role) {
                         Role.BRIDGE -> BridgeScreen()
-                        Role.CLIENT -> ClientScreen(
-                            onPaired = {
-                                startForegroundService(Intent(this, ClientService::class.java))
-                            },
-                            onResetRole = { resetRole() },
-                        )
+                        Role.CLIENT -> {
+                            val entitled by com.simtether.billing.Billing
+                                .entitled.collectAsState()
+                            val price by com.simtether.billing.Billing
+                                .price.collectAsState()
+                            when (entitled) {
+                                null -> androidx.compose.foundation.layout.Box(
+                                    Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) { CircularProgressIndicator() }
+                                false -> com.simtether.ui.PaywallScreen(
+                                    price = price,
+                                    onSubscribe = {
+                                        com.simtether.billing.Billing
+                                            .subscribe(this@MainActivity)
+                                    },
+                                )
+                                true -> ClientScreen(
+                                    onPaired = {
+                                        startForegroundService(
+                                            Intent(this@MainActivity,
+                                                ClientService::class.java))
+                                    },
+                                    onResetRole = { resetRole() },
+                                )
+                            }
+                        }
                         Role.NONE -> RolePicker(
                             onBridge = { pendingRole = Role.BRIDGE },
                             onClient = { pendingRole = Role.CLIENT },

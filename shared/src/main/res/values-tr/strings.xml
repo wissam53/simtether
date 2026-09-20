@@ -139,4 +139,10 @@
     <string name="disclosure_client_body">SimTether, eşleştirme kodunu taramak için kamera, isimleri göstermek için kişiler ve iletilen aramaları göstermek için arama izinleri ister. Tüm veriler yerel ağınızda kalır — hiçbir şey yüklenmez veya paylaşılmaz.</string>
     <string name="disclosure_agree">Kabul et ve devam et</string>
     <string name="disclosure_decline">Şimdi değil</string>
+
+    <string name="paywall_title">SimTether Pro</string>
+    <string name="paywall_body">Telefonlarınız arasında arama ve SMS aktarın — şifreli, kendi ağınızda, hiçbir şey yüklenmeden. Bu cihazı etkinleştirmek için abone olun.</string>
+    <string name="paywall_subscribe">Abone ol</string>
+    <string name="paywall_subscribe_price">Abone ol — %1$s / ay</string>
+    <string name="paywall_trial_line">7 gün ücretsiz, sonra %1$s / ay. İstediğinizde iptal edin.</string>
 </resources>

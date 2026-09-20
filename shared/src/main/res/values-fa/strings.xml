@@ -139,4 +139,10 @@
     <string name="disclosure_client_body">SimTether برای اسکن کد جفت‌سازی به دوربین، برای نمایش نام‌ها به مخاطبین و برای نمایش تماس‌های منتقل‌شده به مجوزهای تماس نیاز دارد. همهٔ داده‌ها در شبکهٔ محلی شما می‌مانند — هیچ‌چیز بارگذاری یا به اشتراک گذاشته نمی‌شود.</string>
     <string name="disclosure_agree">می‌پذیرم و ادامه</string>
     <string name="disclosure_decline">فعلاً نه</string>
+
+    <string name="paywall_title">SimTether Pro</string>
+    <string name="paywall_body">تماس‌ها و پیامک‌ها را بین گوشی‌هایتان منتقل کنید — رمزنگاری‌شده، روی شبکهٔ خودتان، بدون هیچ بارگذاری. برای فعال‌سازی این دستگاه مشترک شوید.</string>
+    <string name="paywall_subscribe">مشترک شوید</string>
+    <string name="paywall_subscribe_price">مشترک شوید — %1$s / ماهانه</string>
+    <string name="paywall_trial_line">۷ روز رایگان، سپس %1$s / ماهانه. لغو در هر زمان.</string>
 </resources>

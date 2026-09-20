@@ -60,6 +60,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -86,4 +87,10 @@ dependencies {
     // QR scan (client role) + QR render (bridge role)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("com.google.zxing:core:3.5.3")
+    // zxing drags an old androidx.fragment that breaks lint's
+    // registerForActivityResult check — force the version up.
+    implementation("androidx.fragment:fragment:1.8.5")
+
+    // Play Billing — subscription gate on the client role
+    implementation("com.android.billingclient:billing-ktx:7.1.1")
 }
