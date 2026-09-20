@@ -151,4 +151,11 @@
     <string name="companion_unsupported">Companion link needs Android 13+ — use the permission prompts instead</string>
     <string name="companion_failed">Linking failed — try again</string>
     <string name="grant_perms">Grant remaining permissions (%1$d)</string>
+
+    <!-- Prominent disclosure (Play requirement, before runtime perms) -->
+    <string name="disclosure_title">Before you continue</string>
+    <string name="disclosure_bridge_body">SimTether needs access to your SMS messages, calls, contacts and phone state to relay them to your own paired device over your local network. Messages and calls are end-to-end encrypted and are never uploaded to any server or shared with third parties — they only travel between your two phones.</string>
+    <string name="disclosure_client_body">SimTether needs the camera to scan the pairing code, contacts to show names, and call permissions to display relayed calls. All data stays on your local network — nothing is uploaded or shared.</string>
+    <string name="disclosure_agree">Agree &amp; continue</string>
+    <string name="disclosure_decline">Not now</string>
 </resources>

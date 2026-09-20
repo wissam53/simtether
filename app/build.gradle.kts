@@ -1,8 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// Upload-key credentials live in keystore.properties (gitignored).
+// Enrolled in Play App Signing → this key is only the upload key;
+// losing it is recoverable through Play support, but back it up anyway.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -15,6 +25,32 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1"
+    }
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+            storeFile = keystoreProps.getProperty("storeFile")
+                ?.let { rootProject.file(it) }
+            storePassword = keystoreProps.getProperty("storePassword")
+        }
+    }
+
+    buildTypes {
+        release {
+            // Unsigned when keystore.properties is absent (CI/fresh
+            // clone) — Play upload still requires a signed bundle.
+            if (keystoreProps.getProperty("keyAlias") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
     }
 
     compileOptions {

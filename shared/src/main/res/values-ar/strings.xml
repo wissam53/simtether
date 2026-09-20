@@ -133,4 +133,10 @@
     <string name="companion_unsupported">يتطلب ربط المرافق Android 13 أو أحدث — استخدم طلبات الأذونات بدلًا منه</string>
     <string name="companion_failed">فشل الربط — حاول مجددًا</string>
     <string name="grant_perms">منح الأذونات المتبقية (%1$d)</string>
+
+    <string name="disclosure_title">قبل المتابعة</string>
+    <string name="disclosure_bridge_body">يحتاج SimTether إلى الوصول إلى رسائل SMS والمكالمات وجهات الاتصال وحالة الهاتف لنقلها إلى جهازك المقترن عبر شبكتك المحلية. الرسائل والمكالمات مشفّرة من الطرف إلى الطرف، ولا تُرفع أبدًا إلى أي خادم ولا تُشارك مع أطراف ثالثة — تنتقل فقط بين هاتفيك.</string>
+    <string name="disclosure_client_body">يحتاج SimTether إلى الكاميرا لمسح رمز الاقتران، وجهات الاتصال لعرض الأسماء، وأذونات المكالمات لعرض المكالمات المنقولة. تبقى جميع البيانات على شبكتك المحلية — لا يُرفع أو يُشارك أي شيء.</string>
+    <string name="disclosure_agree">أوافق ومتابعة</string>
+    <string name="disclosure_decline">ليس الآن</string>
 </resources>

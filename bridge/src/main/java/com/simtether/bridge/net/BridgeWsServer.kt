@@ -23,6 +23,17 @@ class BridgeWsServer(
     private val onCommand: (Protocol.Envelope) -> Unit,
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
 
+    // Wildcard bind is required to survive hotspot↔WiFi topology
+    // changes without a rebind loop — but the socket must never serve
+    // a non-LAN peer (cellular iface included). Gate at onOpen: only
+    // private/link-local/loopback remotes proceed past this point;
+    // the pairing token gates the session itself.
+    private fun isLanPeer(addr: java.net.InetAddress): Boolean =
+        addr.isLoopbackAddress || addr.isLinkLocalAddress ||
+            addr.isSiteLocalAddress ||
+            // Java only maps fec0::/10 to site-local; fc00::/7 ULA too.
+            (addr.address.size == 16 && (addr.address[0].toInt() and 0xFE) == 0xFC)
+
     init {
         // A killed instance's socket can linger in TIME_WAIT and hold
         // the port — without reuse the restarted service can't bind.
@@ -45,6 +56,12 @@ class BridgeWsServer(
     }
 
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake) {
+        val ip = conn.remoteSocketAddress?.address
+        if (ip == null || !isLanPeer(ip)) {
+            Log.w(TAG, "rejected non-LAN client: ${conn.remoteSocketAddress}")
+            conn.close(4001, "lan only")
+            return
+        }
         Log.d(TAG, "client socket open: ${conn.remoteSocketAddress}")
         // Only one client makes sense — close any stale socket so its
         // session can't hijack sends or linger as a zombie.

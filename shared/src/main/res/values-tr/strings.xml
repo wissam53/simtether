@@ -133,4 +133,10 @@
     <string name="companion_unsupported">Eşlik bağlantısı Android 13+ gerektirir — izin istemlerini kullanın</string>
     <string name="companion_failed">Bağlantı kurulamadı — tekrar deneyin</string>
     <string name="grant_perms">Kalan izinleri ver (%1$d)</string>
+
+    <string name="disclosure_title">Devam etmeden önce</string>
+    <string name="disclosure_bridge_body">SimTether, SMS mesajlarınıza, aramalarınıza, kişilerinize ve telefon durumunuza erişim ister — bunları yalnızca kendi eşleştirilmiş cihazınıza yerel ağınız üzerinden iletmek için. Mesajlar ve aramalar uçtan uca şifrelenir; hiçbir sunucuya yüklenmez ve üçüncü taraflarla paylaşılmaz — yalnızca iki telefonunuz arasında taşınır.</string>
+    <string name="disclosure_client_body">SimTether, eşleştirme kodunu taramak için kamera, isimleri göstermek için kişiler ve iletilen aramaları göstermek için arama izinleri ister. Tüm veriler yerel ağınızda kalır — hiçbir şey yüklenmez veya paylaşılmaz.</string>
+    <string name="disclosure_agree">Kabul et ve devam et</string>
+    <string name="disclosure_decline">Şimdi değil</string>
 </resources>

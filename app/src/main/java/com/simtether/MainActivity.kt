@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +44,9 @@ enum class Role { NONE, BRIDGE, CLIENT }
 class MainActivity : ComponentActivity() {
 
     private var role by mutableStateOf(Role.NONE)
+    // Role picked but disclosure not yet accepted — Play requires an
+    // in-app disclosure before the runtime permission dialogs.
+    private var pendingRole by mutableStateOf<Role?>(null)
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(com.simtether.shared.LocaleHelper.wrap(newBase))
@@ -64,7 +69,17 @@ class MainActivity : ComponentActivity() {
                         .isAppearanceLightStatusBars = !dark
                 }
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    when (role) {
+                    val pending = pendingRole
+                    if (pending != null) {
+                        DisclosureScreen(
+                            role = pending,
+                            onAgree = {
+                                pendingRole = null
+                                enterRole(pending)
+                            },
+                            onDecline = { pendingRole = null },
+                        )
+                    } else when (role) {
                         Role.BRIDGE -> BridgeScreen()
                         Role.CLIENT -> ClientScreen(
                             onPaired = {
@@ -73,8 +88,8 @@ class MainActivity : ComponentActivity() {
                             onResetRole = { resetRole() },
                         )
                         Role.NONE -> RolePicker(
-                            onBridge = { enterRole(Role.BRIDGE) },
-                            onClient = { enterRole(Role.CLIENT) },
+                            onBridge = { pendingRole = Role.BRIDGE },
+                            onClient = { pendingRole = Role.CLIENT },
                         )
                     }
                 }
@@ -187,6 +202,43 @@ fun RolePicker(onBridge: () -> Unit, onClient: () -> Unit) {
         Button(onClick = onBridge) { Text(stringResource(R.string.role_bridge)) }
         Button(onClick = onClient, modifier = Modifier.padding(top = 12.dp)) {
             Text(stringResource(R.string.role_client))
+        }
+    }
+}
+
+/**
+ * Play's Prominent Disclosure requirement: before the system runtime
+ * dialogs, the app must explain in-app what the sensitive permissions
+ * are for and that data never leaves the user's own devices. Shown
+ * once per role pick; declining just returns to the picker.
+ */
+@Composable
+fun DisclosureScreen(role: Role, onAgree: () -> Unit, onDecline: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("SimTether", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            stringResource(R.string.disclosure_title),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        Text(
+            stringResource(
+                if (role == Role.BRIDGE) R.string.disclosure_bridge_body
+                else R.string.disclosure_client_body
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(vertical = 24.dp),
+        )
+        Button(onClick = onAgree, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.disclosure_agree))
+        }
+        TextButton(onClick = onDecline, modifier = Modifier.padding(top = 8.dp)) {
+            Text(stringResource(R.string.disclosure_decline))
         }
     }
 }

@@ -133,4 +133,10 @@
     <string name="companion_unsupported">Ýoldaş baglanyşygy üçin Android 13+ gerek — rugsat soraglaryny ulanyň</string>
     <string name="companion_failed">Baglanyşyk şowsuz — täzeden synanyşyň</string>
     <string name="grant_perms">Galan rugsatlary ber (%1$d)</string>
+
+    <string name="disclosure_title">Dowam etmezden öň</string>
+    <string name="disclosure_bridge_body">SimTether SMS, jaňlar, kontaktlar we telefon ýagdaýyna giriş sorar — bular diňe öz jübüt enjamyňyza ýerli tor arkaly ibermek üçin. Habarlar we jaňlar uçdan-uça şifrli; hiç bir serwere ýüklenmeýär we üçünji taraplara paýlaşylmaýar — diňe iki telefonyňyzyň arasynda gatnaýar.</string>
+    <string name="disclosure_client_body">SimTether jübütleme koduny skanirlemek üçin kamera, atlary görkezmek üçin kontaktlar we gönükdirilen jaňlary görkezmek üçin jaň rugsatlaryny sorar. Ähli maglumatlar ýerli tordyňyzda galýar — hiç zat ýüklenmeýär ýa-da paýlaşylmaýar.</string>
+    <string name="disclosure_agree">Razy we dowam et</string>
+    <string name="disclosure_decline">Häzir däl</string>
 </resources>

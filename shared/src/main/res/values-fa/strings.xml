@@ -133,4 +133,10 @@
     <string name="companion_unsupported">اتصال همراه به Android 13 یا بالاتر نیاز دارد — از درخواست‌های مجوز استفاده کنید</string>
     <string name="companion_failed">اتصال ناموفق بود — دوباره تلاش کنید</string>
     <string name="grant_perms">اعطای مجوزهای باقی‌مانده (%1$d)</string>
+
+    <string name="disclosure_title">قبل از ادامه</string>
+    <string name="disclosure_bridge_body">SimTether برای انتقال پیامک‌ها، تماس‌ها، مخاطبین و وضعیت تلفن به دستگاه جفت‌شدهٔ خودتان از طریق شبکهٔ محلی به دسترسی نیاز دارد. پیام‌ها و تماس‌ها رمزنگاری سرتاسری می‌شوند و هرگز به هیچ سروری بارگذاری یا با اشخاص ثالث به اشتراک گذاشته نمی‌شوند — فقط بین دو گوشی شما جابه‌جا می‌شوند.</string>
+    <string name="disclosure_client_body">SimTether برای اسکن کد جفت‌سازی به دوربین، برای نمایش نام‌ها به مخاطبین و برای نمایش تماس‌های منتقل‌شده به مجوزهای تماس نیاز دارد. همهٔ داده‌ها در شبکهٔ محلی شما می‌مانند — هیچ‌چیز بارگذاری یا به اشتراک گذاشته نمی‌شود.</string>
+    <string name="disclosure_agree">می‌پذیرم و ادامه</string>
+    <string name="disclosure_decline">فعلاً نه</string>
 </resources>

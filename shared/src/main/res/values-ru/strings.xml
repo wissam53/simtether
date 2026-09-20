@@ -133,4 +133,10 @@
     <string name="companion_unsupported">Связь-компаньон требует Android 13+ — используйте запросы разрешений</string>
     <string name="companion_failed">Не удалось привязать — повторите</string>
     <string name="grant_perms">Выдать остальные разрешения (%1$d)</string>
+
+    <string name="disclosure_title">Прежде чем продолжить</string>
+    <string name="disclosure_bridge_body">SimTether запрашивает доступ к SMS, звонкам, контактам и состоянию телефона, чтобы передавать их на ваше собственное сопряжённое устройство по локальной сети. Сообщения и звонки зашифрованы end-to-end, никогда не загружаются на сервер и не передаются третьим лицам — они перемещаются только между вашими двумя телефонами.</string>
+    <string name="disclosure_client_body">SimTether запрашивает доступ к камере для сканирования кода сопряжения, к контактам для показа имён и к звонкам для отображения переадресованных вызовов. Все данные остаются в локальной сети — ничего не загружается и не передаётся.</string>
+    <string name="disclosure_agree">Принять и продолжить</string>
+    <string name="disclosure_decline">Не сейчас</string>
 </resources>
