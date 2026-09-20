@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar notification icon: SIM glyph matching the launcher
+     icon. Monochrome — Android tints it; only the alpha channel is
+     used, so draw in white on transparent. evenOdd punches the
+     contact pads out of the card silhouette. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M10,4 L17,4 L17,20 L7,20 L7,6 Z M10,10 L15,10 L15,12.4 L10,12.4 Z M10,14 L15,14 L15,16.4 L10,16.4 Z" />
+</vector>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark variant: matches Compose SimTetherDarkColors so the
+         pre-Compose window doesn't flash light before the first frame. -->
+    <style name="Theme.SimTether" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/surface_dark</item>
+    </style>
+</resources>

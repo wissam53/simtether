@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_prompt">أي هاتف هذا؟</string>
+    <string name="role_bridge">هذا الهاتف فيه شريحتي</string>
+    <string name="role_client">هذا هاتفي الرئيسي</string>
+
+    <string name="home_no_bridge_title">لا يوجد جسر مقترن</string>
+    <string name="home_no_bridge_body">افتح SimTether على هاتف الشريحة، واختر وضع الجسر، ثم امسح رمز QR من الإعدادات.</string>
+    <string name="home_pair_now">اقترن الآن</string>
+    <string name="home_linked">● متصل</string>
+    <string name="home_linked_via">● متصل عبر %1$s</string>
+    <string name="home_offline">○ غير متصل — جارٍ البحث</string>
+    <string name="home_battery_line">البطارية %1$d%% · %2$s</string>
+    <string name="home_sim_not_ready"> · الشريحة غير جاهزة</string>
+    <string name="carrier_unknown">لا مشغّل</string>
+    <string name="recent">الأخيرة</string>
+    <string name="unknown">غير معروف</string>
+
+    <string name="nav_calls">المكالمات</string>
+    <string name="nav_messages">الرسائل</string>
+    <string name="nav_controls">التحكم</string>
+    <string name="nav_settings">الإعدادات</string>
+
+    <string name="offline_banner">الجسر غير متصل — جارٍ إعادة الاتصال…</string>
+    <string name="toast_offline">الجسر غير متصل</string>
+    <string name="cd_back">رجوع</string>
+    <string name="copied">تم النسخ</string>
+    <string name="action_call">اتصال</string>
+    <string name="action_send">إرسال</string>
+    <string name="action_fix">إصلاح</string>
+
+    <string name="new_message">رسالة جديدة</string>
+    <string name="field_to">إلى</string>
+    <string name="field_message">رسالة…</string>
+    <string name="cd_pick_contact">اختر جهة اتصال</string>
+    <string name="search_contacts">بحث في جهات الاتصال</string>
+    <string name="pick_contact_title">اختر جهة اتصال</string>
+    <string name="sms_sending">جارٍ الإرسال…</string>
+    <string name="sms_sent">تم الإرسال</string>
+    <string name="sms_delivered">تم التسليم</string>
+    <string name="sms_failed">فشل</string>
+    <string name="sms_unconfirmed">لم يُؤكَّد</string>
+
+    <string name="tab_recents">الأخيرة</string>
+    <string name="tab_contacts">جهات الاتصال</string>
+    <string name="new_call">مكالمة جديدة</string>
+    <string name="dialer_title">لوحة الاتصال</string>
+    <string name="enter_number">أدخل الرقم</string>
+    <string name="cd_delete">حذف</string>
+    <string name="call_label_missed">مكالمة فائتة</string>
+    <string name="call_label_no_answer">لا رد</string>
+    <string name="call_label_incoming">مكالمة واردة</string>
+    <string name="call_label_outgoing">مكالمة صادرة</string>
+
+    <string name="call_connecting">جارٍ توصيل المكالمة…</string>
+    <string name="call_incoming">مكالمة واردة</string>
+    <string name="call_ringing">يرن…</string>
+    <string name="call_dialing">جارٍ الاتصال…</string>
+    <string name="call_active">في مكالمة</string>
+    <string name="call_holding">معلّقة</string>
+    <string name="call_ended">انتهت المكالمة</string>
+    <string name="call_via_bridge">عبر الجسر</string>
+    <string name="call_decline">رفض</string>
+    <string name="call_answer">رد</string>
+    <string name="call_resume">استئناف</string>
+    <string name="call_hold">تعليق</string>
+    <string name="call_close">إغلاق</string>
+    <string name="call_end">إنهاء</string>
+    <string name="route_earpiece">سماعة الأذن</string>
+    <string name="route_speaker">مكبر الصوت</string>
+    <string name="route_bluetooth">بلوتوث</string>
+    <string name="route_wired">سلكي</string>
+
+    <string name="bridge_mode_title">وضع الجسر</string>
+    <string name="bridge_scan_hint">امسح هذا بهاتفك الرئيسي</string>
+    <string name="cd_pairing_qr">رمز QR للاقتران</string>
+    <string name="bridge_waiting_lan">بانتظار عنوان LAN — هل نقطة الاتصال مفعّلة؟</string>
+    <string name="bridge_starting">جارٍ بدء خدمة الجسر…</string>
+    <string name="dialer_held">✓ دور تطبيق الهاتف محفوظ — التحكم بالمكالمات نشط</string>
+    <string name="set_dialer">تعيين كتطبيق هاتف (مطلوب للمكالمات)</string>
+    <string name="keep_alive_title">أبقِ الجسر نشطاً</string>
+    <string name="health_battery">استثناء البطارية</string>
+    <string name="health_dnd">الوصول إلى عدم الإزعاج</string>
+    <string name="health_autostart_miui">التشغيل التلقائي (MIUI)</string>
+    <string name="health_samsung">تطبيقات لا تُوضع في السكون</string>
+    <string name="health_oppo">مدير بدء التشغيل (ColorOS)</string>
+    <string name="health_vivo">بدء التشغيل في الخلفية (Funtouch)</string>
+    <string name="health_huawei">تشغيل التطبيق (EMUI)</string>
+    <string name="health_oneplus">التشغيل التلقائي للتطبيق (OxygenOS)</string>
+    <string name="stop_bridge">إيقاف الجسر</string>
+    <string name="bridge_fallback_name">الجسر</string>
+
+    <string name="bridge_off_title">الجسر متوقف</string>
+    <string name="bridge_off_body">تعمل المكالمات والرسائل مباشرة على هذا الهاتف.</string>
+    <string name="start_bridge">تشغيل الجسر</string>
+
+    <string name="controls_title">تحكم الجسر</string>
+    <string name="controls_network">الشبكة: %1$s</string>
+    <string name="controls_battery">البطارية: %1$d%%</string>
+    <string name="controls_carrier">المشغّل: %1$s</string>
+    <string name="controls_ringer">الرنة: %1$s</string>
+    <string name="ringer_silent">صامت</string>
+    <string name="ringer_vibrate">اهتزاز</string>
+    <string name="ringer_normal">عادي</string>
+    <string name="ringer_unknown">؟</string>
+    <string name="refresh_status">تحديث الحالة</string>
+    <string name="mute_bridge">كتم الجسر</string>
+    <string name="unmute_bridge">إلغاء كتم الجسر</string>
+    <string name="controls_wifi_note">تبديل WiFi/نقطة الاتصال غير متاح للتطبيقات على أندرويد الخام — يبقى الجسر متاحاً ما دام الهاتفان على نفس الشبكة.</string>
+
+    <string name="settings_bridge_section">الجسر</string>
+    <string name="settings_last_bridge">%1$s · آخر %2$s:%3$s</string>
+    <string name="scan_prompt">امسح رمز QR على هاتف الجسر</string>
+    <string name="repair_scan">إعادة الاقتران (مسح QR)</string>
+    <string name="forget_bridge">نسيان هذا الجسر وإعادة الضبط</string>
+    <string name="settings_language">اللغة</string>
+    <string name="language_system">لغة النظام</string>
+
+    <string name="channel_bridge_link">رابط الجسر</string>
+    <string name="channel_bridge">الجسر</string>
+    <string name="channel_missed">مكالمات فائتة</string>
+    <string name="notif_connected">متصل بالجسر</string>
+    <string name="notif_offline">الجسر غير متصل — جارٍ إعادة الاتصال</string>
+    <string name="notif_bridge_active">جسر SimTether نشط</string>
+    <string name="notif_client_connected">متصل بهاتفك الرئيسي</string>
+    <string name="notif_waiting_client">بانتظار هاتفك الرئيسي…</string>
+    <string name="notif_answer_here">الهاتف الرئيسي غير متصل — رد هنا</string>
+    <string name="notif_missed_call">مكالمة فائتة</string>
+    <string name="companion_title">ربط جهاز مرافق</string>
+    <string name="companion_hint">افتح إعدادات Bluetooth على هاتفك الرئيسي ليظهر في القائمة — نافذة نظام واحدة تمنح أذونات الرسائل والمكالمات والخلفية.</string>
+    <string name="companion_link">الربط بالهاتف الرئيسي</string>
+    <string name="companion_linked">✓ تم الربط كجهاز مرافق</string>
+    <string name="companion_unsupported">يتطلب ربط المرافق Android 13 أو أحدث — استخدم طلبات الأذونات بدلًا منه</string>
+    <string name="companion_failed">فشل الربط — حاول مجددًا</string>
+    <string name="grant_perms">منح الأذونات المتبقية (%1$d)</string>
+</resources>

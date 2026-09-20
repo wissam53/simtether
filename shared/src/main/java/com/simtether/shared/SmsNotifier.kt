@@ -1,0 +1,49 @@
+package com.simtether.shared
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import androidx.core.app.NotificationCompat
+import com.simtether.shared.protocol.Protocol
+
+/**
+ * SMS events → notifications. Shared module: the client posts these
+ * for relayed SMS; the bridge posts them for local SMS when running
+ * the SIM phone's own UI (bridge off).
+ */
+object SmsNotifier {
+    private const val CHANNEL_ID = "sms"
+
+    fun notify(context: Context, sms: Protocol.SmsReceived) {
+        // Re-wrap so the notification follows the current language
+        // pick even when the caller's context predates it.
+        val context = LocaleHelper.wrap(context)
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID, context.getString(R.string.nav_messages),
+                NotificationManager.IMPORTANCE_HIGH)
+        )
+        val title = ContactLookup.nameFor(sms.address) ?: sms.address
+        val intent = android.content.Intent()
+            .setClassName(context.packageName, "com.simtether.MainActivity")
+            .putExtra(EXTRA_OPEN_THREAD, sms.address)
+        val pi = android.app.PendingIntent.getActivity(
+            context, sms.address.hashCode(), intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+        nm.notify(
+            sms.address.hashCode(),
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(sms.body)
+                .setSmallIcon(R.drawable.ic_stat_simtether)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build(),
+        )
+    }
+
+    const val EXTRA_OPEN_THREAD = "com.simtether.OPEN_THREAD"
+}

@@ -1,0 +1,176 @@
+package com.simtether.client.net
+
+import com.simtether.shared.crypto.SecureSession
+import com.simtether.shared.protocol.Protocol
+import android.util.Log
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import okio.ByteString
+import okio.ByteString.Companion.toByteString
+import java.util.UUID
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
+
+/**
+ * Reconnecting WS client → bridge server. On connect it immediately
+ * sends the ephemeral X25519 pubkey (binary frame 1), then all traffic
+ * is encrypted envelopes.
+ */
+/** A located bridge: address + the Network that can actually reach it.
+ *  socketFactory pins traffic to that network — without it Android
+ *  sends the connection out the *default* network (usually cellular)
+ *  and the LAN address is unreachable. */
+class ResolvedTarget(
+    val host: String,
+    val port: Int,
+    val socketFactory: javax.net.SocketFactory?,
+)
+
+class BridgeWsClient(
+    private val targetProvider: () -> ResolvedTarget?,
+    private val bridgeStaticPub: ByteArray,
+    private val pairingToken: ByteArray,
+    private val onEvent: (Protocol.Envelope) -> Unit,
+    private val onState: (Boolean) -> Unit = {},
+) {
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .pingInterval(15, TimeUnit.SECONDS)
+        .build()
+
+    private val seq = AtomicLong(0)
+    private val TAG = "SimTether.Client"
+    private val MAX_OUTBOX = 100
+    private var session: SecureSession? = null
+    private var ws: WebSocket? = null
+    @Volatile private var closed = false
+    private var backoffMs = 1_000L
+    private var lastState: Boolean? = null
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var pendingReconnect: Runnable? = null
+
+    // Offline outbox — only command types that opt in (sms.send) queue
+    // here; call/dial/control commands must never replay stale.
+    private val outbox = java.util.concurrent.ConcurrentLinkedQueue<Pair<String, String>>()
+
+    private fun emitState(up: Boolean) {
+        if (lastState == up) return
+        lastState = up
+        onState(up)
+    }
+
+    fun connect() {
+        // Resolution (cached-IP probe, then mDNS) can block — run off
+        // the main thread.
+        Thread({
+            if (closed) return@Thread
+            val target = targetProvider()
+            if (target == null) {
+                Log.d(TAG, "no reachable bridge yet, retrying")
+                scheduleReconnect()
+                return@Thread
+            }
+            openSocket(target)
+        }, "st-resolve").start()
+    }
+
+    private fun openSocket(target: ResolvedTarget) {
+        Log.d(TAG, "connecting to ${target.host}:${target.port}")
+        val request = Request.Builder().url("ws://${target.host}:${target.port}").build()
+        val client = target.socketFactory?.let {
+            http.newBuilder().socketFactory(it).build()
+        } ?: http
+        client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                val (ephPub, sess) = SecureSession.clientHandshake(bridgeStaticPub)
+                session = sess
+                ws = webSocket
+                // First frame: ephPub(32B) + pairing token(16B) — proves
+                // the QR scan to the bridge.
+                webSocket.send((ephPub + pairingToken).toByteString())
+                backoffMs = 1_000L
+                emitState(true)
+                // WS frames are ordered — flushing right after the
+                // handshake frame is safe; the server decrypts in order.
+                while (true) {
+                    val (t, p) = outbox.poll() ?: break
+                    Log.d(TAG, "flushing queued $t")
+                    sendCommand(t, p)
+                }
+            }
+
+            override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                val s = session ?: run { Log.w(TAG, "frame before session"); return }
+                val env = runCatching {
+                    Protocol.decode(s.decrypt(bytes.toByteArray()).decodeToString())
+                }.getOrElse {
+                    Log.e(TAG, "decrypt/decode failed", it)
+                    return
+                }
+                Log.d(TAG, "recv ${env.type} seq=${env.seq}")
+                onEvent(env)
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                Log.w(TAG, "ws failure: ${t.message} (code=${response?.code})")
+                scheduleReconnect()
+            }
+
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                Log.d(TAG, "ws closed code=$code reason=$reason")
+                scheduleReconnect()
+            }
+        })
+    }
+
+    fun sendCommand(type: String, payload: String, queueIfOffline: Boolean = false) {
+        val s = session
+        if (s == null || ws == null) {
+            if (queueIfOffline) {
+                while (outbox.size >= MAX_OUTBOX) outbox.poll() // drop oldest
+                outbox.add(type to payload)
+                Log.d(TAG, "queued $type (offline), depth=${outbox.size}")
+            }
+            return
+        }
+        val env = Protocol.Envelope(UUID.randomUUID().toString(), type, seq.incrementAndGet(), payload)
+        ws?.send(s.encrypt(Protocol.encode(env).toByteArray()).toByteString())
+    }
+
+    private fun scheduleReconnect() {
+        if (closed) return
+        emitState(false)
+        session = null
+        ws = null
+        val delay = backoffMs + java.util.concurrent.ThreadLocalRandom.current()
+            .nextLong(0, backoffMs / 2 + 1)
+        backoffMs = (backoffMs * 2).coerceAtMost(30_000L)
+        val r = Runnable {
+            pendingReconnect = null
+            if (!closed) connect()
+        }
+        pendingReconnect = r
+        handler.postDelayed(r, delay)
+    }
+
+    /**
+     * NetworkCallback fires this when a LAN transport appears — retry
+     * now instead of sleeping out the backoff (that 3-minute gap).
+     */
+    fun kick() {
+        if (closed) return
+        pendingReconnect?.let { handler.removeCallbacks(it) }
+        pendingReconnect = null
+        backoffMs = 1_000L
+        if (ws == null) connect()
+    }
+
+    fun close() {
+        closed = true
+        ws?.close(1000, "bye")
+        http.dispatcher.executorService.shutdown()
+    }
+}

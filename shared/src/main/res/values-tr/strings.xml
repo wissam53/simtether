@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_prompt">Bu hangi telefon?</string>
+    <string name="role_bridge">SIM kartım bu telefonda</string>
+    <string name="role_client">Ana telefonum bu</string>
+
+    <string name="home_no_bridge_title">Köprü eşleşmedi</string>
+    <string name="home_no_bridge_body">SIM telefonunda SimTether’ı açın, köprü modunu seçin, ardından Ayarlar’dan QR kodunu tarayın.</string>
+    <string name="home_pair_now">Şimdi eşle</string>
+    <string name="home_linked">● bağlı</string>
+    <string name="home_linked_via">● %1$s üzerinden bağlı</string>
+    <string name="home_offline">○ çevrimdışı — aranıyor</string>
+    <string name="home_battery_line">Pil %1$d%% · %2$s</string>
+    <string name="home_sim_not_ready"> · SIM hazır değil</string>
+    <string name="carrier_unknown">operatör yok</string>
+    <string name="recent">Son</string>
+    <string name="unknown">Bilinmiyor</string>
+
+    <string name="nav_calls">Aramalar</string>
+    <string name="nav_messages">Mesajlar</string>
+    <string name="nav_controls">Kontroller</string>
+    <string name="nav_settings">Ayarlar</string>
+
+    <string name="offline_banner">Köprü çevrimdışı — yeniden bağlanılıyor…</string>
+    <string name="toast_offline">Köprü çevrimdışı</string>
+    <string name="cd_back">Geri</string>
+    <string name="copied">Kopyalandı</string>
+    <string name="action_call">Ara</string>
+    <string name="action_send">Gönder</string>
+    <string name="action_fix">Düzelt</string>
+
+    <string name="new_message">Yeni mesaj</string>
+    <string name="field_to">Alıcı</string>
+    <string name="field_message">Mesaj…</string>
+    <string name="cd_pick_contact">Kişi seç</string>
+    <string name="search_contacts">Kişilerde ara</string>
+    <string name="pick_contact_title">Kişi seçin</string>
+    <string name="sms_sending">gönderiliyor…</string>
+    <string name="sms_sent">gönderildi</string>
+    <string name="sms_delivered">iletildi</string>
+    <string name="sms_failed">başarısız</string>
+    <string name="sms_unconfirmed">onaylanmadı</string>
+
+    <string name="tab_recents">Son aramalar</string>
+    <string name="tab_contacts">Kişiler</string>
+    <string name="new_call">Yeni arama</string>
+    <string name="dialer_title">Numara çevirici</string>
+    <string name="enter_number">Numara girin</string>
+    <string name="cd_delete">Sil</string>
+    <string name="call_label_missed">cevapsız arama</string>
+    <string name="call_label_no_answer">cevap yok</string>
+    <string name="call_label_incoming">gelen arama</string>
+    <string name="call_label_outgoing">giden arama</string>
+
+    <string name="call_connecting">Arama bağlanıyor…</string>
+    <string name="call_incoming">Gelen arama</string>
+    <string name="call_ringing">Çalıyor…</string>
+    <string name="call_dialing">Aranıyor…</string>
+    <string name="call_active">Aramada</string>
+    <string name="call_holding">Beklemede</string>
+    <string name="call_ended">Arama bitti</string>
+    <string name="call_via_bridge">köprü üzerinden</string>
+    <string name="call_decline">Reddet</string>
+    <string name="call_answer">Cevapla</string>
+    <string name="call_resume">Sürdür</string>
+    <string name="call_hold">Beklet</string>
+    <string name="call_close">Kapat</string>
+    <string name="call_end">Bitir</string>
+    <string name="route_earpiece">Ahize</string>
+    <string name="route_speaker">Hoparlör</string>
+    <string name="route_bluetooth">Bluetooth</string>
+    <string name="route_wired">Kablolu</string>
+
+    <string name="bridge_mode_title">Köprü modu</string>
+    <string name="bridge_scan_hint">Bunu ana telefonunuzla tarayın</string>
+    <string name="cd_pairing_qr">Eşleme QR kodu</string>
+    <string name="bridge_waiting_lan">LAN adresi bekleniyor — hotspot açık mı?</string>
+    <string name="bridge_starting">Köprü servisi başlatılıyor…</string>
+    <string name="dialer_held">✓ Telefon uygulaması rolü alındı — arama kontrolü aktif</string>
+    <string name="set_dialer">Telefon uygulaması olarak ayarla (aramalar için gerekli)</string>
+    <string name="keep_alive_title">Köprüyü canlı tut</string>
+    <string name="health_battery">Pil istisnası</string>
+    <string name="health_dnd">Rahatsız Etmeyin erişimi</string>
+    <string name="health_autostart_miui">Otomatik başlatma (MIUI)</string>
+    <string name="health_samsung">Hiç uyutulmayan uygulamalar</string>
+    <string name="health_oppo">Başlangıç yöneticisi (ColorOS)</string>
+    <string name="health_vivo">Arka plan başlatma (Funtouch)</string>
+    <string name="health_huawei">Uygulama başlatma (EMUI)</string>
+    <string name="health_oneplus">Uygulama otomatik başlatma (OxygenOS)</string>
+    <string name="stop_bridge">Köprüyü durdur</string>
+    <string name="bridge_fallback_name">Köprü</string>
+
+    <string name="bridge_off_title">Köprü kapalı</string>
+    <string name="bridge_off_body">Aramalar ve mesajlar doğrudan bu telefonda çalışır.</string>
+    <string name="start_bridge">Köprüyü başlat</string>
+
+    <string name="controls_title">Köprü kontrolleri</string>
+    <string name="controls_network">Ağ: %1$s</string>
+    <string name="controls_battery">Pil: %1$d%%</string>
+    <string name="controls_carrier">Operatör: %1$s</string>
+    <string name="controls_ringer">Zil sesi: %1$s</string>
+    <string name="ringer_silent">sessiz</string>
+    <string name="ringer_vibrate">titreşim</string>
+    <string name="ringer_normal">normal</string>
+    <string name="ringer_unknown">?</string>
+    <string name="refresh_status">Durumu yenile</string>
+    <string name="mute_bridge">Köprüyü sessize al</string>
+    <string name="unmute_bridge">Köprü sesini aç</string>
+    <string name="controls_wifi_note">WiFi/hotspot değiştirme stok Android’de uygulamalara açık değil — iki telefon aynı LAN’da olduğu sürece köprü erişilebilir kalır.</string>
+
+    <string name="settings_bridge_section">KÖPRÜ</string>
+    <string name="settings_last_bridge">%1$s · son %2$s:%3$s</string>
+    <string name="scan_prompt">Köprü telefonundaki QR kodu tarayın</string>
+    <string name="repair_scan">Yeniden eşle (QR tara)</string>
+    <string name="forget_bridge">Bu köprüyü unut ve sıfırla</string>
+    <string name="settings_language">Dil</string>
+    <string name="language_system">Sistem varsayılanı</string>
+
+    <string name="channel_bridge_link">Köprü bağlantısı</string>
+    <string name="channel_bridge">Köprü</string>
+    <string name="channel_missed">Cevapsız aramalar</string>
+    <string name="notif_connected">Köprüye bağlı</string>
+    <string name="notif_offline">Köprü çevrimdışı — yeniden bağlanılıyor</string>
+    <string name="notif_bridge_active">SimTether köprüsü aktif</string>
+    <string name="notif_client_connected">Ana telefonunuza bağlı</string>
+    <string name="notif_waiting_client">Ana telefonunuz bekleniyor…</string>
+    <string name="notif_answer_here">ana telefon çevrimdışı — buradan cevaplayın</string>
+    <string name="notif_missed_call">Cevapsız arama</string>
+    <string name="companion_title">Eşlik cihazı bağlantısı</string>
+    <string name="companion_hint">Ana telefonunuzun Bluetooth ayarlarını açın ki listede görünsün — tek bir sistem penceresi mesaj, arama ve arka plan izinlerini verir.</string>
+    <string name="companion_link">Ana telefona bağla</string>
+    <string name="companion_linked">✓ Eşlik cihazı olarak bağlandı</string>
+    <string name="companion_unsupported">Eşlik bağlantısı Android 13+ gerektirir — izin istemlerini kullanın</string>
+    <string name="companion_failed">Bağlantı kurulamadı — tekrar deneyin</string>
+    <string name="grant_perms">Kalan izinleri ver (%1$d)</string>
+</resources>

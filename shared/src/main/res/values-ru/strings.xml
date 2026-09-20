@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_prompt">Что это за телефон?</string>
+    <string name="role_bridge">На этом телефоне моя SIM</string>
+    <string name="role_client">Это мой основной телефон</string>
+
+    <string name="home_no_bridge_title">Мост не сопряжён</string>
+    <string name="home_no_bridge_body">Откройте SimTether на телефоне с SIM, выберите режим моста и отсканируйте QR-код в настройках.</string>
+    <string name="home_pair_now">Сопрячь</string>
+    <string name="home_linked">● подключено</string>
+    <string name="home_linked_via">● подключено через %1$s</string>
+    <string name="home_offline">○ не в сети — поиск</string>
+    <string name="home_battery_line">Батарея %1$d%% · %2$s</string>
+    <string name="home_sim_not_ready"> · SIM не готова</string>
+    <string name="carrier_unknown">нет оператора</string>
+    <string name="recent">Недавние</string>
+    <string name="unknown">Неизвестно</string>
+
+    <string name="nav_calls">Вызовы</string>
+    <string name="nav_messages">Сообщения</string>
+    <string name="nav_controls">Управление</string>
+    <string name="nav_settings">Настройки</string>
+
+    <string name="offline_banner">Мост не в сети — переподключение…</string>
+    <string name="toast_offline">Мост не в сети</string>
+    <string name="cd_back">Назад</string>
+    <string name="copied">Скопировано</string>
+    <string name="action_call">Позвонить</string>
+    <string name="action_send">Отправить</string>
+    <string name="action_fix">Исправить</string>
+
+    <string name="new_message">Новое сообщение</string>
+    <string name="field_to">Кому</string>
+    <string name="field_message">Сообщение…</string>
+    <string name="cd_pick_contact">Выбрать контакт</string>
+    <string name="search_contacts">Поиск контактов</string>
+    <string name="pick_contact_title">Выберите контакт</string>
+    <string name="sms_sending">отправка…</string>
+    <string name="sms_sent">отправлено</string>
+    <string name="sms_delivered">доставлено</string>
+    <string name="sms_failed">ошибка</string>
+    <string name="sms_unconfirmed">не подтверждено</string>
+
+    <string name="tab_recents">Недавние</string>
+    <string name="tab_contacts">Контакты</string>
+    <string name="new_call">Новый вызов</string>
+    <string name="dialer_title">Номеронабиратель</string>
+    <string name="enter_number">Введите номер</string>
+    <string name="cd_delete">Удалить</string>
+    <string name="call_label_missed">пропущенный</string>
+    <string name="call_label_no_answer">без ответа</string>
+    <string name="call_label_incoming">входящий</string>
+    <string name="call_label_outgoing">исходящий</string>
+
+    <string name="call_connecting">Соединение…</string>
+    <string name="call_incoming">Входящий вызов</string>
+    <string name="call_ringing">Вызов…</string>
+    <string name="call_dialing">Набор номера…</string>
+    <string name="call_active">Разговор</string>
+    <string name="call_holding">На удержании</string>
+    <string name="call_ended">Вызов завершён</string>
+    <string name="call_via_bridge">через мост</string>
+    <string name="call_decline">Отклонить</string>
+    <string name="call_answer">Ответить</string>
+    <string name="call_resume">Продолжить</string>
+    <string name="call_hold">Удержать</string>
+    <string name="call_close">Закрыть</string>
+    <string name="call_end">Завершить</string>
+    <string name="route_earpiece">Трубка</string>
+    <string name="route_speaker">Громкая связь</string>
+    <string name="route_bluetooth">Bluetooth</string>
+    <string name="route_wired">Проводные</string>
+
+    <string name="bridge_mode_title">Режим моста</string>
+    <string name="bridge_scan_hint">Отсканируйте на основном телефоне</string>
+    <string name="cd_pairing_qr">QR-код сопряжения</string>
+    <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
+    <string name="bridge_starting">Запуск службы моста…</string>
+    <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>
+    <string name="set_dialer">Сделать приложением телефона (нужно для вызовов)</string>
+    <string name="keep_alive_title">Не давать мосту уснуть</string>
+    <string name="health_battery">Исключение из экономии заряда</string>
+    <string name="health_dnd">Доступ к режиму «Не беспокоить»</string>
+    <string name="health_autostart_miui">Автозапуск (MIUI)</string>
+    <string name="health_samsung">Без перевода в сон</string>
+    <string name="health_oppo">Менеджер автозапуска (ColorOS)</string>
+    <string name="health_vivo">Фоновый запуск (Funtouch)</string>
+    <string name="health_huawei">Запуск приложения (EMUI)</string>
+    <string name="health_oneplus">Автозапуск приложения (OxygenOS)</string>
+    <string name="stop_bridge">Остановить мост</string>
+    <string name="bridge_fallback_name">Мост</string>
+
+    <string name="bridge_off_title">Мост выключен</string>
+    <string name="bridge_off_body">Вызовы и сообщения работают напрямую на этом телефоне.</string>
+    <string name="start_bridge">Запустить мост</string>
+
+    <string name="controls_title">Управление мостом</string>
+    <string name="controls_network">Сеть: %1$s</string>
+    <string name="controls_battery">Батарея: %1$d%%</string>
+    <string name="controls_carrier">Оператор: %1$s</string>
+    <string name="controls_ringer">Звук: %1$s</string>
+    <string name="ringer_silent">без звука</string>
+    <string name="ringer_vibrate">вибрация</string>
+    <string name="ringer_normal">обычный</string>
+    <string name="ringer_unknown">?</string>
+    <string name="refresh_status">Обновить статус</string>
+    <string name="mute_bridge">Отключить звук моста</string>
+    <string name="unmute_bridge">Включить звук моста</string>
+    <string name="controls_wifi_note">Переключение WiFi/точки доступа недоступно приложениям на чистом Android — мост остаётся доступен, пока оба телефона в одной сети.</string>
+
+    <string name="settings_bridge_section">МОСТ</string>
+    <string name="settings_last_bridge">%1$s · последний %2$s:%3$s</string>
+    <string name="scan_prompt">Отсканируйте QR-код на телефоне-мосте</string>
+    <string name="repair_scan">Сопрячь заново (QR)</string>
+    <string name="forget_bridge">Забыть мост и сбросить</string>
+    <string name="settings_language">Язык</string>
+    <string name="language_system">Как в системе</string>
+
+    <string name="channel_bridge_link">Связь с мостом</string>
+    <string name="channel_bridge">Мост</string>
+    <string name="channel_missed">Пропущенные вызовы</string>
+    <string name="notif_connected">Подключено к мосту</string>
+    <string name="notif_offline">Мост не в сети — переподключение</string>
+    <string name="notif_bridge_active">Мост SimTether активен</string>
+    <string name="notif_client_connected">Подключено к основному телефону</string>
+    <string name="notif_waiting_client">Ожидание основного телефона…</string>
+    <string name="notif_answer_here">основной телефон не в сети — ответьте здесь</string>
+    <string name="notif_missed_call">Пропущенный вызов</string>
+    <string name="companion_title">Связь-компаньон</string>
+    <string name="companion_hint">Откройте настройки Bluetooth на основном телефоне, чтобы он появился в списке — один системный диалог выдаст разрешения на сообщения, звонки и фоновую работу.</string>
+    <string name="companion_link">Привязать основной телефон</string>
+    <string name="companion_linked">✓ Привязано как сопутствующее устройство</string>
+    <string name="companion_unsupported">Связь-компаньон требует Android 13+ — используйте запросы разрешений</string>
+    <string name="companion_failed">Не удалось привязать — повторите</string>
+    <string name="grant_perms">Выдать остальные разрешения (%1$d)</string>
+</resources>
