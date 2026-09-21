@@ -23,6 +23,12 @@ object ClientServiceHolder {
     val connected: StateFlow<Boolean> = _connected
     fun setConnected(v: Boolean) { _connected.value = v }
 
+    /** Bridge rotated its identity — the stored pairing is dead and
+     *  the user must re-scan the new QR. */
+    private val _pairingRevoked = MutableStateFlow(false)
+    val pairingRevoked: StateFlow<Boolean> = _pairingRevoked
+    fun setPairingRevoked(v: Boolean) { _pairingRevoked.value = v }
+
     fun sendSms(address: String, body: String, ref: String? = null) {
         localBackend?.let { it.sendSms(address, body, ref); return }
         val payload = Protocol.json.encodeToString(

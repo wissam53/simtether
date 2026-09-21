@@ -113,6 +113,12 @@
     <string name="scan_prompt">امسح رمز QR على هاتف الجسر</string>
     <string name="repair_scan">إعادة الاقتران (مسح QR)</string>
     <string name="forget_bridge">نسيان هذا الجسر وإعادة الضبط</string>
+    <string name="repair_button">إعادة إقران الجهاز</string>
+    <string name="repair_title">إلغاء الإقران الحالي؟</string>
+    <string name="repair_body">يفقد الهاتف المُقترن الوصول فورًا ويجب عليه مسح رمز QR الجديد لإعادة الاتصال. استخدم هذا إذا فُقد الهاتف أو تسربت صورة الرمز.</string>
+    <string name="repair_confirm">إلغاء وإعادة الإقران</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="pairing_revoked">أُلغي الإقران على الجسر — أعد مسح رمز QR من الإعدادات لإعادة الاتصال.</string>
     <string name="settings_language">اللغة</string>
     <string name="language_system">لغة النظام</string>
 

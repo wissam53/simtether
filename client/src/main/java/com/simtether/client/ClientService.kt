@@ -80,6 +80,9 @@ class ClientService : LifecycleService() {
 
     private fun connectToBridge() {
         val pairing = PairingStore.load(applicationContext) ?: return // not paired yet
+        // A fresh attempt with (possibly) fresh credentials — clear any
+        // stale revocation banner from a previous dead pairing.
+        ClientServiceHolder.setPairingRevoked(false)
 
         // Skip if we're already connecting/connected to the same bridge —
         // onCreate + onStartCommand both run on first start and would
@@ -99,6 +102,7 @@ class ClientService : LifecycleService() {
                 ClientServiceHolder.setConnected(up)
                 updateNotification(up)
             },
+            onRevoked = { ClientServiceHolder.setPairingRevoked(true) },
         ).also { it.connect() }
     }
 

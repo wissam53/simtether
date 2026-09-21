@@ -36,6 +36,9 @@ class BridgeWsClient(
     private val pairingToken: ByteArray,
     private val onEvent: (Protocol.Envelope) -> Unit,
     private val onState: (Boolean) -> Unit = {},
+    // Fired when the bridge rejects our token (4003) — the pairing was
+    // revoked/rotated; reconnecting is futile until the user re-pairs.
+    private val onRevoked: () -> Unit = {},
 ) {
     private val http = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
@@ -136,6 +139,14 @@ class BridgeWsClient(
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "ws closed code=$code reason=$reason")
+                if (code == 4003) {
+                    // Pairing token rejected — the bridge rotated its
+                    // identity. Mark closed so no retry ever fires.
+                    closed = true
+                    emitState(false)
+                    onRevoked()
+                    return
+                }
                 scheduleReconnect()
             }
         })

@@ -113,6 +113,12 @@
     <string name="scan_prompt">Отсканируйте QR-код на телефоне-мосте</string>
     <string name="repair_scan">Сопрячь заново (QR)</string>
     <string name="forget_bridge">Забыть мост и сбросить</string>
+    <string name="repair_button">Перепривязать устройство</string>
+    <string name="repair_title">Отозвать текущую привязку?</string>
+    <string name="repair_body">Сопряжённый телефон сразу потеряет доступ и должен будет отсканировать новый QR-код. Используйте, если телефон утерян или изображение QR утекло.</string>
+    <string name="repair_confirm">Отозвать и перепривязать</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="pairing_revoked">Привязка отозвана на мосте — отсканируйте QR-код в настройках для переподключения.</string>
     <string name="settings_language">Язык</string>
     <string name="language_system">Как в системе</string>
 

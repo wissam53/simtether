@@ -113,6 +113,12 @@
     <string name="scan_prompt">Köpri telefonyndaky QR-kody skanirläň</string>
     <string name="repair_scan">Täzeden eşle (QR skanirle)</string>
     <string name="forget_bridge">Bu köprini unut we arassala</string>
+    <string name="repair_button">Enjamy täzeden jübütle</string>
+    <string name="repair_title">Häzirki jübütlik ýatyrylsynmy?</string>
+    <string name="repair_body">Jübütlenen telefon derrew elýeterliligini ýitirer we täzeden birikmek üçin täze QR kody skanirlemeli. Telefon ýitirilse ýa-da QR şekili syýsa, munu ulanyň.</string>
+    <string name="repair_confirm">Ýatyr we täzeden jübütle</string>
+    <string name="action_cancel">Ýatyr</string>
+    <string name="pairing_revoked">Jübütlik köprüde ýatyryldy — täzeden birikmek üçin Sazlamalardan QR kody skanirlaň.</string>
     <string name="settings_language">Dil</string>
     <string name="language_system">Sistem boýunça</string>
 

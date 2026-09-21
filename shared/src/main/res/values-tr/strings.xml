@@ -113,6 +113,12 @@
     <string name="scan_prompt">Köprü telefonundaki QR kodu tarayın</string>
     <string name="repair_scan">Yeniden eşle (QR tara)</string>
     <string name="forget_bridge">Bu köprüyü unut ve sıfırla</string>
+    <string name="repair_button">Cihazı yeniden eşleştir</string>
+    <string name="repair_title">Mevcut eşleşme iptal edilsin mi?</string>
+    <string name="repair_body">Eşleşen telefon erişimi anında kaybeder ve yeniden bağlanmak için yeni QR kodu okutmalıdır. Telefon kaybolduysa veya QR görüntüsü sızdıysa bunu kullanın.</string>
+    <string name="repair_confirm">İptal et ve yeniden eşleştir</string>
+    <string name="action_cancel">Vazgeç</string>
+    <string name="pairing_revoked">Eşleşme köprüde iptal edildi — yeniden bağlanmak için Ayarlar\'dan QR kodu okutun.</string>
     <string name="settings_language">Dil</string>
     <string name="language_system">Sistem varsayılanı</string>
 

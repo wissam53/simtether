@@ -113,6 +113,12 @@
     <string name="scan_prompt">QR روی گوشی پل را اسکن کنید</string>
     <string name="repair_scan">جفت‌سازی مجدد (اسکن QR)</string>
     <string name="forget_bridge">فراموش کردن این پل و بازنشانی</string>
+    <string name="repair_button">جفت‌سازی مجدد دستگاه</string>
+    <string name="repair_title">لغو جفت‌سازی فعلی؟</string>
+    <string name="repair_body">گوشی جفت‌شده بلافاصله دسترسی را از دست می‌دهد و برای اتصال مجدد باید کد QR جدید را اسکن کند. اگر گوشی گم شده یا تصویر کد لو رفته، از این استفاده کنید.</string>
+    <string name="repair_confirm">لغو و جفت‌سازی مجدد</string>
+    <string name="action_cancel">انصراف</string>
+    <string name="pairing_revoked">جفت‌سازی روی پل لغو شد — برای اتصال مجدد کد QR را از تنظیمات اسکن کنید.</string>
     <string name="settings_language">زبان</string>
     <string name="language_system">پیش‌فرض سیستم</string>
 

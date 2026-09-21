@@ -59,6 +59,12 @@ class BridgeService : LifecycleService() {
         startForegroundWithNotification()
         val (staticKey, token) = loadOrCreateIdentity()
         pairingToken = token
+        startRelay(staticKey, token)
+        loadPending()
+        acquireLocks()
+    }
+
+    private fun startRelay(staticKey: Pair<ByteArray, ByteArray>, token: ByteArray) {
         server = BridgeWsServer(
             port = Protocol.WS_PORT,
             staticKeyPair = staticKey,
@@ -79,13 +85,37 @@ class BridgeService : LifecycleService() {
             },
             onCommand = { env -> lifecycleScope.launch(Dispatchers.IO) { handleCommand(env) } },
         ).also { it.start() }
-        loadPending()
         advertiser = BridgeAdvertiser(
             applicationContext,
             Identity.serviceName(staticKey.second),
             Protocol.WS_PORT,
         ).also { it.start() }
-        acquireLocks()
+    }
+
+    /**
+     * Re-pair: rotate the static identity + pairing token. A leaked QR
+     * or lost client phone loses access instantly — the old key can't
+     * authenticate an IK handshake, the old token fails verification,
+     * and the mDNS advert moves to the new key's fingerprint. The user
+     * scans the fresh QR on the client to restore the link.
+     */
+    fun rePair() {
+        val enc = Base64.getEncoder()
+        val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
+        val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+        com.simtether.shared.SecureStore
+            .putString(this, "bridge_keys", "static_priv", enc.encodeToString(pair.first))
+        com.simtether.shared.SecureStore
+            .putString(this, "bridge_keys", "static_pub", enc.encodeToString(pair.second))
+        com.simtether.shared.SecureStore
+            .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(token))
+        pairingToken = token
+        runCatching { server?.stop() }
+        server = null
+        runCatching { advertiser?.stop() }
+        advertiser = null
+        startRelay(pair, token)
+        Log.i(TAG, "identity rotated — previous pairing revoked")
     }
 
     /**

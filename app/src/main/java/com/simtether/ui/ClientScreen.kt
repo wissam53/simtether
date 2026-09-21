@@ -159,9 +159,23 @@ internal fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit
     val calls by CallLogStore.entries.collectAsState()
     val names by ContactLookup.names.collectAsState()
     val paired = remember { PairingStore.isPaired(context) }
+    val revoked by ClientServiceHolder.pairingRevoked.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("SimTether", style = MaterialTheme.typography.headlineMedium)
+
+        if (paired && revoked) {
+            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(stringResource(R.string.pairing_revoked),
+                        style = MaterialTheme.typography.bodyMedium)
+                    Button(
+                        onClick = { onNavigate(Screen.Settings) },
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) { Text(stringResource(R.string.repair_scan)) }
+                }
+            }
+        }
 
         if (!paired) {
             Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {

@@ -128,6 +128,12 @@
     <string name="scan_prompt">Scan the QR on the bridge phone</string>
     <string name="repair_scan">Re-pair (scan QR)</string>
     <string name="forget_bridge">Forget this bridge &amp; reset</string>
+    <string name="repair_button">Re-pair device</string>
+    <string name="repair_title">Revoke current pairing?</string>
+    <string name="repair_body">The paired phone loses access immediately and must scan the new QR code. Use this if a phone was lost or a QR image leaked.</string>
+    <string name="repair_confirm">Revoke &amp; re-pair</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="pairing_revoked">Pairing revoked on the bridge — re-scan the QR in Settings to reconnect.</string>
     <string name="settings_language">Language</string>
     <string name="language_system">System default</string>
 

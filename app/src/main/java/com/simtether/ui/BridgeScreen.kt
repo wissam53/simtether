@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -281,14 +282,38 @@ fun BridgeScreen() {
             }
         }
 
+        var confirmRepair by remember { mutableStateOf(false) }
+        androidx.compose.material3.OutlinedButton(
+            onClick = { confirmRepair = true },
+            modifier = Modifier.padding(top = 16.dp),
+        ) { Text(stringResource(R.string.repair_button)) }
+
         androidx.compose.material3.OutlinedButton(
             onClick = {
                 BridgeService.setEnabled(context, false)
                 context.stopService(
                     android.content.Intent(context, BridgeService::class.java))
             },
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = 8.dp),
         ) { Text(stringResource(R.string.stop_bridge)) }
+
+        // Rotating the identity kills the current pairing — confirm.
+        if (confirmRepair) AlertDialog(
+            onDismissRequest = { confirmRepair = false },
+            title = { Text(stringResource(R.string.repair_title)) },
+            text = { Text(stringResource(R.string.repair_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRepair = false
+                    BridgeServiceHolder.service?.rePair()
+                }) { Text(stringResource(R.string.repair_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRepair = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
 
         LanguagePicker()
 
