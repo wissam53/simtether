@@ -145,4 +145,5 @@
     <string name="paywall_subscribe">Abone ol</string>
     <string name="paywall_subscribe_price">Abone ol — %1$s / ay</string>
     <string name="paywall_trial_line">7 gün ücretsiz, sonra %1$s / ay. İstediğinizde iptal edin.</string>
+    <string name="paywall_restore">Satın alımı geri yükle</string>
 </resources>

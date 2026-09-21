@@ -50,10 +50,15 @@ class BridgeInCallService : InCallService() {
 
     private fun emit(id: String, call: Call, forceDisconnected: Boolean = false) {
         val d = call.details
+        // callDirection is API 29+ — on 26–28 infer from the ringing
+        // state (incoming calls pass through RINGING, outgoing don't).
+        // 0 = DIRECTION_INCOMING, 1 = DIRECTION_OUTGOING.
+        val direction = if (android.os.Build.VERSION.SDK_INT >= 29) d.callDirection
+                        else if (call.state == Call.STATE_RINGING) 0 else 1
         val event = Protocol.CallEvent(
             callId = id,
             state = if (forceDisconnected) Protocol.CallEvent.State.DISCONNECTED
-                    else mapState(call.state, d.callDirection),
+                    else mapState(call.state, direction),
             number = d.handle?.schemeSpecificPart,
             displayName = d.callerDisplayName
                 ?: d.handle?.schemeSpecificPart?.let {
@@ -62,7 +67,7 @@ class BridgeInCallService : InCallService() {
                     // (and the client) can show a real name.
                     com.simtether.shared.ContactLookup.resolveBlocking(it)
                 },
-            incoming = d.callDirection == Call.Details.DIRECTION_INCOMING,
+            incoming = direction == 0,
             audioRoute = audioState?.route,
             availableRoutes = audioState?.supportedRouteMask,
         )

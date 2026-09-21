@@ -68,9 +68,16 @@ object SmsSender {
 
     private fun activeSubId(context: Context): Int? = runCatching {
         val sm = context.getSystemService(SubscriptionManager::class.java)
-        val id = SubscriptionManager.getActiveDataSubscriptionId()
+        // getActiveDataSubscriptionId is API 30+.
+        val id = if (android.os.Build.VERSION.SDK_INT >= 30)
+            SubscriptionManager.getActiveDataSubscriptionId()
+        else SubscriptionManager.INVALID_SUBSCRIPTION_ID
         if (id != SubscriptionManager.INVALID_SUBSCRIPTION_ID) id
-        else sm?.activeSubscriptionInfoList?.firstOrNull()?.subscriptionId
+        // activeSubscriptionInfoList needs READ_PHONE_STATE.
+        else if (context.checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED)
+            sm?.activeSubscriptionInfoList?.firstOrNull()?.subscriptionId
+        else null
     }.getOrNull()?.takeIf { it != SubscriptionManager.INVALID_SUBSCRIPTION_ID }
 
     const val ACTION_SENT = "com.simtether.SMS_SENT"

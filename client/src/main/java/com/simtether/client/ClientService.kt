@@ -226,10 +226,26 @@ class ClientService : LifecycleService() {
         )
         val notif = buildNotification(connected = false)
         if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            startForeground(NOTIF_ID, notif, foregroundType())
         } else {
             startForeground(NOTIF_ID, notif)
         }
+    }
+
+    /**
+     * dataSync FGS is capped at 6h/24h on Android 15 — fatal for a
+     * persistent link. connectedDevice has no cap but requires
+     * NEARBY_WIFI_DEVICES granted or a CDM association; dataSync is
+     * the pre-grant fallback only.
+     */
+    private fun foregroundType(): Int {
+        val nearbyGranted = Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        return if (nearbyGranted)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        else
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
     }
 
     private fun buildNotification(connected: Boolean): Notification {

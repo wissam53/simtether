@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +23,7 @@ import com.simtether.shared.R
  * always matches what the store sheet will charge.
  */
 @Composable
-fun PaywallScreen(price: String?, onSubscribe: () -> Unit) {
+fun PaywallScreen(price: String?, onSubscribe: () -> Unit, onRestore: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
@@ -55,6 +56,11 @@ fun PaywallScreen(price: String?, onSubscribe: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 12.dp),
             )
+        }
+        // Existing subscribers on a new/reinstalled device land here —
+        // restore re-queries Play's cached entitlements.
+        TextButton(onClick = onRestore, modifier = Modifier.padding(top = 8.dp)) {
+            Text(stringResource(R.string.paywall_restore))
         }
     }
 }

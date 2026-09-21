@@ -76,6 +76,13 @@ object CallRouter {
      * in-call UI; the Connection relays the dial to the bridge.
      */
     fun placeOutgoingCall(context: Context, number: String) {
+        // MANAGE_OWN_CALLS is requested at role entry, but the user can
+        // revoke it in Settings — check rather than crash the dial path.
+        if (context.checkSelfPermission(android.Manifest.permission.MANAGE_OWN_CALLS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            android.util.Log.w("SimTether.CallRouter", "placeCall: MANAGE_OWN_CALLS missing")
+            return
+        }
         ensurePhoneAccount(context)
         val extras = Bundle().apply {
             putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle(context))

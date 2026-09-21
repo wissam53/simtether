@@ -43,6 +43,12 @@ object Billing {
 
     private var productDetails: ProductDetails? = null
     private var connected = false
+    private var retries = 0
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** A subscribe tap that arrived before billing was ready — fires
+     *  once connection + product details are both in place. */
+    private var pendingLaunch: java.lang.ref.WeakReference<Activity>? = null
 
     fun init(app: Application) {
         if (BuildConfig.DEBUG) { _entitled.value = true; return }
@@ -64,18 +70,33 @@ object Billing {
             override fun onBillingSetupFinished(result: BillingResult) {
                 connected = result.responseCode == BillingClient.BillingResponseCode.OK
                 if (connected) {
+                    retries = 0
                     refreshPurchases()
                     loadProduct()
                 } else {
                     Log.w(TAG, "billing setup failed: ${result.debugMessage}")
-                    _entitled.value = false
+                    retryConnect()
                 }
             }
 
             override fun onBillingServiceDisconnected() {
                 connected = false
+                retryConnect()
             }
         })
+    }
+
+    private fun retryConnect() {
+        if (retries >= 5) {
+            // Give up — surface the paywall rather than an endless
+            // spinner, but never mark un-entitled on a *transient*
+            // failure: a paying user on flaky Wi-Fi must not see the
+            // paywall just because the query errored.
+            if (_entitled.value == null) _entitled.value = false
+            return
+        }
+        retries++
+        handler.postDelayed({ if (!connected) connect() }, 2_000L * retries)
     }
 
     private fun refreshPurchases() {
@@ -83,7 +104,11 @@ object Billing {
             QueryPurchasesParams.newBuilder()
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
-        ) { _, purchases ->
+        ) { result, purchases ->
+            if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                Log.w(TAG, "purchase query failed: ${result.debugMessage}")
+                return@queryPurchasesAsync
+            }
             var owned = false
             for (p in purchases) {
                 if (p.products.contains(PRODUCT_ID) &&
@@ -94,6 +119,11 @@ object Billing {
             }
             _entitled.value = owned
         }
+    }
+
+    /** Re-query Play's purchase cache — the paywall "restore" path. */
+    fun refresh() {
+        if (connected) refreshPurchases() else connect()
     }
 
     private fun handlePurchase(p: Purchase) {
@@ -123,27 +153,47 @@ object Billing {
                         .build()
                 )
             ).build()
-        ) { _, details ->
-            val pd = details.firstOrNull()
+        ) { result, details ->
+            if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                Log.w(TAG, "product query failed: ${result.debugMessage}")
+                return@queryProductDetailsAsync
+            }
+            val pd = details.firstOrNull() ?: run {
+                Log.w(TAG, "product $PRODUCT_ID not found — check Console config")
+                return@queryProductDetailsAsync
+            }
             productDetails = pd
-            val offer = pd?.subscriptionOfferDetails?.firstOrNull()
             // Last phase = the recurring price (earlier phases are the
             // trial/discount periods).
-            _price.value = offer?.pricingPhases?.pricingPhaseList
+            _price.value = pickOffer(pd)?.pricingPhases?.pricingPhaseList
                 ?.lastOrNull()?.formattedPrice
+            maybeLaunch()
         }
     }
 
+    /** Prefer the offer with a free phase (the trial); else the first. */
+    private fun pickOffer(pd: ProductDetails) =
+        pd.subscriptionOfferDetails?.firstOrNull { offer ->
+            offer.pricingPhases.pricingPhaseList.any { it.priceAmountMicros == 0L }
+        } ?: pd.subscriptionOfferDetails?.firstOrNull()
+
     /** Opens Play's subscription sheet; the trial auto-applies if eligible. */
     fun subscribe(activity: Activity) {
-        if (!connected) { connect(); return }
-        val pd = productDetails ?: run {
-            Log.w(TAG, "subscribe before product load")
-            loadProduct()
-            return
+        pendingLaunch = java.lang.ref.WeakReference(activity)
+        when {
+            !connected -> connect()
+            productDetails == null -> loadProduct()
+            else -> maybeLaunch()
         }
-        val offerToken = pd.subscriptionOfferDetails?.firstOrNull()?.offerToken
-            ?: run { Log.w(TAG, "no subscription offers"); return }
+    }
+
+    private fun maybeLaunch() {
+        val activity = pendingLaunch?.get() ?: return
+        val pd = productDetails ?: return
+        if (!connected) return
+        val offerToken = pickOffer(pd)?.offerToken
+            ?: run { Log.w(TAG, "no subscription offers"); pendingLaunch = null; return }
+        pendingLaunch = null
         val params = BillingFlowParams.newBuilder().setProductDetailsParamsList(
             listOf(
                 BillingFlowParams.ProductDetailsParams.newBuilder()

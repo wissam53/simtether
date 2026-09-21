@@ -1,2 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Normal (install-time) permissions this module's code paths use —
+         declared here so library lint sees them; merged into the app
+         manifest at build. Runtime perms (MANAGE_OWN_CALLS etc.) stay
+         app-side and are guarded at the call sites. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Dangerous perm — also declared app-side; here so lint ties the
+         declaration to the runtime check in CallRouter. -->
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+</manifest>

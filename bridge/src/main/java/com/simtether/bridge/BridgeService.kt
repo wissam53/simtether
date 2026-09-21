@@ -255,10 +255,32 @@ class BridgeService : LifecycleService() {
         )
         val notif = buildNotification(connected = false)
         if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            startForeground(NOTIF_ID, notif, foregroundType())
         } else {
             startForeground(NOTIF_ID, notif)
         }
+    }
+
+    /**
+     * dataSync FGS is capped at 6h/24h on Android 15 — fatal for a
+     * 24/7 relay. connectedDevice (made for persistent companion links)
+     * has no such cap; it needs NEARBY_WIFI_DEVICES granted or a live
+     * CDM association, so we degrade to dataSync only when neither
+     * prerequisite can hold yet (pre-grant first start).
+     */
+    private fun foregroundType(): Int {
+        val nearbyGranted = Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.NEARBY_WIFI_DEVICES) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        // Any live CDM association also satisfies the prerequisite.
+        val cdmAssociated = Build.VERSION.SDK_INT >= 33 && runCatching {
+            getSystemService(android.companion.CompanionDeviceManager::class.java)
+                ?.myAssociations?.isNotEmpty() == true
+        }.getOrDefault(false)
+        return if (nearbyGranted || cdmAssociated)
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+        else
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
     }
 
     private fun buildNotification(connected: Boolean): Notification {

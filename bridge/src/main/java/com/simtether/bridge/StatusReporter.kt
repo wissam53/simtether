@@ -34,10 +34,11 @@ object StatusReporter {
             mccMnc = runCatching { tm.networkOperator }.getOrNull()
                 ?.takeIf { it.length >= 5 },
             network = detectNetwork(cm),
-            // Synchronous since API 28 — strongest reported cell.
-            signalDbm = runCatching {
+            // Synchronous since API 28, cellSignalStrengths since 29 —
+            // strongest reported cell; null on older devices.
+            signalDbm = if (Build.VERSION.SDK_INT >= 29) runCatching {
                 tm.signalStrength?.cellSignalStrengths?.maxOfOrNull { it.dbm }
-            }.getOrNull(),
+            }.getOrNull() else null,
             deviceName = Build.MODEL,
             ringerMode = runCatching {
                 context.getSystemService(AudioManager::class.java).ringerMode
@@ -112,6 +113,12 @@ object StatusReporter {
         val ssid = arg?.substringBefore('|')?.takeIf { it.isNotBlank() }
         if (ssid == null) {
             Log.w("SimTether.Bridge", "SWITCH_WIFI: missing ssid arg")
+            return
+        }
+        // WifiNetworkSuggestion is API 29+ — on older builds there's
+        // no supported way to nudge a network join, so just report.
+        if (Build.VERSION.SDK_INT < 29) {
+            Log.w("SimTether.Bridge", "SWITCH_WIFI unsupported on API < 29")
             return
         }
         val pass = arg.substringAfter('|', "")

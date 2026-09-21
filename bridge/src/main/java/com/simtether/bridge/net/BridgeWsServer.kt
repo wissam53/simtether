@@ -41,7 +41,7 @@ class BridgeWsServer(
     }
 
     @Volatile private var client: WebSocket? = null
-    private var session: SecureSession? = null
+    @Volatile private var session: SecureSession? = null
 
     val staticPubKey: ByteArray get() = staticKeyPair.second
 

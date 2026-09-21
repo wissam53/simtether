@@ -145,4 +145,5 @@
     <string name="paywall_subscribe">Подписаться</string>
     <string name="paywall_subscribe_price">Подписаться — %1$s / месяц</string>
     <string name="paywall_trial_line">7 дней бесплатно, затем %1$s / месяц. Отмена в любой момент.</string>
+    <string name="paywall_restore">Восстановить покупку</string>
 </resources>

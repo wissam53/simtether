@@ -53,6 +53,13 @@ object CallController {
 
     /** Outgoing dial: bridge places the GSM call on behalf of the client. */
     fun dial(context: Context, number: String) {
+        // CALL_PHONE is granted at role entry but the user can revoke
+        // it — check rather than let the relay crash mid-command.
+        if (context.checkSelfPermission(android.Manifest.permission.CALL_PHONE) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            android.util.Log.w("SimTether.Bridge", "dial: CALL_PHONE not granted")
+            return
+        }
         // As default dialer, placeCall goes straight to GSM (no UI).
         context.getSystemService(TelecomManager::class.java)
             .placeCall(Uri.parse("tel:$number"), Bundle())

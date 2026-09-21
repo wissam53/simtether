@@ -45,9 +45,11 @@ class BridgeWsClient(
     private val seq = AtomicLong(0)
     private val TAG = "SimTether.Client"
     private val MAX_OUTBOX = 100
-    private var session: SecureSession? = null
-    private var pendingHandshake: SecureSession.ClientHandshake? = null
-    private var ws: WebSocket? = null
+    // Mutated on OkHttp dispatcher threads, read by sendCommand()
+    // callers on the UI thread — volatile or stale reads drop commands.
+    @Volatile private var session: SecureSession? = null
+    @Volatile private var pendingHandshake: SecureSession.ClientHandshake? = null
+    @Volatile private var ws: WebSocket? = null
     @Volatile private var closed = false
     private var backoffMs = 1_000L
     private var lastState: Boolean? = null

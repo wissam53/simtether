@@ -99,6 +99,9 @@ class MainActivity : ComponentActivity() {
                                         com.simtether.billing.Billing
                                             .subscribe(this@MainActivity)
                                     },
+                                    onRestore = {
+                                        com.simtether.billing.Billing.refresh()
+                                    },
                                 )
                                 true -> ClientScreen(
                                     onPaired = {
@@ -155,6 +158,10 @@ class MainActivity : ComponentActivity() {
                 add(Manifest.permission.CALL_PHONE)
                 add(Manifest.permission.ANSWER_PHONE_CALLS)
                 add(Manifest.permission.READ_CONTACTS)
+                // connectedDevice FGS prerequisite on 33+ (the CDM
+                // association also qualifies once pairing completes).
+                if (Build.VERSION.SDK_INT >= 33)
+                    add(Manifest.permission.NEARBY_WIFI_DEVICES)
             }
             Role.CLIENT -> buildList {
                 add(Manifest.permission.CAMERA)

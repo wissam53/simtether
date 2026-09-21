@@ -41,6 +41,7 @@
     <!-- Services / lifecycle -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -98,7 +99,7 @@
         <service
             android:name="com.simtether.bridge.BridgeService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|phoneCall" />
+            android:foregroundServiceType="connectedDevice|dataSync|phoneCall" />
 
         <!-- Default-dialer role requirements (bridge role) -->
         <service
@@ -176,7 +177,7 @@
         <service
             android:name="com.simtether.client.ClientService"
             android:exported="false"
-            android:foregroundServiceType="dataSync|phoneCall" />
+            android:foregroundServiceType="connectedDevice|dataSync|phoneCall" />
 
         <service
             android:name="com.simtether.client.telecom.BridgeConnectionService"
