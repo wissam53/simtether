@@ -8,6 +8,7 @@ import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
+import java.util.UUID
 
 /**
  * WS server on the bridge (hotspot host). First frame from a client is
@@ -42,6 +43,31 @@ class BridgeWsServer(
 
     @Volatile private var client: WebSocket? = null
     @Volatile private var session: SecureSession? = null
+
+    /**
+     * App-level heartbeat: a pocketed/dozing client can stall its WS
+     * pings, and a half-dead TCP socket can blackhole silently for many
+     * minutes before retransmit timeouts fire. A small envelope every
+     * HB_SECS lets the client detect a zombie link fast — silence for
+     * ~2 minutes means dead.
+     */
+    private val hbExecutor = java.util.concurrent.Executors
+        .newSingleThreadScheduledExecutor { r -> Thread(r, "ws-hb").also { it.isDaemon = true } }
+
+    override fun onStart() {
+        Log.d(TAG, "server started on $address")
+        hbExecutor.scheduleAtFixedRate({
+            val s = session ?: return@scheduleAtFixedRate
+            runCatching {
+                send(Protocol.Envelope(UUID.randomUUID().toString(), "hb", 0, ""))
+            }
+        }, HB_SECS, HB_SECS, java.util.concurrent.TimeUnit.SECONDS)
+    }
+
+    override fun stop(timeout: Int) {
+        hbExecutor.shutdownNow()
+        super.stop(timeout)
+    }
 
     val staticPubKey: ByteArray get() = staticKeyPair.second
 
@@ -126,11 +152,8 @@ class BridgeWsServer(
         Log.e(TAG, "ws error", ex)
     }
 
-    override fun onStart() {
-        Log.d(TAG, "server started on $address")
-    }
-
     private companion object {
         const val TAG = "SimTether.Server"
+        const val HB_SECS = 30L
     }
 }

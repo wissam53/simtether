@@ -106,7 +106,13 @@ fun BridgeScreen() {
             add(Manifest.permission.CALL_PHONE)
             add(Manifest.permission.ANSWER_PHONE_CALLS)
             add(Manifest.permission.READ_CONTACTS)
-            if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
+            if (Build.VERSION.SDK_INT >= 33) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+                // connectedDevice FGS prerequisite — without it the
+                // service runs as dataSync and Android 15 kills it
+                // after 6h/24h.
+                add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
         }
     }
     fun checkMissingPerms() = bridgePerms.filter {

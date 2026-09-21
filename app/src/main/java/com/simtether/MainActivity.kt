@@ -184,7 +184,12 @@ class MainActivity : ComponentActivity() {
                 startForegroundService(Intent(this, BridgeService::class.java))
                 requestBatteryExemption()
             }
-            Role.CLIENT -> startForegroundService(Intent(this, ClientService::class.java))
+            Role.CLIENT -> {
+                startForegroundService(Intent(this, ClientService::class.java))
+                // The client also holds a persistent link — doze defers
+                // its reconnect timers and stalls pings without this.
+                requestBatteryExemption()
+            }
             Role.NONE -> Unit
         }
     }

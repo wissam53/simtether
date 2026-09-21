@@ -58,6 +58,10 @@ class BridgeWsClient(
     private var lastState: Boolean? = null
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private var pendingReconnect: Runnable? = null
+    // Last inbound frame — heartbeat silence means the socket is a
+    // zombie even if TCP hasn't errored yet.
+    @Volatile private var lastInbound = 0L
+    private var watchdogStarted = false
 
     // Offline outbox — only command types that opt in (sms.send) queue
     // here; call/dial/control commands must never replay stale.
@@ -69,7 +73,32 @@ class BridgeWsClient(
         onState(up)
     }
 
+    /**
+     * Kills zombie sockets: a half-dead TCP connection can blackhole
+     * writes for ~15min before the retransmit timeout errors out.
+     * The bridge heartbeats every 30s — if an established session sees
+     * no inbound frame for 2min, the socket is dead regardless of what
+     * TCP thinks. cancel() forces onFailure → normal reconnect path.
+     */
+    private fun startWatchdog() {
+        if (watchdogStarted) return
+        watchdogStarted = true
+        val check = object : Runnable {
+            override fun run() {
+                if (closed) return
+                if (session != null && lastInbound > 0 &&
+                    android.os.SystemClock.elapsedRealtime() - lastInbound > 120_000L) {
+                    Log.w(TAG, "heartbeat silence — killing zombie socket")
+                    ws?.cancel()
+                }
+                handler.postDelayed(this, 60_000)
+            }
+        }
+        handler.postDelayed(check, 60_000)
+    }
+
     fun connect() {
+        startWatchdog()
         // Resolution (cached-IP probe, then mDNS) can block — run off
         // the main thread.
         Thread({
@@ -102,6 +131,7 @@ class BridgeWsClient(
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                lastInbound = android.os.SystemClock.elapsedRealtime()
                 val s = session ?: run {
                     val hs = pendingHandshake
                         ?: run { Log.w(TAG, "frame before handshake"); return }
@@ -128,6 +158,7 @@ class BridgeWsClient(
                     Log.e(TAG, "decrypt/decode failed", it)
                     return
                 }
+                if (env.type == "hb") return  // heartbeat — liveness only
                 Log.d(TAG, "recv ${env.type} seq=${env.seq}")
                 onEvent(env)
             }
