@@ -141,7 +141,9 @@ private fun LocalHome(
             }
         }
 
-        LanguagePicker()
+        LanguagePicker {
+            com.simtether.bridge.sms.BridgeServiceHolder.service?.refreshNotification()
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),

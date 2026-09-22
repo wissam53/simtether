@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,6 +51,7 @@ import androidx.core.content.ContextCompat
 import com.simtether.companion.CompanionLink
 import com.simtether.bridge.BridgeService
 import com.simtether.bridge.sms.BridgeServiceHolder
+import com.simtether.shared.RemoteStore
 import com.simtether.shared.pairing.PairingPayload
 
 /** Bridge home: pairing QR + link status. Deliberately minimal. */
@@ -259,6 +263,91 @@ fun BridgeScreen() {
             }
         }
 
+        // Remote access — opt-in: the bridge dials OUT to a splice
+        // relay and stays reachable off-LAN. The splice carries
+        // ciphertext only; relay address+token ride the pairing QR so
+        // the client self-learns the rendezvous.
+        Card(modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                var remoteOn by remember {
+                    mutableStateOf(RemoteStore.isEnabled(context))
+                }
+                var confirmRemote by remember { mutableStateOf(false) }
+                Text(stringResource(R.string.remote_access),
+                    style = MaterialTheme.typography.labelMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.remote_bridge_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    )
+                    Switch(
+                        checked = remoteOn,
+                        onCheckedChange = { want ->
+                            if (want) confirmRemote = true
+                            else {
+                                RemoteStore.setEnabled(context, false)
+                                remoteOn = false
+                                BridgeServiceHolder.service?.refreshRemote()
+                            }
+                        },
+                    )
+                }
+                if (remoteOn) {
+                    var relayAddr by remember {
+                        mutableStateOf(RemoteStore.relay(context) ?: "")
+                    }
+                    var relayTok by remember {
+                        mutableStateOf(RemoteStore.relayToken(context) ?: "")
+                    }
+                    OutlinedTextField(
+                        value = relayAddr, onValueChange = { relayAddr = it },
+                        label = { Text(stringResource(R.string.remote_relay_address)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    )
+                    OutlinedTextField(
+                        value = relayTok, onValueChange = { relayTok = it },
+                        label = { Text(stringResource(R.string.remote_relay_token)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    )
+                    TextButton(
+                        onClick = {
+                            RemoteStore.setRelay(context, relayAddr, relayTok)
+                            BridgeServiceHolder.service?.refreshRemote()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.remote_save)) }
+                    Text(
+                        stringResource(R.string.remote_repair_needed),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (confirmRemote) AlertDialog(
+                    onDismissRequest = { confirmRemote = false },
+                    title = { Text(stringResource(R.string.remote_consent_title)) },
+                    text = { Text(stringResource(R.string.remote_consent_bridge)) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmRemote = false
+                            RemoteStore.setEnabled(context, true)
+                            remoteOn = true
+                            BridgeServiceHolder.service?.refreshRemote()
+                        }) { Text(stringResource(R.string.remote_agree)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmRemote = false }) {
+                            Text(stringResource(R.string.action_cancel))
+                        }
+                    },
+                )
+            }
+        }
+
         // Doze killers: battery exemption + MIUI autostart keep the
         // socket alive; DND access lets remote mute go truly silent.
         Card(modifier = Modifier.padding(top = 24.dp)) {
@@ -321,7 +410,9 @@ fun BridgeScreen() {
             },
         )
 
-        LanguagePicker()
+        LanguagePicker {
+            BridgeServiceHolder.service?.refreshNotification()
+        }
 
     }
 }

@@ -7,20 +7,19 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-// Upload-key credentials live in keystore.properties (gitignored).
-// Enrolled in Play App Signing → this key is only the upload key;
-// losing it is recoverable through Play support, but back it up anyway.
+// Upload-key credentials live in keystore.properties (gitignored) —
+// same key as the client app so both listings share Play App Signing.
 val keystoreProps = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
-    namespace = "com.simtether"
+    namespace = "com.simtether.bridgeapp"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.simtether"
+        applicationId = "com.simtether.bridge"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -39,8 +38,6 @@ android {
 
     buildTypes {
         release {
-            // Unsigned when keystore.properties is absent (CI/fresh
-            // clone) — Play upload still requires a signed bundle.
             if (keystoreProps.getProperty("keyAlias") != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -60,7 +57,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 }
 
@@ -72,6 +68,7 @@ kotlin {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(project(":bridge"))
     implementation(project(":client"))
     implementation(project(":ui"))
 
@@ -84,6 +81,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    // Play Billing — the subscription gate
-    implementation("com.android.billingclient:billing-ktx:7.1.1")
+    // QR render for the pairing code (encoding only — no scanner here)
+    implementation("com.google.zxing:core:3.5.3")
 }

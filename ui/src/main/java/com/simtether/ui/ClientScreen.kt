@@ -39,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,7 +70,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-internal sealed class Screen {
+sealed class Screen {
     data object Home : Screen()
     data object Messages : Screen()
     data object NewMessage : Screen()
@@ -140,7 +141,7 @@ fun ClientScreen(onPaired: () -> Unit, onResetRole: () -> Unit) {
 
 /** Read a contact name, triggering an async lookup on first sight. */
 @Composable
-internal fun displayName(names: Map<String, String>, number: String?): String {
+fun displayName(names: Map<String, String>, number: String?): String {
     number ?: return stringResource(R.string.unknown)
     androidx.compose.runtime.LaunchedEffect(number) {
         ContactLookup.nameFor(number)
@@ -151,7 +152,7 @@ internal fun displayName(names: Map<String, String>, number: String?): String {
 // ── Home ─────────────────────────────────────────────────────────
 
 @Composable
-internal fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit) {
+private fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit) {
     val context = LocalContext.current
     val connected by ClientServiceHolder.connected.collectAsState()
     val status by StatusBus.status.collectAsState()
@@ -160,6 +161,7 @@ internal fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit
     val names by ContactLookup.names.collectAsState()
     val paired = remember { PairingStore.isPaired(context) }
     val revoked by ClientServiceHolder.pairingRevoked.collectAsState()
+    val viaRelay by ClientServiceHolder.viaRelay.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("SimTether", style = MaterialTheme.typography.headlineMedium)
@@ -202,7 +204,8 @@ internal fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit
                 )
                 Text(
                     if (connected)
-                        status?.network?.let {
+                        if (viaRelay) stringResource(R.string.home_linked_remote)
+                        else status?.network?.let {
                             stringResource(R.string.home_linked_via, it)
                         } ?: stringResource(R.string.home_linked)
                     else stringResource(R.string.home_offline),
@@ -262,7 +265,7 @@ internal fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit
     }
 }
 
-internal sealed class FeedItem {
+sealed class FeedItem {
     abstract val timestamp: Long
     data class Msg(val m: com.simtether.shared.ChatMessage) : FeedItem() {
         override val timestamp get() = m.timestamp
@@ -273,7 +276,7 @@ internal sealed class FeedItem {
 }
 
 @Composable
-internal fun NavIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+fun NavIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(4.dp),
@@ -287,7 +290,7 @@ internal fun NavIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
 
 /** Offline warning strip — shown under every screen header. */
 @Composable
-internal fun OfflineBanner() {
+private fun OfflineBanner() {
     val connected by ClientServiceHolder.connected.collectAsState()
     if (!connected) {
         Row(
@@ -307,14 +310,14 @@ internal fun OfflineBanner() {
     }
 }
 
-internal fun offlineToast(context: android.content.Context) {
+private fun offlineToast(context: android.content.Context) {
     android.widget.Toast.makeText(
         context, context.getString(R.string.toast_offline),
         android.widget.Toast.LENGTH_SHORT).show()
 }
 
 @Composable
-internal fun BackHeader(title: String, onBack: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
+private fun BackHeader(title: String, onBack: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
     Column {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -332,7 +335,7 @@ internal fun BackHeader(title: String, onBack: () -> Unit, trailing: (@Composabl
 }
 
 @Composable
-internal fun FeedRow(
+fun FeedRow(
     title: String, subtitle: String, time: Long,
     icon: ImageVector, onClick: () -> Unit,
 ) {
@@ -359,7 +362,7 @@ internal fun FeedRow(
 // ── Messages ─────────────────────────────────────────────────────
 
 @Composable
-internal fun MessagesScreen(
+fun MessagesScreen(
     onBack: () -> Unit,
     onThread: (String) -> Unit,
     onNew: () -> Unit,
@@ -406,7 +409,7 @@ internal fun MessagesScreen(
 }
 
 @Composable
-internal fun NewMessageScreen(onBack: () -> Unit, onSent: (String) -> Unit) {
+fun NewMessageScreen(onBack: () -> Unit, onSent: (String) -> Unit) {
     var address by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
     var picking by remember { mutableStateOf(false) }
@@ -457,7 +460,7 @@ internal fun NewMessageScreen(onBack: () -> Unit, onSent: (String) -> Unit) {
     }
 }
 
-internal fun filterContacts(
+private fun filterContacts(
     contacts: List<ContactLookup.Contact>, query: String,
 ) = if (query.isBlank()) contacts
    else contacts.filter {
@@ -470,7 +473,7 @@ internal fun filterContacts(
  * `trailing` adds a per-row affordance (e.g. a call icon).
  */
 @Composable
-internal fun ContactPicker(
+private fun ContactPicker(
     onPick: (ContactLookup.Contact) -> Unit,
     trailing: (@Composable (ContactLookup.Contact) -> Unit)? = null,
 ) {
@@ -510,7 +513,7 @@ internal fun ContactPicker(
 }
 
 @Composable
-internal fun ContactPickerDialog(
+private fun ContactPickerDialog(
     onPick: (ContactLookup.Contact) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -524,7 +527,7 @@ internal fun ContactPickerDialog(
 
 @Composable
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-internal fun ThreadScreen(address: String, onBack: () -> Unit) {
+fun ThreadScreen(address: String, onBack: () -> Unit) {
     val messages by ConversationStore.messages.collectAsState()
     val names by ContactLookup.names.collectAsState()
     val thread = messages.filter { it.address == address }.sortedBy { it.timestamp }
@@ -613,7 +616,7 @@ internal fun ThreadScreen(address: String, onBack: () -> Unit) {
 // ── Calls ────────────────────────────────────────────────────────
 
 @Composable
-internal fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
+fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
     val calls by CallLogStore.entries.collectAsState()
     val names by ContactLookup.names.collectAsState()
@@ -678,7 +681,7 @@ internal fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
 }
 
 @Composable
-internal fun CallRow(title: String, subtitle: String, time: Long?, onCall: () -> Unit) {
+private fun CallRow(title: String, subtitle: String, time: Long?, onCall: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -696,7 +699,7 @@ internal fun CallRow(title: String, subtitle: String, time: Long?, onCall: () ->
 }
 
 @Composable
-internal fun DialerScreen(onBack: () -> Unit) {
+fun DialerScreen(onBack: () -> Unit) {
     var number by remember { mutableStateOf("") }
     val connected by ClientServiceHolder.connected.collectAsState()
     val context = LocalContext.current
@@ -758,7 +761,7 @@ internal fun DialerScreen(onBack: () -> Unit) {
 // ── Controls & Settings ──────────────────────────────────────────
 
 @Composable
-internal fun ControlsScreen(onBack: () -> Unit) {
+private fun ControlsScreen(onBack: () -> Unit) {
     val status by StatusBus.status.collectAsState()
     val connected by ClientServiceHolder.connected.collectAsState()
     val context = LocalContext.current
@@ -812,7 +815,7 @@ internal fun ControlsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-internal fun SettingsScreen(
+private fun SettingsScreen(
     onBack: () -> Unit,
     onPaired: () -> Unit,
     onForget: () -> Unit,
@@ -858,6 +861,8 @@ internal fun SettingsScreen(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         ) { Text(stringResource(R.string.forget_bridge)) }
 
+        RemoteAccessCard(pairing)
+
         Text(
             stringResource(R.string.settings_language).uppercase(),
             style = MaterialTheme.typography.labelMedium,
@@ -868,13 +873,100 @@ internal fun SettingsScreen(
 }
 
 /**
+ * Remote-access card — opt-in internet fallback through a splice
+ * relay the user chooses (BYO). The toggle is the consent: enabling
+ * asks once what the internet path means, disabling drops a live
+ * relay link immediately.
+ */
+@Composable
+private fun RemoteAccessCard(pairing: PairingPayload?) {
+    val context = LocalContext.current
+    var enabled by remember {
+        mutableStateOf(com.simtether.shared.RemoteStore.isEnabled(context))
+    }
+    var confirm by remember { mutableStateOf(false) }
+    var relayAddr by remember { mutableStateOf(pairing?.relay ?: "") }
+    var relayTok by remember { mutableStateOf(pairing?.relayToken ?: "") }
+
+    Text(
+        stringResource(R.string.remote_access).uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        modifier = Modifier.padding(top = 16.dp),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.remote_client_hint),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+        )
+        Switch(
+            checked = enabled,
+            onCheckedChange = { want ->
+                if (want) confirm = true
+                else {
+                    com.simtether.shared.RemoteStore.setEnabled(context, false)
+                    enabled = false
+                    ClientServiceHolder.service?.applyRemotePref()
+                }
+            },
+        )
+    }
+    if (enabled) {
+        OutlinedTextField(
+            value = relayAddr, onValueChange = { relayAddr = it },
+            label = { Text(stringResource(R.string.remote_relay_address)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        )
+        OutlinedTextField(
+            value = relayTok, onValueChange = { relayTok = it },
+            label = { Text(stringResource(R.string.remote_relay_token)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        )
+        OutlinedButton(
+            onClick = {
+                PairingStore.updateRelay(context, relayAddr, relayTok)
+                ClientServiceHolder.service?.reconnect()
+            },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        ) { Text(stringResource(R.string.remote_save)) }
+    }
+    if (confirm) AlertDialog(
+        onDismissRequest = { confirm = false },
+        title = { Text(stringResource(R.string.remote_consent_title)) },
+        text = { Text(stringResource(R.string.remote_consent_client)) },
+        confirmButton = {
+            TextButton(onClick = {
+                confirm = false
+                com.simtether.shared.RemoteStore.setEnabled(context, true)
+                enabled = true
+                ClientServiceHolder.service?.reconnect()
+            }) { Text(stringResource(R.string.remote_agree)) }
+        },
+        dismissButton = {
+            TextButton(onClick = { confirm = false }) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
+}
+
+/**
  * In-app language override picker — framework per-app locales are API
  * 33+, so the tag is stored and applied via LocaleHelper.wrap on every
  * component. Shared by client Settings, the bridge screen, and local
  * mode. Picking recreates the activity to apply the new config.
+ *
+ * [onLanguageChanged] lets each app refresh its own service's ongoing
+ * notification in the new language — the client service is handled
+ * here; the bridge app passes its own hook.
  */
 @Composable
-internal fun LanguagePicker() {
+fun LanguagePicker(onLanguageChanged: () -> Unit = {}) {
     val context = LocalContext.current
     var langTag by remember {
         mutableStateOf(com.simtether.shared.LocaleHelper.storedTag(context))
@@ -907,8 +999,7 @@ internal fun LanguagePicker() {
                                 // notification in the new language.
                                 com.simtether.client.ClientServiceHolder.service
                                     ?.refreshNotification()
-                                com.simtether.bridge.sms.BridgeServiceHolder.service
-                                    ?.refreshNotification()
+                                onLanguageChanged()
                                 // New config only applies to freshly
                                 // created components — recreate.
                                 (context as? android.app.Activity)?.recreate()
@@ -941,5 +1032,5 @@ private val LANG_NAMES: List<Pair<String?, String?>> = listOf(
     "fa" to "فارسی",
 )
 
-internal fun fmtTime(ts: Long): String =
+private fun fmtTime(ts: Long): String =
     SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(ts))

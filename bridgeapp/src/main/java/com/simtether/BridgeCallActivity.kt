@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import com.simtether.bridge.CallController
 import com.simtether.bridge.telecom.BridgeCallBus
 import com.simtether.client.telecom.CallStateBus
+import com.simtether.ui.InCallScreen
 
 /**
  * Bridge-local fallback in-call UI. We're the default dialer on the
