@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation("org.java-websocket:Java-WebSocket:1.5.7")
     implementation("org.slf4j:slf4j-simple:2.0.16")
+    testImplementation("junit:junit:4.13.2")
 }
 
 java {

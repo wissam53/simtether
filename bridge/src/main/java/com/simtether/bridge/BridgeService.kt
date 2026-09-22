@@ -44,7 +44,6 @@ class BridgeService : LifecycleService() {
     private var server: BridgeWsServer? = null
     private var advertiser: BridgeAdvertiser? = null
     private var relayLink: com.simtether.bridge.net.RelayLink? = null
-    private var pairingToken: ByteArray? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
 
@@ -55,7 +54,9 @@ class BridgeService : LifecycleService() {
         com.simtether.shared.PendingEventQueue(
             java.io.File(filesDir, "pending_events.jsonl"), MAX_PENDING)
     }
-    private var pendingPairingToken: ByteArray? = null
+    // Pairing-token rotation: current + an optional in-flight pending
+    // token, persisted so a restart keeps the window open.
+    private var tokenRotator: com.simtether.shared.TokenRotator? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -63,8 +64,9 @@ class BridgeService : LifecycleService() {
         com.simtether.shared.ContactLookup.init(applicationContext)
         startForegroundWithNotification()
         val (staticKey, token) = loadOrCreateIdentity()
-        pairingToken = token
-        startRelay(staticKey, token)
+        tokenRotator = com.simtether.shared.TokenRotator(
+            token, loadPendingToken()) { cur, pend -> persistTokens(cur, pend) }
+        startRelay(staticKey)
         pending.load()
         acquireLocks()
         // Fresh battery/signal for the client's home card while a
@@ -77,11 +79,11 @@ class BridgeService : LifecycleService() {
         }
     }
 
-    private fun startRelay(staticKey: Pair<ByteArray, ByteArray>, token: ByteArray) {
+    private fun startRelay(staticKey: Pair<ByteArray, ByteArray>) {
         server = BridgeWsServer(
             port = Protocol.WS_PORT,
             staticKeyPair = staticKey,
-            tokenValid = { acceptToken(it) },
+            tokenValid = { tokenRotator?.accept(it) == true },
             onClientReady = {
                 lifecycleScope.launch {
                     clientConnected = true
@@ -148,15 +150,16 @@ class BridgeService : LifecycleService() {
             .putString(this, "bridge_keys", "static_pub", enc.encodeToString(pair.second))
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(token))
-        pairingToken = token
-        pendingPairingToken = null
+        tokenRotator = com.simtether.shared.TokenRotator(token) { cur, pend ->
+            persistTokens(cur, pend)
+        }
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "pairing_token_pending", null)
         runCatching { server?.stop() }
         server = null
         runCatching { advertiser?.stop() }
         advertiser = null
-        startRelay(pair, token)
+        startRelay(pair)
         Log.i(TAG, "identity rotated — previous pairing revoked")
     }
 
@@ -248,11 +251,6 @@ class BridgeService : LifecycleService() {
         val tokenB64 = com.simtether.shared.SecureStore
             .getString(this, "bridge_keys", "pairing_token")
         if (privB64 != null && pubB64 != null && tokenB64 != null) {
-            // An acked-but-unpromoted rotation survives restarts too —
-            // the pending token stays valid until promote-on-auth/ack.
-            pendingPairingToken = com.simtether.shared.SecureStore
-                .getString(this, "bridge_keys", "pairing_token_pending")
-                ?.let { dec.decode(it) }
             return (dec.decode(privB64) to dec.decode(pubB64)) to dec.decode(tokenB64)
         }
         val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
@@ -274,7 +272,7 @@ class BridgeService : LifecycleService() {
             host = host,
             port = Protocol.WS_PORT,
             bridgeStaticPubKey = b64.encodeToString(server?.staticPubKey ?: return null),
-            pairingToken = b64.encodeToString(pairingToken ?: return null),
+            pairingToken = b64.encodeToString(tokenRotator?.current ?: return null),
             deviceName = android.os.Build.MODEL,
             // Remote access rides the QR — the client learns the
             // rendezvous without a second config step. Only present
@@ -299,51 +297,31 @@ class BridgeService : LifecycleService() {
         }
     }
 
-    /**
-     * Handshake gate: accepts the current token or an in-flight
-     * rotation. Authenticating with the pending token promotes it —
-     * a client that rotated in must never be stranded by a lost ack.
-     */
-    @Synchronized
-    private fun acceptToken(t: ByteArray): Boolean {
-        val cur = pairingToken
-        if (cur != null && java.security.MessageDigest.isEqual(t, cur)) return true
-        val pend = pendingPairingToken
-        if (pend != null && java.security.MessageDigest.isEqual(t, pend)) {
-            promoteToken(pend)
-            return true
-        }
-        return false
-    }
+    private fun loadPendingToken(): ByteArray? = com.simtether.shared.SecureStore
+        .getString(this, "bridge_keys", "pairing_token_pending")
+        ?.let { Base64.getDecoder().decode(it) }
 
-    private fun promoteToken(t: ByteArray) {
+    private fun persistTokens(current: ByteArray, pending: ByteArray?) {
         val enc = Base64.getEncoder()
-        pairingToken = t
-        pendingPairingToken = null
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(t))
+            .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(current))
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token_pending", null)
+            .putString(this, "bridge_keys", "pairing_token_pending",
+                pending?.let { enc.encodeToString(it) })
     }
 
     /**
      * Rotate the pairing token every session — the QR credential is a
      * bearer token, so it shouldn't stay valid forever. The new token
      * rides a reliable "pairing.rotate" event and only becomes current
-     * once acked, so a link that dies mid-rotation can't brick the
-     * pairing (both tokens authenticate until then).
+     * once acked (or once the client authenticates with it), so a link
+     * that dies mid-rotation can't brick the pairing.
      */
-    @Synchronized
     private fun maybeRotateToken() {
-        if (pendingPairingToken != null) return  // rotation in flight
-        val enc = Base64.getEncoder()
-        val next = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
-        pendingPairingToken = next
-        com.simtether.shared.SecureStore.putString(
-            this, "bridge_keys", "pairing_token_pending", enc.encodeToString(next))
+        val next = tokenRotator?.rotate() ?: return  // rotation in flight
         emit("pairing.rotate", Protocol.json.encodeToString(
             Protocol.PairingRotate.serializer(),
-            Protocol.PairingRotate(enc.encodeToString(next))))
+            Protocol.PairingRotate(Base64.getEncoder().encodeToString(next))))
     }
 
     private fun handleCommand(env: Protocol.Envelope) {
@@ -373,8 +351,7 @@ class BridgeService : LifecycleService() {
                 val acked = pending.remove(env.payloadAs<Protocol.Ack>().forId)
                 // The rotate ack retires the old token — the client has
                 // durably stored the new one.
-                if (acked?.type == "pairing.rotate")
-                    pendingPairingToken?.let { promoteToken(it) }
+                if (acked?.type == "pairing.rotate") tokenRotator?.onAck()
             }
             "bridge.command" -> {
                 val cmd = env.payloadAs<Protocol.BridgeCommand>()
