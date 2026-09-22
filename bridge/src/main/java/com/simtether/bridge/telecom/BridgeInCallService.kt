@@ -93,7 +93,10 @@ class BridgeInCallService : InCallService() {
             BridgeCallUi.dismiss(applicationContext)
         }
         val payload = Protocol.json.encodeToString(Protocol.CallEvent.serializer(), event)
-        BridgeServiceHolder.service?.emit("call.event", payload)
+        // Unreliable on purpose: a replayed RINGING would phantom-ring a
+        // client that was offline for the call (the queued DISCONNECTED
+        // arrives later). Stale call state is worse than a dropped one.
+        BridgeServiceHolder.service?.emit("call.event", payload, reliable = false)
     }
 
     private val nameLookupKicked = java.util.Collections.synchronizedSet(HashSet<String>())

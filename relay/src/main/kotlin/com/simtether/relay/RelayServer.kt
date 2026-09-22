@@ -1,7 +1,10 @@
 package com.simtether.relay
 
 import org.java_websocket.WebSocket
+import org.java_websocket.drafts.Draft
+import org.java_websocket.exceptions.InvalidDataException
 import org.java_websocket.handshake.ClientHandshake
+import org.java_websocket.handshake.ServerHandshakeBuilder
 import org.java_websocket.server.WebSocketServer
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
@@ -49,9 +52,20 @@ class RelayServer(
     private val rooms = ConcurrentHashMap<String, Room>()
     private val roles = ConcurrentHashMap<WebSocket, Pair<String, String>>() // conn → (fp, role)
 
-    override fun onOpen(conn: WebSocket, hs: ClientHandshake) {
-        val desc = conn.resourceDescriptor ?: ""
-        val path = desc.substringBefore('?')
+    /**
+     * Rejections happen here — at the HTTP layer — not with a close
+     * frame in onOpen. Closing inside onOpen races the client finishing
+     * its handshake (it sees NEVER_CONNECTED, not our code), and an
+     * HTTP failure gives the reconnect loop a diagnosable error instead
+     * of an indistinguishable drop. Note: java_websocket answers every
+     * handshake rejection with HTTP 404 regardless of the exception
+     * code — the codes below document intent, the client just sees a
+     * failed handshake.
+     */
+    override fun onWebsocketHandshakeReceivedAsServer(
+        conn: WebSocket, draft: Draft, request: ClientHandshake,
+    ): ServerHandshakeBuilder {
+        val desc = request.resourceDescriptor ?: ""
         val query = desc.substringAfter('?', "")
         val tok = query.split('&').firstNotNullOfOrNull {
             it.substringBefore('=').takeIf { k -> k == "token" }
@@ -62,14 +76,24 @@ class RelayServer(
         if (!java.security.MessageDigest.isEqual(
                 tok.toByteArray(Charsets.UTF_8),
                 accessToken.toByteArray(Charsets.UTF_8))) {
-            conn.close(4001, "auth")
-            return
+            throw InvalidDataException(401, "bad token")
         }
-        val seg = path.trim('/').split('/')
-        if (seg.size != 2 || seg[1].isBlank()) {
-            conn.close(1008, "bad path")
-            return
+        val seg = desc.substringBefore('?').trim('/').split('/')
+        if (seg.size != 2 || seg[1].isBlank()
+            || (seg[0] != "register" && seg[0] != "connect")) {
+            throw InvalidDataException(400, "bad path")
         }
+        if (seg[0] == "connect") {
+            val b = rooms[seg[1]]?.bridge
+            if (b == null || !b.isOpen) throw InvalidDataException(404, "no bridge")
+        }
+        return super.onWebsocketHandshakeReceivedAsServer(conn, draft, request)
+    }
+
+    override fun onOpen(conn: WebSocket, hs: ClientHandshake) {
+        // Path shape + token already validated during the handshake.
+        val seg = (conn.resourceDescriptor ?: "")
+            .substringBefore('?').trim('/').split('/')
         val (role, fp) = seg
         when (role) {
             "register" -> {
@@ -87,6 +111,7 @@ class RelayServer(
                 val room = rooms[fp]
                 val b = room?.bridge
                 if (b == null || !b.isOpen) {
+                    // Bridge vanished between handshake and onOpen.
                     conn.close(4004, "no bridge")
                     return
                 }

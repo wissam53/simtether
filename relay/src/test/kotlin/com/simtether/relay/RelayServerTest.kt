@@ -30,6 +30,7 @@ class RelayServerTest {
         @Volatile var closeReason = ""
         val texts = CopyOnWriteArrayList<String>()
         val binaries = CopyOnWriteArrayList<ByteArray>()
+        val errors = CopyOnWriteArrayList<Exception>()
 
         override fun onOpen(h: ServerHandshake) { opened.countDown() }
         override fun onMessage(msg: String) { texts.add(msg) }
@@ -39,7 +40,7 @@ class RelayServerTest {
         override fun onClose(code: Int, reason: String, remote: Boolean) {
             closeCode = code; closeReason = reason; closed.countDown()
         }
-        override fun onError(ex: Exception) {}
+        override fun onError(ex: Exception) { errors.add(ex) }
     }
 
     @Before
@@ -55,20 +56,28 @@ class RelayServerTest {
     }
 
     private fun connect(path: String): Sock {
-        // The server binds on its own thread — retry until it's up.
+        // The server binds on its own thread — retry only on
+        // connection-refused; a handshake refusal is a real result.
         val deadline = System.currentTimeMillis() + 5_000
-        var lastErr: Exception? = null
-        while (System.currentTimeMillis() < deadline) {
+        while (true) {
             val s = Sock(URI("ws://127.0.0.1:$port$path"))
-            try {
-                s.connectBlocking()
-                return s
-            } catch (e: Exception) {
-                lastErr = e
-                Thread.sleep(50)
-            }
+            s.connectBlocking()
+            val reached = s.errors.none { it is java.net.ConnectException }
+            if (reached || System.currentTimeMillis() > deadline) return s
+            Thread.sleep(50)
         }
-        throw lastErr ?: IllegalStateException("server never came up")
+    }
+
+    private fun assertRejected(path: String) {
+        val s = connect(path)
+        // Rejected at the HTTP layer: the socket never opens, and the
+        // close reason carries the real HTTP status instead of a raced
+        // NEVER_CONNECTED. java_websocket reports every rejection as
+        // 404 regardless of the thrown code.
+        assertTrue(s.closed.await(3, TimeUnit.SECONDS))
+        assertTrue("reason='${s.closeReason}'",
+            s.closeReason.contains("404"))
+        assertTrue(s.opened.await(200, TimeUnit.MILLISECONDS).not())
     }
 
     private fun waitFor(ms: Long = 3_000, cond: () -> Boolean) {
@@ -78,18 +87,12 @@ class RelayServerTest {
     }
 
     @Test
-    fun `wrong token is rejected`() {
-        val s = connect("/register/fp1?token=wrong")
-        assertTrue(s.closed.await(3, TimeUnit.SECONDS))
-        assertEquals(4001, s.closeCode)
-    }
+    fun `wrong token is rejected at handshake`() =
+        assertRejected("/register/fp1?token=wrong")
 
     @Test
-    fun `missing token is rejected`() {
-        val s = connect("/register/fp1")
-        assertTrue(s.closed.await(3, TimeUnit.SECONDS))
-        assertEquals(4001, s.closeCode)
-    }
+    fun `missing token is rejected at handshake`() =
+        assertRejected("/register/fp1")
 
     @Test
     fun `register then connect splices bytes both ways`() {
@@ -135,9 +138,6 @@ class RelayServerTest {
     }
 
     @Test
-    fun `connect to an unregistered room is refused`() {
-        val s = connect("/connect/ghost?token=secret")
-        assertTrue(s.closed.await(3, TimeUnit.SECONDS))
-        assertEquals(4004, s.closeCode)
-    }
+    fun `connect to an unregistered room is rejected at handshake`() =
+        assertRejected("/connect/ghost?token=secret")
 }

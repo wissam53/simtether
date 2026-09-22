@@ -821,12 +821,13 @@ private fun SettingsScreen(
     onForget: () -> Unit,
 ) {
     val context = LocalContext.current
-    val pairing = remember { PairingStore.load(context) }
+    var pairing by remember { mutableStateOf(PairingStore.load(context)) }
     val scanner = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let { text ->
             runCatching { PairingPayload.decode(text) }
                 .onSuccess {
                     PairingStore.save(context, it)
+                    pairing = PairingStore.load(context)
                     onPaired()
                 }
         }

@@ -61,7 +61,13 @@ class RelayLink(
                 }
 
                 override fun onClose(code: Int, reason: String, remote: Boolean) {
-                    Log.d(TAG, "relay socket closed code=$code reason=$reason")
+                    // A refused handshake arrives here (not onError) —
+                    // a config error, not a blip. Say so, or a bad
+                    // ACCESS_TOKEN looks like a silent reconnect loop.
+                    if (reason.startsWith("Invalid status code"))
+                        Log.w(TAG, "relay rejected handshake (check ACCESS_TOKEN): $reason")
+                    else
+                        Log.d(TAG, "relay socket closed code=$code reason=$reason")
                     server.handleRemoteClose(this)
                 }
 

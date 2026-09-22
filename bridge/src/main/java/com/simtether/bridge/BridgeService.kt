@@ -58,6 +58,13 @@ class BridgeService : LifecycleService() {
     // token, persisted so a restart keeps the window open.
     private var tokenRotator: com.simtether.shared.TokenRotator? = null
 
+    // emit() runs here: a single thread keeps queue order while the
+    // synchronous persist (serialize + encrypt + write) stays off the
+    // Telecom/main threads that produce call.event and sms.status.
+    private val emitExec = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "bridge-emit").also { it.isDaemon = true }
+    }
+
     override fun onCreate() {
         super.onCreate()
         BridgeServiceHolder.service = this
@@ -93,7 +100,7 @@ class BridgeService : LifecycleService() {
                     StatusReporter.emit(applicationContext)
                     maybeRotateToken()
                 }
-                lifecycleScope.launch(Dispatchers.IO) { flushPending() }
+                emitExec.execute { flushPending() }
             },
             onClientDisconnected = {
                 clientConnected = false
@@ -203,6 +210,7 @@ class BridgeService : LifecycleService() {
         relayLink = null
         server?.stop()
         server = null
+        emitExec.shutdown()
         super.onDestroy()
     }
 
@@ -223,14 +231,16 @@ class BridgeService : LifecycleService() {
      */
     fun emit(type: String, payload: String, reliable: Boolean = true) {
         val env = Protocol.Envelope(UUID.randomUUID().toString(), type, seq.incrementAndGet(), payload)
-        if (reliable) {
-            pending.add(env).forEach {
-                Log.w(TAG, "pending full — dropped unacked ${it.type}")
+        emitExec.execute {
+            if (reliable) {
+                pending.add(env).forEach {
+                    Log.w(TAG, "pending full — dropped unacked ${it.type}")
+                }
+                if (server?.isReady() != true)
+                    Log.d(TAG, "queued $type (no ready client), depth=${pending.size}")
             }
-            if (server?.isReady() != true)
-                Log.d(TAG, "queued $type (no ready client), depth=${pending.size}")
+            if (server?.isReady() == true) server?.send(env)
         }
-        if (server?.isReady() == true) server?.send(env)
     }
 
     /**
