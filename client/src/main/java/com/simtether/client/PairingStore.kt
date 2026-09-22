@@ -18,7 +18,7 @@ object PairingStore {
         SecureStore.putString(context, PREFS, "host", p.host)
         SecureStore.putInt(context, PREFS, "port", p.port)
         SecureStore.putString(context, PREFS, "pubkey", p.bridgeStaticPubKey)
-        SecureStore.putString(context, PREFS, "token", p.oneTimeToken)
+        SecureStore.putString(context, PREFS, "token", p.pairingToken)
         SecureStore.putString(context, PREFS, "name", p.deviceName)
         SecureStore.putString(context, PREFS, "relay", p.relay)
         SecureStore.putString(context, PREFS, "relay_token", p.relayToken)
@@ -31,7 +31,7 @@ object PairingStore {
             host = host,
             port = SecureStore.getInt(context, PREFS, "port", 0),
             bridgeStaticPubKey = pub,
-            oneTimeToken = SecureStore.getString(context, PREFS, "token") ?: "",
+            pairingToken = SecureStore.getString(context, PREFS, "token") ?: "",
             deviceName = SecureStore.getString(context, PREFS, "name") ?: "bridge",
             relay = SecureStore.getString(context, PREFS, "relay"),
             relayToken = SecureStore.getString(context, PREFS, "relay_token"),
@@ -42,6 +42,12 @@ object PairingStore {
     fun updateRelay(context: Context, relay: String?, token: String?) {
         SecureStore.putString(context, PREFS, "relay", relay?.trim() ?: "")
         SecureStore.putString(context, PREFS, "relay_token", token?.trim() ?: "")
+    }
+
+    /** Token rotation — the bridge pushes a fresh credential inside
+     *  each established session (pairing.rotate event). */
+    fun updateToken(context: Context, token: String) {
+        SecureStore.putString(context, PREFS, "token", token)
     }
 
     /** Update the cached address after mDNS rediscovery — the identity

@@ -55,18 +55,22 @@ class BridgeInCallService : InCallService() {
         // 0 = DIRECTION_INCOMING, 1 = DIRECTION_OUTGOING.
         val direction = if (android.os.Build.VERSION.SDK_INT >= 29) d.callDirection
                         else if (call.state == Call.STATE_RINGING) 0 else 1
+        val number = d.handle?.schemeSpecificPart
         val event = Protocol.CallEvent(
             callId = id,
             state = if (forceDisconnected) Protocol.CallEvent.State.DISCONNECTED
                     else mapState(call.state, direction),
-            number = d.handle?.schemeSpecificPart,
-            displayName = d.callerDisplayName
-                ?: d.handle?.schemeSpecificPart?.let {
-                    // Carriers rarely supply callerDisplayName — resolve
-                    // against this phone's contacts so the fallback UI
-                    // (and the client) can show a real name.
-                    com.simtether.shared.ContactLookup.resolveBlocking(it)
-                },
+            number = number,
+            displayName = d.callerDisplayName ?: number?.let { n ->
+                // Carriers rarely supply callerDisplayName — resolve
+                // against this phone's contacts so the fallback UI
+                // (and the client) can show a real name. Cache read
+                // only; a miss kicks a background lookup that re-emits.
+                com.simtether.shared.ContactLookup.cachedName(n) ?: run {
+                    kickNameLookup(id, call, n)
+                    null
+                }
+            },
             incoming = direction == 0,
             audioRoute = audioState?.route,
             availableRoutes = audioState?.supportedRouteMask,
@@ -90,6 +94,21 @@ class BridgeInCallService : InCallService() {
         }
         val payload = Protocol.json.encodeToString(Protocol.CallEvent.serializer(), event)
         BridgeServiceHolder.service?.emit("call.event", payload)
+    }
+
+    private val nameLookupKicked = java.util.Collections.synchronizedSet(HashSet<String>())
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** One background lookup per number; the result re-emits on main. */
+    private fun kickNameLookup(callId: String, call: Call, number: String) {
+        if (!nameLookupKicked.add(number)) return
+        com.simtether.shared.ContactLookup.resolveAsync(number) { name ->
+            if (name == null) return@resolveAsync
+            mainHandler.post {
+                // Skip if the call already left Telecom's list.
+                if (CallRegistry.idOf(call) == callId) emit(callId, call)
+            }
+        }
     }
 
     private fun mapState(state: Int, direction: Int): Protocol.CallEvent.State = when (state) {

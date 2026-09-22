@@ -25,17 +25,24 @@ object SmsSender {
             return
         }
 
-        val sent = statusIntent(context, ACTION_SENT, ref)
-        val delivered = if (deliveryReport) statusIntent(context, ACTION_DELIVERED, ref) else null
-
         runCatching {
             val parts = mgr.divideMessage(body)
+            // One PendingIntent per part — a single intent for an N-part
+            // send reports status for part 1 only.
+            com.simtether.shared.SendStatusTracker.expect(ref, parts.size)
             if (parts.size == 1) {
-                mgr.sendTextMessage(address, null, body, sent, delivered)
+                mgr.sendTextMessage(
+                    address, null, body,
+                    statusIntent(context, ACTION_SENT, ref, 0),
+                    if (deliveryReport) statusIntent(context, ACTION_DELIVERED, ref, 0) else null,
+                )
             } else {
                 mgr.sendMultipartTextMessage(
                     address, null, parts,
-                    arrayListOf(sent), delivered?.let { arrayListOf(it) },
+                    ArrayList(parts.indices.map { statusIntent(context, ACTION_SENT, ref, it) }),
+                    if (deliveryReport)
+                        ArrayList(parts.indices.map { statusIntent(context, ACTION_DELIVERED, ref, it) })
+                    else null,
                 )
             }
             Log.d(TAG, "sent to=$address parts=${parts.size} ref=$ref")
@@ -45,10 +52,14 @@ object SmsSender {
         }
     }
 
-    private fun statusIntent(context: Context, action: String, ref: String?): PendingIntent =
+    // Per-part requestCode — with FLAG_UPDATE_CURRENT, identical
+    // requestCodes collapse every part onto one PendingIntent.
+    private fun statusIntent(
+        context: Context, action: String, ref: String?, part: Int,
+    ): PendingIntent =
         PendingIntent.getBroadcast(
             context,
-            ref?.hashCode() ?: 0,
+            (ref?.hashCode() ?: 0) * 31 + part,
             Intent(action).setPackage(context.packageName)
                 .putExtra(EXTRA_REF, ref),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

@@ -33,15 +33,28 @@ object ConversationStore {
 
     private var file: File? = null
 
+    // All disk I/O funnels through one writer thread — the caller's
+    // thread (UI, Telecom callback) never encrypts or writes.
+    private val writer = java.util.concurrent.Executors
+        .newSingleThreadScheduledExecutor { r ->
+            Thread(r, "conv-writer").also { it.isDaemon = true }
+        }
+    private val writeLock = Any()
+    private var writeTask: java.util.concurrent.ScheduledFuture<*>? = null
+
     /** Call once from a context-holding site (service onCreate). */
     fun init(context: Context) {
         if (file != null) return
         val f = File(context.filesDir, "conversations.jsonl")
         file = f
-        if (!f.exists()) return
-        _messages.value = (SecureFile.read(f) ?: return).lineSequence()
-            .mapNotNull { runCatching { json.decodeFromString<ChatMessage>(it) }.getOrNull() }
-            .toList()
+        writer.execute {
+            if (!f.exists()) return@execute
+            val loaded = (SecureFile.read(f) ?: return@execute).lineSequence()
+                .mapNotNull { runCatching { json.decodeFromString<ChatMessage>(it) }.getOrNull() }
+                .toList()
+            // Keep anything appended before this load landed.
+            _messages.value = (loaded + _messages.value).distinct()
+        }
     }
 
     fun onIncoming(sms: Protocol.SmsReceived) =
@@ -85,10 +98,22 @@ object ConversationStore {
         rewrite()
     }
 
+    /**
+     * Debounced persist — serializing + encrypting the full history on
+     * every append is O(n) per message; a burst (queued-flush, send
+     * storm) collapses into a single trailing write.
+     */
     private fun rewrite() {
-        file?.let {
-            SecureFile.write(it,
-                _messages.value.joinToString("") { m -> json.encodeToString(m) + "\n" })
+        val f = file ?: return
+        synchronized(writeLock) {
+            writeTask?.cancel(false)
+            writeTask = writer.schedule(
+                {
+                    SecureFile.write(f, _messages.value
+                        .joinToString("") { m -> json.encodeToString(m) + "\n" })
+                },
+                WRITE_DELAY_MS, java.util.concurrent.TimeUnit.MILLISECONDS,
+            )
         }
     }
 
@@ -98,4 +123,5 @@ object ConversationStore {
     private val scope = kotlinx.coroutines.CoroutineScope(
         kotlinx.coroutines.Dispatchers.Default)
     private const val SEND_TIMEOUT_MS = 60_000L
+    private const val WRITE_DELAY_MS = 250L
 }

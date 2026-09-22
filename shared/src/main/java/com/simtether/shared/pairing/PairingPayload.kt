@@ -1,6 +1,7 @@
 package com.simtether.shared.pairing
 
 import com.simtether.shared.protocol.Protocol
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -12,7 +13,10 @@ data class PairingPayload(
     val host: String,              // bridge LAN IP (usually hotspot gateway)
     val port: Int,
     val bridgeStaticPubKey: String, // base64 X25519 — pinned on pair
-    val oneTimeToken: String,       // base64 — proves QR scan, kills MITM
+    // base64 — proves the QR scan, kills MITM. Rotates each session
+    // (bridge pushes the next one inside the encrypted channel).
+    @SerialName("oneTimeToken")     // wire compat with stored pairings
+    val pairingToken: String,
     val deviceName: String = "bridge",
     // Remote-access rendezvous — present only when the bridge owner
     // opted in. The QR is a secret channel already (it carries the

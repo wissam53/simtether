@@ -18,7 +18,7 @@ import java.nio.ByteBuffer
  */
 class RelayLink(
     private val server: BridgeWsServer,
-    private val addr: String,          // "host:port"
+    private val addr: String,          // "host:port" or "wss://host:port"
     private val fingerprint: String,   // st1-xxxx — the room name
     private val token: String?,
 ) {
@@ -39,7 +39,12 @@ class RelayLink(
         while (!stopped) {
             val q = token
                 ?.let { "?token=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""
-            val c = object : WebSocketClient(URI("ws://$addr/register/$fingerprint$q")) {
+            // wss:// when the relay sits behind TLS termination — the
+            // token and room name ride the URL path, so cleartext ws
+            // leaks both to anyone on the path.
+            val scheme = if (addr.startsWith("wss://")) "wss" else "ws"
+            val c = object : WebSocketClient(
+                URI("$scheme://${addr.substringAfter("://")}/register/$fingerprint$q")) {
                 override fun onOpen(h: ServerHandshake) {
                     Log.d(TAG, "registered room $fingerprint on relay $addr")
                     backoffMs = 2_000L

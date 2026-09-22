@@ -16,7 +16,7 @@ import com.simtether.shared.protocol.Protocol
 /**
  * Collects bridge telemetry (battery, SIM, carrier, network) and
  * emits bridge.status events. Pushed on client connect, on demand
- * (STATUS_REFRESH), and periodically by the service.
+ * (STATUS_REFRESH), and every 60s while a session is live.
  */
 object StatusReporter {
 
@@ -54,7 +54,10 @@ object StatusReporter {
         val payload = Protocol.json.encodeToString(
             Protocol.BridgeStatus.serializer(), status
         )
-        com.simtether.bridge.sms.BridgeServiceHolder.service?.emit("bridge.status", payload)
+        // Ephemeral — a stale status must never occupy a queue slot
+        // meant for SMS/call events while the client is offline.
+        com.simtether.bridge.sms.BridgeServiceHolder.service
+            ?.emit("bridge.status", payload, reliable = false)
     }
 
     /**

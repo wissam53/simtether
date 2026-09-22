@@ -32,12 +32,16 @@ class ResolvedTarget(
     // LAN targets hit the bridge's root path.
     val path: String = "/",
     val viaRelay: Boolean = false,
+    // "ws" on the LAN; "wss" when the relay sits behind TLS termination.
+    val scheme: String = "ws",
 )
 
 class BridgeWsClient(
     private val targetProvider: () -> ResolvedTarget?,
     private val bridgeStaticPub: ByteArray,
-    private val pairingToken: ByteArray,
+    // Provider, not a snapshot — the bridge rotates the token every
+    // session, so each connect attempt must read the latest stored one.
+    private val pairingTokenProvider: () -> ByteArray,
     private val onEvent: (Protocol.Envelope) -> Unit,
     private val onState: (Boolean) -> Unit = {},
     // Reports which transport the live session rides (LAN vs relay) —
@@ -128,13 +132,13 @@ class BridgeWsClient(
             if (target.viaRelay) " (relay)" else "")
         currentViaRelay = target.viaRelay
         val request = Request.Builder()
-            .url("ws://${target.host}:${target.port}${target.path}").build()
+            .url("${target.scheme}://${target.host}:${target.port}${target.path}").build()
         val client = target.socketFactory?.let {
             http.newBuilder().socketFactory(it).build()
         } ?: http
         client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                val hs = SecureSession.clientHandshake(bridgeStaticPub, pairingToken)
+                val hs = SecureSession.clientHandshake(bridgeStaticPub, pairingTokenProvider())
                 pendingHandshake = hs
                 ws = webSocket
                 // First frame: IK msg1 — e/es/s/ss + pairing token, all

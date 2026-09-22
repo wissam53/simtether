@@ -34,7 +34,25 @@ object ContactLookup {
         return null
     }
 
-    /** Blocking variant for call-time resolution — query is indexed. */
+    /** Cache read only — safe on any thread, never queries. */
+    fun cachedName(number: String): String? = _names.value[number]
+
+    /**
+     * Async resolve with a callback (worker thread) — for call paths
+     * that must not block the main thread on a ContentProvider query.
+     */
+    fun resolveAsync(number: String, onDone: (String?) -> Unit) {
+        _names.value[number]?.let { onDone(it); return }
+        val ctx = appContext ?: run { onDone(null); return }
+        Thread {
+            onDone(resolve(ctx, number)?.also { name ->
+                _names.value = _names.value + (number to name)
+            })
+        }.start()
+    }
+
+    /** Blocking variant for call-time resolution — query is indexed.
+     *  Worker threads only, never the UI thread. */
     fun resolveBlocking(number: String): String? {
         _names.value[number]?.let { return it }
         val ctx = appContext ?: return null

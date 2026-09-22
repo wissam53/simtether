@@ -10,7 +10,6 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
 import com.simtether.client.net.BridgeDiscovery
 import com.simtether.client.net.BridgeWsClient
 import com.simtether.client.telecom.CallRouter
@@ -19,8 +18,12 @@ import com.simtether.shared.ConversationStore
 import com.simtether.shared.Identity
 import com.simtether.shared.SmsNotifier
 import com.simtether.shared.protocol.Protocol
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.Executors
 
 /**
  * Client foreground service: persistent reconnecting WS connection to
@@ -31,6 +34,16 @@ class ClientService : LifecycleService() {
 
     private var ws: BridgeWsClient? = null
     private var target: String? = null
+
+    // Single-threaded: preserves event ordering while keeping store
+    // writes, contact lookups, and Telecom binder calls off the UI
+    // thread. Dispatchers.IO is a pool — ordering would not hold.
+    private val eventDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    private val eventScope = CoroutineScope(eventDispatcher)
+
+    // Recently-processed envelope ids — redeliveries (the bridge never
+    // got our ack) are re-acked but not re-processed.
+    private val seenIds = com.simtether.shared.IdDedup()
 
     // In-app language override — notification strings resolve through
     // the service context, so it must be wrapped too.
@@ -96,8 +109,14 @@ class ClientService : LifecycleService() {
         ws = BridgeWsClient(
             targetProvider = { resolveTarget(pairing, pubKey) },
             bridgeStaticPub = pubKey,
-            pairingToken = java.util.Base64.getDecoder().decode(pairing.oneTimeToken),
-            onEvent = { env -> lifecycleScope.launch { route(env) } },
+            pairingTokenProvider = {
+                // Read fresh each attempt — a pairing.rotate lands
+                // between connects, and the token we were built with
+                // may already be retired.
+                java.util.Base64.getDecoder().decode(
+                    PairingStore.load(applicationContext)?.pairingToken ?: "")
+            },
+            onEvent = { env -> eventScope.launch { handleEvent(env) } },
             onState = { up ->
                 ClientServiceHolder.setConnected(up)
                 updateNotification(up)
@@ -155,14 +174,19 @@ class ClientService : LifecycleService() {
     ): com.simtether.client.net.ResolvedTarget? {
         if (!com.simtether.shared.RemoteStore.isEnabled(applicationContext)) return null
         val relay = pairing.relay?.takeIf { it.isNotBlank() } ?: return null
-        val host = relay.substringBeforeLast(':', "")
-        val port = relay.substringAfterLast(':', "").toIntOrNull()
+        // Address may carry a scheme — "wss://host:port" when the relay
+        // sits behind TLS termination; bare "host:port" means ws.
+        val secure = relay.startsWith("wss://")
+        val hostport = relay.substringAfter("://")
+        val host = hostport.substringBeforeLast(':', "")
+        val port = hostport.substringAfterLast(':', "").toIntOrNull()
         if (host.isBlank() || port == null) return null
         val token = pairing.relayToken
             ?.let { "?token=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""
         Log.d(TAG, "LAN unreachable — falling back to relay $relay")
         return com.simtether.client.net.ResolvedTarget(
-            host, port, null, "/connect/$fp$token", viaRelay = true)
+            host, port, null, "/connect/$fp$token", viaRelay = true,
+            scheme = if (secure) "wss" else "ws")
     }
 
     /** The Network whose interface owns the subnet containing [host]. */
@@ -223,12 +247,42 @@ class ClientService : LifecycleService() {
         ws?.close()
         ws = null
         target = null
+        eventScope.cancel()
+        eventDispatcher.close()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent): IBinder? {
         super.onBind(intent)
         return null
+    }
+
+    /**
+     * Dedup → process → ack. The ack goes out only after route()
+     * completes, so an event that kills processing is redelivered on
+     * the next session. Heartbeats are neither deduped nor acked —
+     * they never enter the bridge's pending queue.
+     */
+    private fun handleEvent(env: Protocol.Envelope) {
+        if (env.pv > Protocol.PROTOCOL_VERSION) {
+            Log.w(TAG, "bridge speaks newer protocol pv=${env.pv} — update the client")
+            ClientServiceHolder.setPeerNewer(true)
+        }
+        if (env.type != "hb") {
+            if (!seenIds.add(env.id)) {
+                sendAck(env.id)
+                return
+            }
+        }
+        runCatching { route(env) }
+            .onFailure { Log.e(TAG, "route ${env.type} failed", it) }
+        if (env.type != "hb") sendAck(env.id)
+    }
+
+    private fun sendAck(forId: String) {
+        val payload = Protocol.json.encodeToString(
+            Protocol.Ack.serializer(), Protocol.Ack(forId))
+        ws?.sendCommand("ack", payload)
     }
 
     private fun route(env: Protocol.Envelope) {
@@ -255,6 +309,14 @@ class ClientService : LifecycleService() {
                 val e = env.payloadAs<Protocol.SmsStatus>()
                 Log.d(TAG, "sms.status ref=${e.ref} -> ${e.status}")
                 ConversationStore.onStatus(e)
+            }
+            "pairing.rotate" -> {
+                // Bridge rotated the token — persist so the NEXT
+                // connect authenticates with it. The ack for this
+                // event is what retires the old token.
+                val e = env.payloadAs<Protocol.PairingRotate>()
+                PairingStore.updateToken(applicationContext, e.token)
+                Log.d(TAG, "pairing token rotated")
             }
         }
     }

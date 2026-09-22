@@ -76,6 +76,13 @@ object Protocol {
     @Serializable
     data class Ack(val forId: String)
 
+    /** Bridge → client: next session's pairing token. Sent reliable —
+     *  the bridge promotes it to current only once acked (or once the
+     *  client authenticates with it), so a mid-rotation link drop
+     *  can't brick the pairing. */
+    @Serializable
+    data class PairingRotate(val token: String)   // base64
+
     // ── Client → Bridge commands ──────────────────────────────────
 
     @Serializable

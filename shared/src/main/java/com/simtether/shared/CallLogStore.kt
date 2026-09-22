@@ -53,14 +53,26 @@ object CallLogStore {
 
     private var file: File? = null
 
+    // Single writer thread — see ConversationStore.
+    private val writer = java.util.concurrent.Executors
+        .newSingleThreadScheduledExecutor { r ->
+            Thread(r, "calllog-writer").also { it.isDaemon = true }
+        }
+    private val writeLock = Any()
+    private var writeTask: java.util.concurrent.ScheduledFuture<*>? = null
+
     fun init(context: Context) {
         if (file != null) return
         val f = File(context.filesDir, "call_log.jsonl")
         file = f
-        if (!f.exists()) return
-        _entries.value = (SecureFile.read(f) ?: return).lineSequence()
-            .mapNotNull { runCatching { json.decodeFromString<CallLogEntry>(it) }.getOrNull() }
-            .toList()
+        writer.execute {
+            if (!f.exists()) return@execute
+            val loaded = (SecureFile.read(f) ?: return@execute).lineSequence()
+                .mapNotNull { runCatching { json.decodeFromString<CallLogEntry>(it) }.getOrNull() }
+                .toList()
+            // Keep anything appended before this load landed.
+            _entries.value = (loaded + _entries.value).distinct()
+        }
     }
 
     /** Record meaningful transitions; returns the updated entry. */
@@ -97,10 +109,20 @@ object CallLogStore {
         return entry
     }
 
+    /** Debounced persist — a call generates several events in a row. */
     private fun rewrite() {
-        file?.let {
-            SecureFile.write(it,
-                _entries.value.joinToString("") { e -> json.encodeToString(e) + "\n" })
+        val f = file ?: return
+        synchronized(writeLock) {
+            writeTask?.cancel(false)
+            writeTask = writer.schedule(
+                {
+                    SecureFile.write(f, _entries.value
+                        .joinToString("") { e -> json.encodeToString(e) + "\n" })
+                },
+                WRITE_DELAY_MS, java.util.concurrent.TimeUnit.MILLISECONDS,
+            )
         }
     }
+
+    private const val WRITE_DELAY_MS = 250L
 }

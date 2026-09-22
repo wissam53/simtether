@@ -18,7 +18,9 @@ import java.util.UUID
 class BridgeWsServer(
     port: Int,
     private val staticKeyPair: Pair<ByteArray, ByteArray>,
-    private val pairingToken: ByteArray,
+    // Validator rather than a raw token — token rotation means two
+    // values can be valid during the pending-window.
+    private val tokenValid: (ByteArray) -> Boolean,
     private val onClientReady: () -> Unit,
     private val onClientDisconnected: () -> Unit = {},
     private val onCommand: (Protocol.Envelope) -> Unit,
@@ -113,7 +115,7 @@ class BridgeWsServer(
                 conn.close(1002, "bad handshake")
                 return
             }
-            if (!java.security.MessageDigest.isEqual(hs.peerPayload, pairingToken)) {
+            if (!tokenValid(hs.peerPayload)) {
                 Log.w(TAG, "rejected client: bad pairing token")
                 conn.close(4003, "bad token")
                 return

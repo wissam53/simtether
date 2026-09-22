@@ -35,6 +35,13 @@ object ClientServiceHolder {
     val pairingRevoked: StateFlow<Boolean> = _pairingRevoked
     fun setPairingRevoked(v: Boolean) { _pairingRevoked.value = v }
 
+    /** Bridge speaks a newer wire protocol than we understand —
+     *  envelopes still decode (forward tolerance), but the user should
+     *  update this app. */
+    private val _peerNewer = MutableStateFlow(false)
+    val peerNewer: StateFlow<Boolean> = _peerNewer
+    fun setPeerNewer(v: Boolean) { _peerNewer.value = v }
+
     fun sendSms(address: String, body: String, ref: String? = null) {
         localBackend?.let { it.sendSms(address, body, ref); return }
         val payload = Protocol.json.encodeToString(

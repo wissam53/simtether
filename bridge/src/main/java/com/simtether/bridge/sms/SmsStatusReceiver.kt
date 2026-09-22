@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.telephony.SmsManager
 import android.util.Log
-import com.simtether.shared.protocol.Protocol
 
 /**
  * Catches SmsManager's SENT/DELIVERED result broadcasts and forwards
@@ -16,26 +15,23 @@ class SmsStatusReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val ref = intent.getStringExtra(SmsSender.EXTRA_REF)
-        when (intent.action) {
+        val ok = resultCode == Activity.RESULT_OK
+        // Multipart sends fire one result per part — aggregate into a
+        // single logical status (null = still waiting on other parts).
+        val report = when (intent.action) {
             SmsSender.ACTION_SENT -> {
-                val ok = resultCode == Activity.RESULT_OK
                 Log.d(TAG, "SMS_SENT ref=$ref result=$resultCode")
-                SmsSender.report(
-                    ref,
-                    if (ok) Protocol.SmsStatus.Status.SENT else Protocol.SmsStatus.Status.FAILED,
-                    if (ok) null else errorName(resultCode),
-                )
+                com.simtether.shared.SendStatusTracker.onSent(
+                    ref, ok, if (ok) null else errorName(resultCode))
             }
             SmsSender.ACTION_DELIVERED -> {
-                val ok = resultCode == Activity.RESULT_OK
                 Log.d(TAG, "SMS_DELIVERED ref=$ref result=$resultCode")
-                SmsSender.report(
-                    ref,
-                    if (ok) Protocol.SmsStatus.Status.DELIVERED else Protocol.SmsStatus.Status.FAILED,
-                    if (ok) null else "delivery result $resultCode",
-                )
+                com.simtether.shared.SendStatusTracker.onDelivered(
+                    ref, ok, if (ok) null else "delivery result $resultCode")
             }
+            else -> null
         }
+        report?.let { SmsSender.report(ref, it.status, it.error) }
     }
 
     private fun errorName(code: Int): String = when (code) {

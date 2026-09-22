@@ -61,13 +61,25 @@ class BridgeConnectionService : ConnectionService() {
         val localId = "local-" + java.util.UUID.randomUUID().toString()
         val address = request.address
         val number = address?.schemeSpecificPart
-        val name = number?.let { com.simtether.shared.ContactLookup.resolveBlocking(it) }
-        val conn = bridgeConnection(localId, address, name, incoming = false)
+        // Name resolves off-thread — a ContentProvider query has no
+        // business on this binder→main callback.
+        val conn = bridgeConnection(localId, address, null, incoming = false)
+        if (number != null) com.simtether.shared.ContactLookup.resolveAsync(number) { name ->
+            if (name == null) return@resolveAsync
+            mainHandler.post {
+                conn.setCallerDisplayName(name, TelecomManager.PRESENTATION_ALLOWED)
+                CallStateBus.call.value?.let { ui ->
+                    if (ui.callId == localId) CallStateBus.publish(ui.copy(name = name))
+                }
+            }
+        }
         if (number != null) pendingOutgoing[number] = localId
         // Tell the bridge to actually place the GSM call.
         if (number != null) com.simtether.client.ClientServiceHolder.sendDial(number)
         return conn
     }
+
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     private fun bridgeConnection(
         callId: String,

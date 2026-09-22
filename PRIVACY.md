@@ -31,7 +31,7 @@ SIM ("bridge") forwards SMS and call events to your main phone
 | Call events (number, state, timestamps) | Same — bridge → your phone over LAN only. |
 | Contact names (to label senders) | Read on-device for display. Never transmitted to us. |
 | Bridge telemetry (battery, carrier, signal, app version) | Sent to *your paired phone* so the client can show bridge status. Nowhere else. |
-| Pairing data (public key, one-time token) | Exchanged via QR you scan yourself. Used to establish the encrypted session and verify identity. |
+| Pairing data (public key, pairing token) | Exchanged via QR you scan yourself. The token authenticates the encrypted session and rotates every connection — a copied QR stops working after your phone next connects. |
 | Subscription status | Handled by Google Play Billing. We see only "entitled / not entitled" — never card numbers or payment details. |
 
 ## The encryption, specifically

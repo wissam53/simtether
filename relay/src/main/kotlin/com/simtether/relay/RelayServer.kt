@@ -22,9 +22,15 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Env:
  *   PORT         listen port (default 44711)
- *   ACCESS_TOKEN if set, both endpoints must present it as ?token= —
- *                turns the relay into a private pipe for your own
- *                devices (BYO/personal deployments).
+ *   ACCESS_TOKEN required — both endpoints must present it as ?token=.
+ *                This is a private pipe: without the token, anyone who
+ *                learns a room name can /register it and evict the real
+ *                bridge (remote-access DoS). Put the relay behind TLS
+ *                termination (wss://) so the token isn't on the wire
+ *                in the clear.
+ *
+ * Rooms are named by a 32-bit key fingerprint — enumerable in
+ * principle, so the token is what actually gates registration.
  *
  * Client detach is signalled to the bridge as a text frame
  * "st-peer-gone" — the bridge clears the dead session but keeps its
@@ -32,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class RelayServer(
     port: Int,
-    private val accessToken: String?,
+    private val accessToken: String,
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
 
     private class Room {
@@ -47,15 +53,17 @@ class RelayServer(
         val desc = conn.resourceDescriptor ?: ""
         val path = desc.substringBefore('?')
         val query = desc.substringAfter('?', "")
-        if (accessToken != null) {
-            val tok = query.split('&').firstNotNullOfOrNull {
-                it.substringBefore('=').takeIf { k -> k == "token" }
-                    ?.let { _ -> it.substringAfter('=') }
-            } ?: ""
-            if (tok != accessToken) {
-                conn.close(4001, "auth")
-                return
-            }
+        val tok = query.split('&').firstNotNullOfOrNull {
+            it.substringBefore('=').takeIf { k -> k == "token" }
+                ?.let { _ -> it.substringAfter('=') }
+        } ?: ""
+        // Constant-time — a timing oracle on the token comparison
+        // would let a scanner recover it byte-by-byte.
+        if (!java.security.MessageDigest.isEqual(
+                tok.toByteArray(Charsets.UTF_8),
+                accessToken.toByteArray(Charsets.UTF_8))) {
+            conn.close(4001, "auth")
+            return
         }
         val seg = path.trim('/').split('/')
         if (seg.size != 2 || seg[1].isBlank()) {
@@ -144,6 +152,11 @@ class RelayServer(
         fun main(args: Array<String>) {
             val port = System.getenv("PORT")?.toIntOrNull() ?: 44711
             val token = System.getenv("ACCESS_TOKEN")?.takeIf { it.isNotBlank() }
+                ?: run {
+                    System.err.println(
+                        "ACCESS_TOKEN is required — refusing to run an open relay")
+                    kotlin.system.exitProcess(1)
+                }
             RelayServer(port, token).apply {
                 // WS ping/liveness — reaps half-dead sockets so rooms
                 // don't stay registered to ghosts.
