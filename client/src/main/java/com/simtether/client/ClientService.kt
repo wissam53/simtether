@@ -102,6 +102,7 @@ class ClientService : LifecycleService() {
                 ClientServiceHolder.setConnected(up)
                 updateNotification(up)
             },
+            onTransport = { viaRelay -> ClientServiceHolder.setViaRelay(viaRelay) },
             onRevoked = { ClientServiceHolder.setPairingRevoked(true) },
         ).also { it.connect() }
     }
@@ -130,7 +131,7 @@ class ClientService : LifecycleService() {
         Log.d(TAG, "cached address unreachable, mDNS for fp=$fp")
         val found = runBlocking {
             BridgeDiscovery(applicationContext).resolve(fp)
-        } ?: return null
+        } ?: return relayTarget(pairing, fp)
         val host = found.hostString ?: return null
         val net = networkFor(host) ?: run {
             Log.w(TAG, "resolved $host but no local network owns that subnet")
@@ -139,6 +140,29 @@ class ClientService : LifecycleService() {
         PairingStore.updateHost(applicationContext, host, found.port)
         Log.d(TAG, "rediscovered bridge at $host:${found.port}")
         return com.simtether.client.net.ResolvedTarget(host, found.port, net.socketFactory)
+    }
+
+    /**
+     * Remote fallback — opt-in (RemoteStore) and only when the pairing
+     * carried a relay address. The relay is a byte splice: the same
+     * Noise IK session runs end-to-end through it, so the operator
+     * sees ciphertext and timing, never content. socketFactory stays
+     * null — public addresses route over the default network.
+     */
+    private fun relayTarget(
+        pairing: com.simtether.shared.pairing.PairingPayload,
+        fp: String,
+    ): com.simtether.client.net.ResolvedTarget? {
+        if (!com.simtether.shared.RemoteStore.isEnabled(applicationContext)) return null
+        val relay = pairing.relay?.takeIf { it.isNotBlank() } ?: return null
+        val host = relay.substringBeforeLast(':', "")
+        val port = relay.substringAfterLast(':', "").toIntOrNull()
+        if (host.isBlank() || port == null) return null
+        val token = pairing.relayToken
+            ?.let { "?token=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""
+        Log.d(TAG, "LAN unreachable — falling back to relay $relay")
+        return com.simtether.client.net.ResolvedTarget(
+            host, port, null, "/connect/$fp$token", viaRelay = true)
     }
 
     /** The Network whose interface owns the subnet containing [host]. */
@@ -167,6 +191,25 @@ class ClientService : LifecycleService() {
         }
         true
     }.getOrDefault(false)
+
+    /** Settings changed (remote toggle) — retry resolution now. */
+    fun reconnect() = ws?.kick()
+
+    /**
+     * Remote toggled OFF while a relay link is live — drop the socket
+     * so the reconnect lands back on LAN-only paths. A live LAN link
+     * is unaffected: remote is only ever a fallback.
+     */
+    fun applyRemotePref() {
+        if (!com.simtether.shared.RemoteStore.isEnabled(applicationContext) &&
+            ClientServiceHolder.viaRelay.value) {
+            Log.d(TAG, "remote disabled — dropping relay link")
+            target = null
+            ws?.close()
+            ws = null
+            connectToBridge()
+        }
+    }
 
     override fun onDestroy() {
         ClientServiceHolder.service = null

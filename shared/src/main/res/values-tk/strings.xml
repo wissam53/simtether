@@ -150,6 +150,6 @@
     <string name="paywall_body">Telefonlaryňyzyň arasynda jaň we SMS gönükdiriň — şifrli, öz tordyňyzda, hiç zat ýüklenmeden. Bu enjamy işjeňleşdirmek üçin abuna boluň.</string>
     <string name="paywall_subscribe">Abuna bol</string>
     <string name="paywall_subscribe_price">Abuna bol — %1$s / aý</string>
-    <string name="paywall_trial_line">7 gün mugt, soňra %1$s / aý. Islenen wagt ýatyr.</string>
+    <string name="paywall_trial_line">14 gün mugt, soňra %1$s / aý. Islenen wagt ýatyr.</string>
     <string name="paywall_restore">Satyn almagy dikelt</string>
 </resources>

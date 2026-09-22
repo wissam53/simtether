@@ -150,6 +150,20 @@
     <string name="paywall_body">Telefonlarınız arasında arama ve SMS aktarın — şifreli, kendi ağınızda, hiçbir şey yüklenmeden. Bu cihazı etkinleştirmek için abone olun.</string>
     <string name="paywall_subscribe">Abone ol</string>
     <string name="paywall_subscribe_price">Abone ol — %1$s / ay</string>
-    <string name="paywall_trial_line">7 gün ücretsiz, sonra %1$s / ay. İstediğinizde iptal edin.</string>
+    <string name="paywall_trial_line">14 gün ücretsiz, sonra %1$s / ay. İstediğinizde iptal edin.</string>
     <string name="paywall_restore">Satın alımı geri yükle</string>
+
+    <!-- Remote access -->
+    <string name="remote_access">Uzaktan erişim</string>
+    <string name="remote_client_hint">Köprü telefon yerel ağda değilken ona internet üzerinden ulaşın — seçtiğiniz bir aktarım sunucusu ile.</string>
+    <string name="remote_bridge_hint">Bu telefonu bir aktarım sunucusu üzerinden internette erişilebilir kılın; eşlenen telefonunuz evde olmadığında da bulabilsin.</string>
+    <string name="remote_consent_title">Uzaktan erişim açılsın mı?</string>
+    <string name="remote_consent_client">Köprü telefon yerel ağda olmadığında bağlantılar internet üzerinden aktarım sunucusuyla kurulur.\n\nMesajlar ve aramalar uçtan uca şifreli kalır — aktarım yalnızca şifreli veri taşır, hiçbir şeyi okuyamaz. Sunucuyu işleten yalnızca bağlantı zamanlarını ve veri miktarını görebilir.</string>
+    <string name="remote_consent_bridge">Uzaktan erişim açıkken bu telefon aktarım sunucusuna bağlanır ve internetten erişilebilir olur.\n\nHer şey uçtan uca şifreli kalır — aktarım yalnızca şifreli veri taşır, hiçbir şeyi okuyamaz. Sunucuyu işleten yalnızca bağlantı zamanlarını ve veri miktarını görebilir.</string>
+    <string name="remote_relay_address">Aktarım adresi (sunucu:port)</string>
+    <string name="remote_relay_token">Aktarım anahtarı (gerekiyorsa)</string>
+    <string name="remote_save">Aktarım ayarlarını kaydet</string>
+    <string name="remote_repair_needed">Diğer telefonun aktarım adresini öğrenmesi için eşleme QR kodunu yeniden taratın.</string>
+    <string name="home_linked_remote">Bağlı · internet üzerinden</string>
+    <string name="remote_agree">Etkinleştir</string>
 </resources>

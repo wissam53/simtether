@@ -150,6 +150,6 @@
     <string name="paywall_body">تماس‌ها و پیامک‌ها را بین گوشی‌هایتان منتقل کنید — رمزنگاری‌شده، روی شبکهٔ خودتان، بدون هیچ بارگذاری. برای فعال‌سازی این دستگاه مشترک شوید.</string>
     <string name="paywall_subscribe">مشترک شوید</string>
     <string name="paywall_subscribe_price">مشترک شوید — %1$s / ماهانه</string>
-    <string name="paywall_trial_line">۷ روز رایگان، سپس %1$s / ماهانه. لغو در هر زمان.</string>
+    <string name="paywall_trial_line">۱۴ روز رایگان، سپس %1$s / ماهانه. لغو در هر زمان.</string>
     <string name="paywall_restore">بازیابی خرید</string>
 </resources>

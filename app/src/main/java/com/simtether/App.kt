@@ -11,15 +11,9 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Resolve the subscription entitlement early — the client role
+        // Resolve the subscription entitlement early — the client
         // gates on it and Play's cache answers offline.
         com.simtether.billing.Billing.init(this)
-        // Role-specific services start from MainActivity role selection.
+        // ClientService starts from MainActivity / BootReceiver.
     }
-}
-
-/** Notification taps → in-app navigation requests (thread deep-links). */
-object NavBus {
-    val openThread = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
-    val openCalls = kotlinx.coroutines.flow.MutableStateFlow(false)
 }

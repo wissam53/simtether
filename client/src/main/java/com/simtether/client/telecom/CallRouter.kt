@@ -32,7 +32,9 @@ object CallRouter {
         val tm = context.getSystemService(TelecomManager::class.java)
         when (event.state) {
             Protocol.CallEvent.State.RINGING -> {
-                android.util.Log.d("SimTether.CallRouter", "RINGING ${event.number}")
+                // Never log the number — logcat is readable by OEM
+                // tooling, adb, and anything with root.
+                android.util.Log.d("SimTether.CallRouter", "RINGING callId=${event.callId}")
                 startRinging(context)
                 val extras = Bundle().apply {
                     putParcelable(

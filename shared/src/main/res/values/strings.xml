@@ -170,6 +170,20 @@
     <string name="paywall_body">Relay calls and SMS between your phones — encrypted, on your own network, nothing uploaded. Subscribe to activate this device.</string>
     <string name="paywall_subscribe">Subscribe</string>
     <string name="paywall_subscribe_price">Subscribe — %1$s / month</string>
-    <string name="paywall_trial_line">7 days free, then %1$s / month. Cancel anytime.</string>
+    <string name="paywall_trial_line">14 days free, then %1$s / month. Cancel anytime.</string>
     <string name="paywall_restore">Restore purchase</string>
+
+    <!-- Remote access (opt-in internet fallback via a splice relay) -->
+    <string name="remote_access">Remote access</string>
+    <string name="remote_client_hint">Reach your bridge over the internet when it isn’t on your local network — via a relay server you choose.</string>
+    <string name="remote_bridge_hint">Make this phone reachable over the internet through a relay server, so your paired phone can find it away from home.</string>
+    <string name="remote_consent_title">Enable remote access?</string>
+    <string name="remote_consent_client">When your bridge isn’t on the local network, connections go through the relay over the internet.\n\nMessages and calls stay end-to-end encrypted — the relay forwards ciphertext only and cannot read anything. Whoever runs the relay can still see connection times and data amounts.</string>
+    <string name="remote_consent_bridge">This phone will connect out to the relay and stay reachable over the internet while remote access is on.\n\nEverything stays end-to-end encrypted — the relay forwards ciphertext only and cannot read anything. Whoever runs the relay can still see connection times and data amounts.</string>
+    <string name="remote_relay_address">Relay address (host:port)</string>
+    <string name="remote_relay_token">Relay token (if required)</string>
+    <string name="remote_save">Save relay settings</string>
+    <string name="remote_repair_needed">Re-scan the pairing QR on your other phone so it learns the relay address.</string>
+    <string name="home_linked_remote">Linked · via internet</string>
+    <string name="remote_agree">Enable</string>
 </resources>

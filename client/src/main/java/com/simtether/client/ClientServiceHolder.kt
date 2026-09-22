@@ -23,6 +23,12 @@ object ClientServiceHolder {
     val connected: StateFlow<Boolean> = _connected
     fun setConnected(v: Boolean) { _connected.value = v }
 
+    /** True while the live session rides the relay (internet) rather
+     *  than the LAN — surfaced in the status line. */
+    private val _viaRelay = MutableStateFlow(false)
+    val viaRelay: StateFlow<Boolean> = _viaRelay
+    fun setViaRelay(v: Boolean) { _viaRelay.value = v }
+
     /** Bridge rotated its identity — the stored pairing is dead and
      *  the user must re-scan the new QR. */
     private val _pairingRevoked = MutableStateFlow(false)

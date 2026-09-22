@@ -43,6 +43,7 @@ class BridgeService : LifecycleService() {
     private val seq = AtomicLong(0)
     private var server: BridgeWsServer? = null
     private var advertiser: BridgeAdvertiser? = null
+    private var relayLink: com.simtether.bridge.net.RelayLink? = null
     private var pairingToken: ByteArray? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
@@ -90,6 +91,31 @@ class BridgeService : LifecycleService() {
             Identity.serviceName(staticKey.second),
             Protocol.WS_PORT,
         ).also { it.start() }
+        refreshRemote()
+    }
+
+    /**
+     * (Re)apply remote-access prefs: start or stop the relay link.
+     * Called on service start, on re-pair (the room name is the key
+     * fingerprint — it changes), and from the settings toggle.
+     */
+    fun refreshRemote() {
+        val srv = server ?: return
+        val addr = if (com.simtether.shared.RemoteStore.isEnabled(this))
+            com.simtether.shared.RemoteStore.relay(this) else null
+        if (addr == null) {
+            relayLink?.stop()
+            relayLink = null
+            return
+        }
+        relayLink?.stop()
+        relayLink = com.simtether.bridge.net.RelayLink(
+            srv,
+            addr,
+            Identity.fingerprint(srv.staticPubKey),
+            com.simtether.shared.RemoteStore.relayToken(this),
+        ).also { it.start() }
+        Log.d(TAG, "remote access on — registering with relay $addr")
     }
 
     /**
@@ -154,6 +180,8 @@ class BridgeService : LifecycleService() {
         wakeLock = null
         advertiser?.stop()
         advertiser = null
+        relayLink?.stop()
+        relayLink = null
         server?.stop()
         server = null
         super.onDestroy()
@@ -179,7 +207,7 @@ class BridgeService : LifecycleService() {
             }
             Log.d(TAG, "queueing $type (no ready client), depth=${pending.size + 1}")
             pending.add(env)
-            runCatching { pendingFile.appendText(Protocol.encode(env) + "\n") }
+            persistPending()
         }
     }
 
@@ -224,18 +252,32 @@ class BridgeService : LifecycleService() {
             bridgeStaticPubKey = b64.encodeToString(server?.staticPubKey ?: return null),
             oneTimeToken = b64.encodeToString(pairingToken ?: return null),
             deviceName = android.os.Build.MODEL,
+            // Remote access rides the QR — the client learns the
+            // rendezvous without a second config step. Only present
+            // while the bridge owner opted in.
+            relay = if (com.simtether.shared.RemoteStore.isEnabled(this))
+                com.simtether.shared.RemoteStore.relay(this) else null,
+            relayToken = if (com.simtether.shared.RemoteStore.isEnabled(this))
+                com.simtether.shared.RemoteStore.relayToken(this) else null,
         )
     }
 
     private fun loadPending() {
         runCatching {
-            if (!pendingFile.exists()) return
-            pendingFile.useLines { lines ->
-                lines.mapNotNullTo(pending) {
-                    runCatching { Protocol.decode(it) }.getOrNull()
-                }
+            val text = com.simtether.shared.SecureFile.read(pendingFile) ?: return
+            text.lineSequence().mapNotNullTo(pending) {
+                runCatching { Protocol.decode(it) }.getOrNull()
             }
         }.onFailure { Log.w(TAG, "loadPending failed", it) }
+    }
+
+    /** Queued events hold SMS bodies — encrypted at rest via the
+     *  Keystore so a pulled file (or rooted bridge) yields nothing. */
+    private fun persistPending() = runCatching {
+        com.simtether.shared.SecureFile.write(
+            pendingFile,
+            pending.joinToString("") { Protocol.encode(it) + "\n" },
+        )
     }
 
     private suspend fun flushPending() {

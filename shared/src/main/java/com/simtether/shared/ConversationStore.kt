@@ -39,10 +39,9 @@ object ConversationStore {
         val f = File(context.filesDir, "conversations.jsonl")
         file = f
         if (!f.exists()) return
-        _messages.value = f.useLines { lines ->
-            lines.mapNotNull { runCatching { json.decodeFromString<ChatMessage>(it) }.getOrNull() }
-                .toList()
-        }
+        _messages.value = (SecureFile.read(f) ?: return).lineSequence()
+            .mapNotNull { runCatching { json.decodeFromString<ChatMessage>(it) }.getOrNull() }
+            .toList()
     }
 
     fun onIncoming(sms: Protocol.SmsReceived) =
@@ -87,10 +86,9 @@ object ConversationStore {
     }
 
     private fun rewrite() {
-        runCatching {
-            file?.writeText(
-                _messages.value.joinToString("") { json.encodeToString(it) + "\n" }
-            )
+        file?.let {
+            SecureFile.write(it,
+                _messages.value.joinToString("") { m -> json.encodeToString(m) + "\n" })
         }
     }
 

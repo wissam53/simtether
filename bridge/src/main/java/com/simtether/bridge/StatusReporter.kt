@@ -43,6 +43,9 @@ object StatusReporter {
             ringerMode = runCatching {
                 context.getSystemService(AudioManager::class.java).ringerMode
             }.getOrNull(),
+            appVersion = runCatching {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            }.getOrNull(),
         )
     }
 

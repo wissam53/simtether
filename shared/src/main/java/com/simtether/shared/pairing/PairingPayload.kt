@@ -14,6 +14,11 @@ data class PairingPayload(
     val bridgeStaticPubKey: String, // base64 X25519 — pinned on pair
     val oneTimeToken: String,       // base64 — proves QR scan, kills MITM
     val deviceName: String = "bridge",
+    // Remote-access rendezvous — present only when the bridge owner
+    // opted in. The QR is a secret channel already (it carries the
+    // pairing token), so the relay token can ride along.
+    val relay: String? = null,      // "host:port" of a splice relay
+    val relayToken: String? = null, // access token the relay expects
 ) {
     fun encode(): String = Protocol.json.encodeToString(serializer(), this)
 

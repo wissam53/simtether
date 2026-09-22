@@ -150,6 +150,6 @@
     <string name="paywall_body">انقل المكالمات والرسائل بين هاتفيك — مشفّرة، على شبكتك، دون أي رفع. اشترك لتفعيل هذا الجهاز.</string>
     <string name="paywall_subscribe">اشترك</string>
     <string name="paywall_subscribe_price">اشترك — %1$s / شهريًا</string>
-    <string name="paywall_trial_line">7 أيام مجانًا، ثم %1$s / شهريًا. إلغاء في أي وقت.</string>
+    <string name="paywall_trial_line">14 يومًا مجانًا، ثم %1$s / شهريًا. إلغاء في أي وقت.</string>
     <string name="paywall_restore">استعادة الشراء</string>
 </resources>

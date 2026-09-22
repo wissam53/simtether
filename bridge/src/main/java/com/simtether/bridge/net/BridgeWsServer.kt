@@ -135,6 +135,36 @@ class BridgeWsServer(
         }
     }
 
+    /**
+     * Relay-spliced inbound (remote access): frames arrive on the
+     * bridge's OUTBOUND registration socket. Adopt it as `client`
+     * lazily on the first frame — the registration socket idles until
+     * a remote client actually joins, so adopting on connect would
+     * wipe a live LAN session for nothing. From here the bytes are
+     * identical to a LAN client's: IK msg1 → session → envelopes,
+     * gated by the same pairing token.
+     */
+    fun handleRemoteFrame(conn: WebSocket, bytes: ByteBuffer) {
+        if (client != conn) {
+            Log.d(TAG, "remote client spliced in — adopting relay socket")
+            client?.close(1000, "replaced")
+            client = conn
+            session = null
+        }
+        onMessage(conn, bytes)
+    }
+
+    /** The relay reported the spliced client left ("st-peer-gone") or
+     *  our own registration socket died — tear the session down. The
+     *  registration socket itself is managed by RelayLink. */
+    fun handleRemoteClose(conn: WebSocket) {
+        if (conn == client) {
+            client = null
+            session = null
+            onClientDisconnected()
+        }
+    }
+
     override fun onMessage(conn: WebSocket, message: String) {
         // unused — binary frames only
     }

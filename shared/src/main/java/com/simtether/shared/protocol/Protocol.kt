@@ -18,6 +18,11 @@ object Protocol {
 
     const val WS_PORT = 44710
 
+    /** Wire format version — bump on breaking envelope/payload changes.
+     *  Carried on every frame so either side can reject a peer it
+     *  can't understand instead of failing silently. */
+    const val PROTOCOL_VERSION = 1
+
     // ── Envelope ──────────────────────────────────────────────────
 
     @Serializable
@@ -26,6 +31,7 @@ object Protocol {
         val type: String,        // discriminator matching payload type
         val seq: Long,           // per-sender monotonic sequence
         val payload: String,     // serialized payload (inner JSON)
+        val pv: Int = PROTOCOL_VERSION,
     ) {
         inline fun <reified T> payloadAs(): T = json.decodeFromString(payload)
     }
@@ -64,6 +70,7 @@ object Protocol {
         val signalDbm: Int? = null,
         val deviceName: String? = null,
         val ringerMode: Int? = null,   // AudioManager.RINGER_MODE_*
+        val appVersion: String? = null, // bridge APK versionName — stale-bridge warnings
     )
 
     @Serializable

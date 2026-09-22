@@ -28,6 +28,10 @@ class ResolvedTarget(
     val host: String,
     val port: Int,
     val socketFactory: javax.net.SocketFactory?,
+    // Relay targets connect to /connect/{fp} on the rendezvous —
+    // LAN targets hit the bridge's root path.
+    val path: String = "/",
+    val viaRelay: Boolean = false,
 )
 
 class BridgeWsClient(
@@ -36,6 +40,9 @@ class BridgeWsClient(
     private val pairingToken: ByteArray,
     private val onEvent: (Protocol.Envelope) -> Unit,
     private val onState: (Boolean) -> Unit = {},
+    // Reports which transport the live session rides (LAN vs relay) —
+    // lets the UI label the link honestly.
+    private val onTransport: (Boolean) -> Unit = {},
     // Fired when the bridge rejects our token (4003) — the pairing was
     // revoked/rotated; reconnecting is futile until the user re-pairs.
     private val onRevoked: () -> Unit = {},
@@ -67,10 +74,13 @@ class BridgeWsClient(
     // here; call/dial/control commands must never replay stale.
     private val outbox = java.util.concurrent.ConcurrentLinkedQueue<Pair<String, String>>()
 
+    @Volatile private var currentViaRelay = false
+
     private fun emitState(up: Boolean) {
         if (lastState == up) return
         lastState = up
         onState(up)
+        onTransport(if (up) currentViaRelay else false)
     }
 
     /**
@@ -114,8 +124,11 @@ class BridgeWsClient(
     }
 
     private fun openSocket(target: ResolvedTarget) {
-        Log.d(TAG, "connecting to ${target.host}:${target.port}")
-        val request = Request.Builder().url("ws://${target.host}:${target.port}").build()
+        Log.d(TAG, "connecting to ${target.host}:${target.port}${target.path}" +
+            if (target.viaRelay) " (relay)" else "")
+        currentViaRelay = target.viaRelay
+        val request = Request.Builder()
+            .url("ws://${target.host}:${target.port}${target.path}").build()
         val client = target.socketFactory?.let {
             http.newBuilder().socketFactory(it).build()
         } ?: http

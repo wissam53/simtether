@@ -58,10 +58,9 @@ object CallLogStore {
         val f = File(context.filesDir, "call_log.jsonl")
         file = f
         if (!f.exists()) return
-        _entries.value = f.useLines { lines ->
-            lines.mapNotNull { runCatching { json.decodeFromString<CallLogEntry>(it) }.getOrNull() }
-                .toList()
-        }
+        _entries.value = (SecureFile.read(f) ?: return).lineSequence()
+            .mapNotNull { runCatching { json.decodeFromString<CallLogEntry>(it) }.getOrNull() }
+            .toList()
     }
 
     /** Record meaningful transitions; returns the updated entry. */
@@ -99,10 +98,9 @@ object CallLogStore {
     }
 
     private fun rewrite() {
-        runCatching {
-            file?.writeText(
-                _entries.value.joinToString("") { json.encodeToString(it) + "\n" }
-            )
+        file?.let {
+            SecureFile.write(it,
+                _entries.value.joinToString("") { e -> json.encodeToString(e) + "\n" })
         }
     }
 }

@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * Play Billing subscription gate for the client role.
  *
- * Product `simtether_pro` (base plan monthly + 7-day trial offer) is
+ * Product `simtether_pro` (base plan monthly + 14-day trial offer) is
  * created in Play Console — nothing works until it exists and the app
  * is uploaded to a track. Entitlement lives in Play's on-device cache,
  * so checks work offline; `entitled` stays null until resolved so the
@@ -52,6 +52,10 @@ object Billing {
 
     fun init(app: Application) {
         if (BuildConfig.DEBUG) { _entitled.value = true; return }
+        // Sideloaded onto a Play-less device (de-Googled ROM, /e/,
+        // Huawei): billing can never connect, so don't strand the
+        // user behind a paywall with no way to pay.
+        if (!hasPlayStore(app)) { _entitled.value = true; return }
         client = BillingClient.newBuilder(app)
             .setListener { result, purchases ->
                 if (result.responseCode == BillingClient.BillingResponseCode.OK &&
@@ -63,6 +67,13 @@ object Billing {
                 PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
             .build()
         connect()
+    }
+
+    private fun hasPlayStore(app: Application): Boolean = try {
+        app.packageManager.getPackageInfo("com.android.vending", 0)
+        true
+    } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+        false
     }
 
     private fun connect() {

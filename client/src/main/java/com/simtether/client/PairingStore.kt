@@ -20,6 +20,8 @@ object PairingStore {
         SecureStore.putString(context, PREFS, "pubkey", p.bridgeStaticPubKey)
         SecureStore.putString(context, PREFS, "token", p.oneTimeToken)
         SecureStore.putString(context, PREFS, "name", p.deviceName)
+        SecureStore.putString(context, PREFS, "relay", p.relay)
+        SecureStore.putString(context, PREFS, "relay_token", p.relayToken)
     }
 
     fun load(context: Context): PairingPayload? {
@@ -31,7 +33,15 @@ object PairingStore {
             bridgeStaticPubKey = pub,
             oneTimeToken = SecureStore.getString(context, PREFS, "token") ?: "",
             deviceName = SecureStore.getString(context, PREFS, "name") ?: "bridge",
+            relay = SecureStore.getString(context, PREFS, "relay"),
+            relayToken = SecureStore.getString(context, PREFS, "relay_token"),
         )
+    }
+
+    /** Manual relay entry — overrides whatever the QR carried. */
+    fun updateRelay(context: Context, relay: String?, token: String?) {
+        SecureStore.putString(context, PREFS, "relay", relay?.trim() ?: "")
+        SecureStore.putString(context, PREFS, "relay_token", token?.trim() ?: "")
     }
 
     /** Update the cached address after mDNS rediscovery — the identity
