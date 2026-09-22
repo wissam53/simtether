@@ -66,6 +66,12 @@
     <string name="call_hold">تعليق</string>
     <string name="call_close">إغلاق</string>
     <string name="call_end">إنهاء</string>
+    <string name="call_reply_sms">رسالة</string>
+    <string name="sms_reply_title">الرفض برسالة</string>
+    <string name="sms_reply_busy">لا أستطيع التحدث الآن.</string>
+    <string name="sms_reply_call_back">سأعاود الاتصال حالاً.</string>
+    <string name="sms_reply_later">سأتصل لاحقاً.</string>
+    <string name="sms_reply_custom">اكتب رسالة</string>
     <string name="route_earpiece">سماعة الأذن</string>
     <string name="route_speaker">مكبر الصوت</string>
     <string name="route_bluetooth">بلوتوث</string>

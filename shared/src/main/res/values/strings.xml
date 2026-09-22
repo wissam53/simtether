@@ -77,6 +77,12 @@
     <string name="call_hold">Hold</string>
     <string name="call_close">Close</string>
     <string name="call_end">End</string>
+    <string name="call_reply_sms">Reply</string>
+    <string name="sms_reply_title">Reject with message</string>
+    <string name="sms_reply_busy">Can\'t talk now. What\'s up?</string>
+    <string name="sms_reply_call_back">I\'ll call you right back.</string>
+    <string name="sms_reply_later">I\'ll call you later.</string>
+    <string name="sms_reply_custom">Write a message</string>
     <string name="route_earpiece">Earpiece</string>
     <string name="route_speaker">Speaker</string>
     <string name="route_bluetooth">Bluetooth</string>

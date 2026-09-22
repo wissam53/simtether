@@ -2,6 +2,7 @@ package com.simtether.ui
 
 import android.telecom.CallAudioState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,17 +19,25 @@ import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Headset
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.VolumeDown
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -111,6 +120,7 @@ fun InCallScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             when (call.state) {
                 Protocol.CallEvent.State.RINGING -> if (call.incoming) {
+                    var replyOpen by remember { mutableStateOf(false) }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -124,6 +134,12 @@ fun InCallScreen(
                                 call.callId, Protocol.CallAction.Action.REJECT))
                             onDone()
                         }
+                        SecondaryButton(
+                            icon = Icons.AutoMirrored.Filled.Message,
+                            label = stringResource(R.string.call_reply_sms),
+                        ) {
+                            replyOpen = true
+                        }
                         CallActionButton(
                             icon = Icons.Filled.Call,
                             label = stringResource(R.string.call_answer),
@@ -133,6 +149,17 @@ fun InCallScreen(
                                 call.callId, Protocol.CallAction.Action.ANSWER))
                         }
                     }
+                    if (replyOpen) RejectSmsDialog(
+                        onSend = { msg ->
+                            send(Protocol.CallAction(
+                                call.callId,
+                                Protocol.CallAction.Action.REJECT_WITH_SMS,
+                                smsTemplate = msg))
+                            replyOpen = false
+                            onDone()
+                        },
+                        onDismiss = { replyOpen = false },
+                    )
                 } else EndCallButton(call.callId, onDone, send)
 
                 Protocol.CallEvent.State.DIALING,
@@ -214,6 +241,57 @@ private fun SecondaryButton(
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = CallColors.Secondary)
     }
+}
+
+/**
+ * Reject-with-SMS sheet: canned quick replies plus a free-text option.
+ * The message rides CallAction.smsTemplate → bridge call.reject(true, …)
+ * → carrier SMS straight to the caller.
+ */
+@Composable
+private fun RejectSmsDialog(onSend: (String) -> Unit, onDismiss: () -> Unit) {
+    var custom by remember { mutableStateOf("") }
+    val replies = listOf(
+        stringResource(R.string.sms_reply_busy),
+        stringResource(R.string.sms_reply_call_back),
+        stringResource(R.string.sms_reply_later),
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sms_reply_title)) },
+        text = {
+            Column {
+                replies.forEach { msg ->
+                    Text(
+                        msg,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSend(msg) }
+                            .padding(vertical = 12.dp),
+                    )
+                }
+                OutlinedTextField(
+                    value = custom,
+                    onValueChange = { custom = it },
+                    label = { Text(stringResource(R.string.sms_reply_custom)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSend(custom.trim()) },
+                enabled = custom.isNotBlank(),
+            ) { Text(stringResource(R.string.action_send)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable

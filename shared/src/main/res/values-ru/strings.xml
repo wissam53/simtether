@@ -66,6 +66,12 @@
     <string name="call_hold">Удержать</string>
     <string name="call_close">Закрыть</string>
     <string name="call_end">Завершить</string>
+    <string name="call_reply_sms">Сообщение</string>
+    <string name="sms_reply_title">Отклонить с сообщением</string>
+    <string name="sms_reply_busy">Не могу говорить. Что случилось?</string>
+    <string name="sms_reply_call_back">Перезвоню сразу.</string>
+    <string name="sms_reply_later">Перезвоню позже.</string>
+    <string name="sms_reply_custom">Написать сообщение</string>
     <string name="route_earpiece">Трубка</string>
     <string name="route_speaker">Громкая связь</string>
     <string name="route_bluetooth">Bluetooth</string>

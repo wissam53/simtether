@@ -66,6 +66,12 @@
     <string name="call_hold">Sakla</string>
     <string name="call_close">Ýap</string>
     <string name="call_end">Tamamla</string>
+    <string name="call_reply_sms">Habar</string>
+    <string name="sms_reply_title">Habar bilen ret et</string>
+    <string name="sms_reply_busy">Häzir gürleşip bilemok.</string>
+    <string name="sms_reply_call_back">Saña tizden jaň ederin.</string>
+    <string name="sms_reply_later">Saña soň jaň ederin.</string>
+    <string name="sms_reply_custom">Habar ýaz</string>
     <string name="route_earpiece">Gulaklyk</string>
     <string name="route_speaker">Ses güýçlendiriji</string>
     <string name="route_bluetooth">Bluetooth</string>

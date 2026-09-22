@@ -66,6 +66,12 @@
     <string name="call_hold">نگه‌داشتن</string>
     <string name="call_close">بستن</string>
     <string name="call_end">پایان</string>
+    <string name="call_reply_sms">پیام</string>
+    <string name="sms_reply_title">رد با پیام</string>
+    <string name="sms_reply_busy">الان نمی‌توانم صحبت کنم.</string>
+    <string name="sms_reply_call_back">همین حالا زنگ می‌زنم.</string>
+    <string name="sms_reply_later">بعداً زنگ می‌زنم.</string>
+    <string name="sms_reply_custom">نوشتن پیام</string>
     <string name="route_earpiece">گوشی</string>
     <string name="route_speaker">بلندگو</string>
     <string name="route_bluetooth">بلوتوث</string>

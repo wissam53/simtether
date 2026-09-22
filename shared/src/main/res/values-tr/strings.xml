@@ -66,6 +66,12 @@
     <string name="call_hold">Beklet</string>
     <string name="call_close">Kapat</string>
     <string name="call_end">Bitir</string>
+    <string name="call_reply_sms">Mesaj</string>
+    <string name="sms_reply_title">Mesajla reddet</string>
+    <string name="sms_reply_busy">Şu an konuşamam. Ne var?</string>
+    <string name="sms_reply_call_back">Seni hemen arayacağım.</string>
+    <string name="sms_reply_later">Seni sonra arayacağım.</string>
+    <string name="sms_reply_custom">Mesaj yaz</string>
     <string name="route_earpiece">Ahize</string>
     <string name="route_speaker">Hoparlör</string>
     <string name="route_bluetooth">Bluetooth</string>

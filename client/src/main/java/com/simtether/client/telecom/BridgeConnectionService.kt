@@ -103,6 +103,11 @@ class BridgeConnectionService : ConnectionService() {
                 if (incoming) setRinging() else setDialing()
                 connectionCapabilities = connectionCapabilities or
                     Connection.CAPABILITY_SUPPORT_HOLD
+                // Without this the system incoming-call UI hides the
+                // "reply with message" affordance entirely.
+                if (incoming && android.os.Build.VERSION.SDK_INT >= 30)
+                    connectionCapabilities = connectionCapabilities or
+                        Connection.CAPABILITY_RESPOND_VIA_TEXT
                 calls[callId] = this
                 publish(if (incoming) Protocol.CallEvent.State.RINGING
                         else Protocol.CallEvent.State.DIALING)
