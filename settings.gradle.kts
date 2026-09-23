@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "SimTether"
-include(":app", ":bridgeapp", ":ui", ":shared", ":bridge", ":client", ":relay")
+include(":app", ":bridgeapp", ":ui", ":uiclient", ":shared", ":bridge", ":client", ":relay")
