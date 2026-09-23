@@ -43,7 +43,7 @@ object CallRouter {
                 val extras = Bundle().apply {
                     putParcelable(
                         TelecomManager.EXTRA_INCOMING_CALL_ADDRESS,
-                        Uri.parse("tel:${event.number ?: "unknown"}"),
+                        Uri.fromParts("tel", event.number ?: "unknown", null),
                     )
                     putString(BridgeConnectionService.EXTRA_CALL_ID, event.callId)
                     (event.displayName ?: event.number?.let {
@@ -95,7 +95,10 @@ object CallRouter {
         }
         runCatching {
             context.getSystemService(TelecomManager::class.java)
-                .placeCall(Uri.parse("tel:$number"), extras)
+                // fromParts, not Uri.parse: '#' is the URI fragment
+                // delimiter — parse("tel:*123#") silently truncates
+                // the address to *123.
+                .placeCall(Uri.fromParts("tel", number, null), extras)
         }.onFailure {
             android.util.Log.e("SimTether.CallRouter", "placeCall failed", it)
         }

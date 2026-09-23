@@ -73,6 +73,15 @@ object ClientServiceHolder {
      */
     fun dial(number: String) {
         val ctx = service ?: return
+        // Service codes (*123#, *#06#) aren't GSM calls — send them as
+        // a USSD request; the carrier's text reply arrives as
+        // ussd.result and renders on the dial pad. No Telecom
+        // Connection is created — there is no call to manage.
+        val n = number.trim().filterNot { it in " -()." }
+        if (Protocol.isServiceCode(n)) {
+            sendUssd(n)
+            return
+        }
         com.simtether.client.telecom.CallRouter.placeOutgoingCall(ctx, number)
     }
 
@@ -83,6 +92,16 @@ object ClientServiceHolder {
             Protocol.DialRequest(number),
         )
         service?.sendCommand("dial", payload)
+    }
+
+    /** Carrier service-code request — gated by the bridge's
+     *  service-codes opt-in; result arrives as ussd.result. */
+    fun sendUssd(code: String) {
+        val payload = Protocol.json.encodeToString(
+            Protocol.UssdRequest.serializer(),
+            Protocol.UssdRequest(code),
+        )
+        service?.sendCommand("ussd", payload)
     }
 
     fun sendBridgeCommand(action: Protocol.BridgeCommand.Action, arg: String? = null) {

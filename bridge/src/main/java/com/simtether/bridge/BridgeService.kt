@@ -97,6 +97,18 @@ class BridgeService : LifecycleService() {
                 Protocol.SmsEcho.serializer(),
                 Protocol.SmsEcho(number, text, ts, ref)))
         }
+        // Carrier's USSD reply / dial refusal → the wire, so the
+        // client that sent the code sees what the network answered.
+        CallController.onUssdResult = { code, response, error ->
+            emit("ussd.result", Protocol.json.encodeToString(
+                Protocol.UssdResult.serializer(),
+                Protocol.UssdResult(code, response, error)))
+        }
+        CallController.onDialRejected = { reason ->
+            emit("dial.rejected", Protocol.json.encodeToString(
+                Protocol.DialRejected.serializer(),
+                Protocol.DialRejected(reason)))
+        }
         startRelay(staticKey)
         pending.load()
         drainParked()
@@ -584,6 +596,10 @@ class BridgeService : LifecycleService() {
             "dial" -> {
                 val cmd = env.payloadAs<Protocol.DialRequest>()
                 CallController.dial(applicationContext, cmd.number)
+            }
+            "ussd" -> {
+                val cmd = env.payloadAs<Protocol.UssdRequest>()
+                CallController.ussd(applicationContext, cmd.code)
             }
             "ack" -> {
                 val acked = pending.remove(env.payloadAs<Protocol.Ack>().forId)

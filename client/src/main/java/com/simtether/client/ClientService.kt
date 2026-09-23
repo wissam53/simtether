@@ -392,8 +392,38 @@ class ClientService : LifecycleService() {
                 PairingStore.updateToken(applicationContext, e.token)
                 Log.d(TAG, "pairing token rotated")
             }
+            "dial.rejected" -> {
+                // Bridge refused the dial before the modem — tear down
+                // the local outgoing Connection with the reason, else
+                // it sits in "dialing" forever.
+                val e = env.payloadAs<Protocol.DialRejected>()
+                Log.w(TAG, "dial.rejected reason=${e.reason}")
+                com.simtether.client.telecom.BridgeConnectionService
+                    .rejectPendingOutgoing(dialRejectText(e.reason))
+            }
+            "ussd.result" -> {
+                // Carrier's reply to a service code — surface on the
+                // dial pad (that's the whole point of USSD: the reply
+                // text is the information, e.g. the balance).
+                val e = env.payloadAs<Protocol.UssdResult>()
+                Log.d(TAG, "ussd.result err=${e.error} len=${e.response?.length}")
+                com.simtether.shared.CallStateBus.publishPadNotice(
+                    e.response ?: dialRejectText(e.error ?: "failed"))
+            }
         }
     }
+
+    /** Map the bridge's machine reason code to a user-visible line. */
+    private fun dialRejectText(reason: String): String = getString(
+        when {
+            reason == "service_codes_off" ->
+                com.simtether.shared.R.string.call_rejected_codes_off
+            reason == "no_permission" ->
+                com.simtether.shared.R.string.call_rejected_no_perm
+            reason == "unsafe" ->
+                com.simtether.shared.R.string.call_rejected_unsafe
+            else -> com.simtether.shared.R.string.ussd_failed
+        })
 
     /**
      * The bridge's rooted audio relay is live — open our half:

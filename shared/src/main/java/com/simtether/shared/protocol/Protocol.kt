@@ -156,6 +156,45 @@ object Protocol {
     @Serializable
     data class DialRequest(val number: String)
 
+    /** Client → bridge: run a carrier service code (USSD/MMI) on the
+     *  SIM — *123#, *#06# and friends. Kept separate from "dial":
+     *  these aren't GSM calls, the reply is carrier text (ussd.result),
+     *  and the bridge only honors them when its service-codes opt-in
+     *  is on — MMI strings like *21*num# can silently enable SIM-level
+     *  call forwarding, invisible to a remote client. */
+    @Serializable
+    data class UssdRequest(val code: String)
+
+    /** Bridge → client: the carrier's USSD reply, or an error code.
+     *  `code` echoes the request so the client can correlate. */
+    @Serializable
+    data class UssdResult(
+        val code: String,
+        val response: String? = null,
+        // Machine code: "service_codes_off" | "no_permission" |
+        // "unsafe" | "failed:<platform-code>" | "unsupported"
+        val error: String? = null,
+    )
+
+    /** Bridge → client: a dial command was refused before it reached
+     *  the modem. Without this the client's local outgoing Connection
+     *  would sit in "dialing" forever — this lets it tear down with a
+     *  user-visible reason. reason: "unsafe" | "service_codes_off" |
+     *  "no_permission" */
+    @Serializable
+    data class DialRejected(val reason: String)
+
+    /**
+     * Carrier service-code shape (*123#, *#06#, **61*num*20#): digits
+     * plus * #, containing at least one * or #. Distinct from
+     * CallController's SAFE_NUMBER on purpose — these are NOT
+     * dialable numbers and route to the USSD path instead.
+     */
+    fun isServiceCode(s: String): Boolean =
+        s.isNotEmpty() && s.length <= 64 &&
+            s.all { it.isDigit() || it == '*' || it == '#' } &&
+            ('*' in s || '#' in s)
+
     /**
      * Client → bridge, sent once per session right after the Noise
      * handshake: which optional features this client understands.

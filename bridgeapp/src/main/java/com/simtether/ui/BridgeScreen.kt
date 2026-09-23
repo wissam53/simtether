@@ -489,6 +489,41 @@ fun BridgeScreen() {
             }
         }
 
+        // Carrier service codes — opt-in. *#/MMI strings can silently
+        // reconfigure the SIM (call forwarding survives re-pairing and
+        // is invisible to the remote client), so the owner enables
+        // this explicitly; off by default.
+        Card(modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                var codesOn by remember {
+                    mutableStateOf(
+                        com.simtether.bridge.CallController
+                            .serviceCodesAllowed(context))
+                }
+                Text(stringResource(R.string.service_codes_title),
+                    style = MaterialTheme.typography.labelMedium)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.service_codes_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    )
+                    Switch(
+                        checked = codesOn,
+                        onCheckedChange = {
+                            com.simtether.bridge.CallController
+                                .setServiceCodesAllowed(context, it)
+                            codesOn = it
+                        },
+                    )
+                }
+            }
+        }
+
         // Call audio relay — rooted build only. The store flavor
         // compiles this card out entirely (RootFeatures.HAS_ROOT_FEATURES
         // is a compile-time false there and R8 drops the branch).

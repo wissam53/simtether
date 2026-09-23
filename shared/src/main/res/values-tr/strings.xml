@@ -196,4 +196,12 @@
     <string name="audio_relay_hint">Bu aramanın sesini eşlenen telefona gönderir ve karşı tarafın sesini aramaya iletir — deneysel.</string>
     <string name="audio_relay_no_root">Root algılanmadı — Magisk üzerinden izin verin, sonra anahtara dokunarak tekrar deneyin.</string>
     <string name="call_audio_active">Ses aktarımı: etkin</string>
+
+    <!-- Carrier service codes / USSD -->
+    <string name="service_codes_title">Operatör servis kodları (*#, USSD)</string>
+    <string name="service_codes_hint">Eşlenen telefonun bu SIM üzerinde * ve # kodları çalıştırmasına izin ver (bakiye sorgulama, TL yükleme). Bu kodlar SIM ayarlarını sessizce değiştirebilir — yalnızca gerekiyorsa açın.</string>
+    <string name="call_rejected_unsafe">Reddedildi: aranabilir bir numara değil</string>
+    <string name="call_rejected_codes_off">Köprüde servis kodları kapalı</string>
+    <string name="call_rejected_no_perm">Köprüde arama izni eksik</string>
+    <string name="ussd_failed">USSD isteği başarısız</string>
 </resources>

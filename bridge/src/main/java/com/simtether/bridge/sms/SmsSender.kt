@@ -77,7 +77,10 @@ object SmsSender {
         BridgeServiceHolder.service?.emit("sms.status", payload)
     }
 
-    private fun activeSubId(context: Context): Int? = runCatching {
+    /** The SIM this bridge's traffic belongs on — the active-data sub,
+     *  else the first active subscription. Shared with the USSD path
+     *  so a dual-SIM bridge runs service codes on the right line. */
+    internal fun activeSubId(context: Context): Int? = runCatching {
         val sm = context.getSystemService(SubscriptionManager::class.java)
         // getActiveDataSubscriptionId is API 30+.
         val id = if (android.os.Build.VERSION.SDK_INT >= 30)

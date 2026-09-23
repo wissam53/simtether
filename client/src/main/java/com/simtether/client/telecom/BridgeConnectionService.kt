@@ -199,6 +199,20 @@ class BridgeConnectionService : ConnectionService() {
             }
         }
 
+        /** The bridge refused the dial (unsafe shape, service codes
+         *  off, missing perm) — the local outgoing Connection gets a
+         *  reason-labeled teardown instead of hanging in "dialing". */
+        fun rejectPendingOutgoing(reason: CharSequence) {
+            val entry = pendingOutgoing.entries.firstOrNull() ?: return
+            pendingOutgoing.remove(entry.key)
+            drop(entry.value)?.let {
+                it.setDisconnected(
+                    DisconnectCause(DisconnectCause.OTHER, null, reason,
+                        reason.toString()))
+                it.destroy()
+            }
+        }
+
         fun updateState(callId: String, state: Protocol.CallEvent.State) {
             val c = calls[callId] ?: return
             when (state) {

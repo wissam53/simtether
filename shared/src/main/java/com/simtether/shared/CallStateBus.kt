@@ -27,5 +27,11 @@ object CallStateBus {
     private val _call = MutableStateFlow<Ui?>(null)
     val call: StateFlow<Ui?> = _call
 
+    /** Latest USSD reply or dial-pad notice — rendered under the
+     *  number field on the shared DialerScreen (both apps). */
+    private val _padNotice = MutableStateFlow<String?>(null)
+    val padNotice: StateFlow<String?> = _padNotice
+
     fun publish(u: Ui?) { _call.value = u }
+    fun publishPadNotice(text: String?) { _padNotice.value = text }
 }

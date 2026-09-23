@@ -216,4 +216,12 @@
     <string name="audio_relay_hint">Stream this call\'s audio to your paired phone and send their voice back into the call — experimental.</string>
     <string name="audio_relay_no_root">Root not detected — grant access in Magisk, then tap the switch to retry.</string>
     <string name="call_audio_active">Audio relay: active</string>
+
+    <!-- Carrier service codes / USSD -->
+    <string name="service_codes_title">Carrier service codes (*#, USSD)</string>
+    <string name="service_codes_hint">Let the paired phone run * and # codes on this SIM (balance checks, top-ups). These codes can silently change SIM settings — enable only if you need them.</string>
+    <string name="call_rejected_unsafe">Rejected: not a dialable number</string>
+    <string name="call_rejected_codes_off">Service codes are off on the bridge</string>
+    <string name="call_rejected_no_perm">Bridge is missing the call permission</string>
+    <string name="ussd_failed">USSD request failed</string>
 </resources>

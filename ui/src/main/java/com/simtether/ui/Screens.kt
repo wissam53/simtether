@@ -586,8 +586,12 @@ fun DialerScreen(onBack: () -> Unit) {
     val connected by UiBackend.connected.collectAsState()
     val context = LocalContext.current
     val names by ContactLookup.names.collectAsState()
+    // Carrier's USSD reply / rejection reason — shown under the number.
+    val padNotice by com.simtether.shared.CallStateBus.padNotice.collectAsState()
     androidx.compose.runtime.LaunchedEffect(number) {
         if (number.isNotBlank()) ContactLookup.nameFor(number)
+        // Editing digits means a new intent — clear the stale reply.
+        com.simtether.shared.CallStateBus.publishPadNotice(null)
     }
     Column(modifier = Modifier.fillMaxSize()
         .verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -604,6 +608,12 @@ fun DialerScreen(onBack: () -> Unit) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
         )
+        padNotice?.let {
+            Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                Text(it, style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(12.dp))
+            }
+        }
         val keys = listOf("1","2","3","4","5","6","7","8","9","*","0","#")
         keys.chunked(3).forEach { row ->
             Row(
