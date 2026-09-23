@@ -13,3 +13,4 @@ cxx/
 .DS_Store
 nul
 relay.properties
+devicelogs/

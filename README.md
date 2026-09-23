@@ -68,8 +68,11 @@ default relay, still buildable.
 
 Working in JVM tests: pairing, encrypted session, SMS forwarding, call
 events/control, token rotation, relay registration proof + byte splice,
-reconnect/flood handling. **Not yet validated on-device end-to-end** —
-see `PLAN.md` for the roadmap and the call-audio research track.
+reconnect/flood handling. On-device (S23 Ultra client + Redmi Note 8
+bridge): pairing, mDNS discovery, LAN session, call RINGING→control→
+state transitions, SMS send pipeline + carrier-failure reporting, and
+relay registration all verified live. Call audio is the rooted-flavor
+research track — see `PLAN.md` and `docs/redmi-root-spike.md`.
 
 ## Privacy
 
