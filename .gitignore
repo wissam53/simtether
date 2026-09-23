@@ -12,3 +12,4 @@ keystore.properties
 cxx/
 .DS_Store
 nul
+relay.properties

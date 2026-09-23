@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimTether — your SIM, in a cheap phone. Your life, on your real one.</title>
+<meta name="description" content="SimTether forwards SMS and GSM call control from a registered SIM in a low-cost bridge phone to your main phone — end-to-end encrypted, no backend.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="logo" href="index.html">sim<span>tether</span></a>
+    <div class="links">
+      <a href="index.html#how">How it works</a>
+      <a href="security.html">Security</a>
+      <a href="install.html">Install</a>
+      <a href="privacy.html">Privacy</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container">
+    <h1>Your SIM stays home.<br><em>You don't have to.</em></h1>
+    <p>SimTether turns a cheap Android phone into a bridge for your registered SIM —
+       SMS and GSM call control arrive on your main phone, end-to-end encrypted,
+       with no account and no server in the middle.</p>
+    <div class="badges">
+      <span class="badge green">end-to-end encrypted</span>
+      <span class="badge">no accounts</span>
+      <span class="badge">no backend</span>
+      <span class="badge">open source</span>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="container">
+    <h2>How it works</h2>
+    <p class="sub">Two apps, one QR scan, and your SIM lives in a phone that can sit in a drawer.</p>
+    <div class="cards">
+      <div class="card">
+        <span class="step">step 01</span>
+        <h3>Drop your SIM in a bridge phone</h3>
+        <p>Any inexpensive Android phone works. Install <strong>SimTether Bridge</strong>,
+           put it on your home network, and leave it plugged in — it becomes a small
+           appliance for your SIM.</p>
+      </div>
+      <div class="card">
+        <span class="step">step 02</span>
+        <h3>Scan once from your real phone</h3>
+        <p>Install <strong>SimTether</strong> on your main phone and scan the QR the
+           bridge shows. That one scan pins the encryption keys — pairing is done,
+           forever, until you unpair.</p>
+      </div>
+      <div class="card">
+        <span class="step">step 03</span>
+        <h3>SMS and calls, where you are</h3>
+        <p>Incoming SMS and call events reach your main phone over the local network.
+           Answer, reject, reply, send — the bridge does the carrier work.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>The path your data takes</h2>
+    <p class="sub">Everything between the two phones is Noise-encrypted. The optional relay only ever sees ciphertext.</p>
+    <div class="flow"><span class="b">bridge phone (your SIM)</span>          <span class="b">your main phone</span>
+┌───────────────────────┐        ┌───────────────────────┐
+│  GSM network          │        │  SMS inbox + replies  │
+│  SimTether Bridge     │ ────▶  │  incoming calls       │
+│  (sideloaded APK)     │        │  dial / answer / DTMF │
+└──────────┬────────────┘        └──────────▲────────────┘
+           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
+           └─────────── LAN / hotspot ──────┘
+           └─────── optional ciphertext-only relay ─────┘</div>
+    <div class="note">
+      Local mode is the default — traffic never leaves your network. Remote access is
+      opt-in on both phones, and the relay can be yours instead of ours.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Two builds, honestly labeled</h2>
+    <p class="sub"></p>
+    <div class="cards">
+      <div class="card">
+        <h3>Standard</h3>
+        <p>Full SMS forwarding, call notifications, and call control — answer,
+           reject, dial, DTMF. Works on any Android 8.0+ phone, no root needed.
+           This is the build on Google Play.</p>
+      </div>
+      <div class="card">
+        <h3>Rooted bridge <span class="badge" style="vertical-align:middle">GitHub only</span></h3>
+        <p>An experimental build that can additionally capture live GSM call audio
+           and stream it to your main phone. Requires a rooted bridge phone and is
+           distributed via GitHub Releases only — Google Play doesn't permit it.
+           <em>Currently in development.</em></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Who it's for</h2>
+    <p class="sub"></p>
+    <div class="prose">
+      <ul>
+        <li><strong>IMEI-registered phones abroad.</strong> In Turkey and similar
+            regimes, an unregistered foreign phone loses cellular service after a
+            grace period. Leave the registered SIM — and its registered phone — at
+            home; carry whatever phone you want.</li>
+        <li><strong>A second SIM without a second phone in your pocket.</strong>
+            Bank OTPs, carrier messages, and calls on a number you don't want to
+            carry hardware for.</li>
+        <li><strong>Privacy-conscious users</strong> who want SMS forwarding
+            without handing message content to a cloud service.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container" style="text-align:center">
+    <h2>Get it</h2>
+    <p class="sub">The bridge is free and open. The main-phone app is paid on Google Play.</p>
+    <a class="btn" href="install.html">Install guide</a>
+    <a class="btn secondary" href="https://github.com/">GitHub releases</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <a href="privacy.html">Privacy</a>
+    <a href="security.html">Security</a>
+    <a href="install.html">Install</a>
+    <p style="margin-top:12px">SimTether — SMS and call control, end-to-end encrypted.</p>
+  </div>
+</footer>
+
+</body>
+</html>
