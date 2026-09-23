@@ -33,6 +33,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // This app displays live credentials (pairing QR, relay token) —
+        // keep every screen out of screenshots and the recents preview.
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         handleNavIntent(intent)
         disclosed = getSharedPreferences("app", MODE_PRIVATE)
             .getBoolean("disclosed", false)
@@ -76,6 +79,10 @@ class MainActivity : ComponentActivity() {
     private fun handleNavIntent(intent: Intent?) {
         intent?.getStringExtra(com.simtether.shared.SmsNotifier.EXTRA_OPEN_THREAD)
             ?.let { NavBus.openThread.value = it }
+        if (intent?.getBooleanExtra(
+                com.simtether.shared.IntentKeys.EXTRA_OPEN_CALLS,
+                false) == true)
+            NavBus.openCalls.value = true
     }
 
     /** Permissions + service start — post-disclosure and every open. */

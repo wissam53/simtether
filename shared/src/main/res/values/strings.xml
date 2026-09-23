@@ -92,6 +92,7 @@
     <string name="bridge_mode_title">Bridge mode</string>
     <string name="bridge_scan_hint">Scan this with your main phone</string>
     <string name="cd_pairing_qr">Pairing QR</string>
+    <string name="bridge_show_qr">Show pairing QR</string>
     <string name="bridge_waiting_lan">Waiting for LAN address — is hotspot on?</string>
     <string name="bridge_starting">Bridge service starting…</string>
     <string name="dialer_held">✓ Phone app role held — call control active</string>
@@ -134,6 +135,10 @@
     <string name="scan_prompt">Scan the QR on the bridge phone</string>
     <string name="repair_scan">Re-pair (scan QR)</string>
     <string name="forget_bridge">Forget this bridge &amp; reset</string>
+    <string name="forget_title">Forget this bridge?</string>
+    <string name="forget_body">The pairing, forwarded message history, and call log will be erased from this phone. Reconnecting requires scanning a new QR code on the bridge.</string>
+    <string name="forget_confirm">Erase &amp; forget</string>
+    <string name="keystore_warning">Device encryption unavailable — keys and stored messages are unprotected</string>
     <string name="repair_button">Re-pair device</string>
     <string name="repair_title">Revoke current pairing?</string>
     <string name="repair_body">The paired phone loses access immediately and must scan the new QR code. Use this if a phone was lost or a QR image leaked.</string>
@@ -154,6 +159,7 @@
     <string name="notif_waiting_client">Waiting for your main phone…</string>
     <string name="notif_answer_here">main phone offline — answer here</string>
     <string name="notif_missed_call">Missed call</string>
+    <string name="notif_new_message">New message</string>
 
     <!-- Companion link (CDM) -->
     <string name="companion_title">Companion link</string>
@@ -189,7 +195,11 @@
     <string name="remote_relay_address">Relay address (host:port)</string>
     <string name="remote_relay_token">Relay token (if required)</string>
     <string name="remote_save">Save relay settings</string>
+    <string name="remote_invalid_relay">Invalid relay address — expected host:port or wss://host:port</string>
     <string name="remote_repair_needed">Re-scan the pairing QR on your other phone so it learns the relay address.</string>
     <string name="home_linked_remote">Linked · via internet</string>
     <string name="remote_agree">Enable</string>
+    <string name="remote_active_relay">Relay: %1$s</string>
+    <string name="remote_custom_relay">Custom relay server</string>
+    <string name="remote_use_default">Use default server</string>
 </resources>

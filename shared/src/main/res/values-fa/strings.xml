@@ -80,6 +80,7 @@
     <string name="bridge_mode_title">حالت پل</string>
     <string name="bridge_scan_hint">این را با گوشی اصلی خود اسکن کنید</string>
     <string name="cd_pairing_qr">QR جفت‌سازی</string>
+    <string name="bridge_show_qr">نمایش QR جفت‌سازی</string>
     <string name="bridge_waiting_lan">در انتظار آدرس LAN — هات‌اسپات روشن است؟</string>
     <string name="bridge_starting">در حال راه‌اندازی سرویس پل…</string>
     <string name="dialer_held">✓ نقش اپ تلفن فعال — کنترل تماس فعال است</string>
@@ -119,6 +120,10 @@
     <string name="scan_prompt">QR روی گوشی پل را اسکن کنید</string>
     <string name="repair_scan">جفت‌سازی مجدد (اسکن QR)</string>
     <string name="forget_bridge">فراموش کردن این پل و بازنشانی</string>
+    <string name="forget_title">این پل فراموش شود؟</string>
+    <string name="forget_body">جفت‌سازی، تاریخچه پیام‌های بازگردانده‌شده و سابقه تماس‌ها از این گوشی پاک می‌شود. اتصال مجدد نیازمند اسکن کد QR جدید روی پل است.</string>
+    <string name="forget_confirm">پاک کردن و فراموش</string>
+    <string name="keystore_warning">رمزنگاری دستگاه در دسترس نیست — کلیدها و پیام‌های ذخیره‌شده بدون محافظت‌اند</string>
     <string name="repair_button">جفت‌سازی مجدد دستگاه</string>
     <string name="repair_title">لغو جفت‌سازی فعلی؟</string>
     <string name="repair_body">گوشی جفت‌شده بلافاصله دسترسی را از دست می‌دهد و برای اتصال مجدد باید کد QR جدید را اسکن کند. اگر گوشی گم شده یا تصویر کد لو رفته، از این استفاده کنید.</string>
@@ -138,6 +143,7 @@
     <string name="notif_waiting_client">در انتظار گوشی اصلی شما…</string>
     <string name="notif_answer_here">گوشی اصلی آفلاین است — اینجا پاسخ دهید</string>
     <string name="notif_missed_call">تماس از دست‌رفته</string>
+    <string name="notif_new_message">پیام جدید</string>
     <string name="companion_title">اتصال دستگاه همراه</string>
     <string name="companion_hint">تنظیمات بلوتوث گوشی اصلی را باز کنید تا در فهرست دیده شود — یک پنجرهٔ سیستمی مجوزهای پیام، تماس و پس‌زمینه را می‌دهد.</string>
     <string name="companion_link">اتصال به گوشی اصلی</string>
@@ -158,4 +164,22 @@
     <string name="paywall_subscribe_price">مشترک شوید — %1$s / ماهانه</string>
     <string name="paywall_trial_line">۱۴ روز رایگان، سپس %1$s / ماهانه. لغو در هر زمان.</string>
     <string name="paywall_restore">بازیابی خرید</string>
+
+    <!-- Remote access -->
+    <string name="remote_access">دسترسی از راه دور</string>
+    <string name="remote_client_hint">وقتی پل روی شبکهٔ محلی شما نیست، از طریق اینترنت به آن برسید — با سرور بازگردانی که خودتان انتخاب می‌کنید.</string>
+    <string name="remote_bridge_hint">این گوشی را از طریق سرور بازگردان روی اینترنت قابل‌دسترس کنید تا گوشی جفت‌شده بتواند وقتی دور از خانه است آن را پیدا کند.</string>
+    <string name="remote_consent_title">دسترسی از راه دور فعال شود؟</string>
+    <string name="remote_consent_client">وقتی پل روی شبکهٔ محلی نیست، اتصال‌ها از طریق سرور بازگردان روی اینترنت برقرار می‌شوند.\n\nپیام‌ها و تماس‌ها همچنان رمزنگاریِ سرتاسری می‌مانند — بازگردان فقط متن رمزشده را منتقل می‌کند و نمی‌تواند چیزی بخواند. گردانندهٔ سرور بازگردان همچنان می‌تواند زمان اتصال‌ها و حجم داده‌ها را ببیند.</string>
+    <string name="remote_consent_bridge">تا وقتی دسترسی از راه دور روشن است، این گوشی به سرور بازگردان متصل می‌شود و روی اینترنت قابل‌دسترس می‌ماند.\n\nهمه‌چیز رمزنگاریِ سرتاسری می‌ماند — بازگردان فقط متن رمزشده را منتقل می‌کند و نمی‌تواند چیزی بخواند. گردانندهٔ سرور بازگردان همچنان می‌تواند زمان اتصال‌ها و حجم داده‌ها را ببیند.</string>
+    <string name="remote_relay_address">نشانی بازگردان (میزبان:پورت)</string>
+    <string name="remote_relay_token">رمز بازگردان (در صورت نیاز)</string>
+    <string name="remote_save">ذخیرهٔ تنظیمات بازگردان</string>
+    <string name="remote_invalid_relay">نشانی بازگردان نامعتبر است — باید به شکل میزبان:پورت یا wss://میزبان:پورت باشد</string>
+    <string name="remote_repair_needed">روی گوشی دیگرتان QR جفت‌سازی را دوباره اسکن کنید تا نشانی بازگردان را یاد بگیرد.</string>
+    <string name="home_linked_remote">متصل · از طریق اینترنت</string>
+    <string name="remote_agree">فعال‌سازی</string>
+    <string name="remote_active_relay">بازگردان: %1$s</string>
+    <string name="remote_custom_relay">سرور بازگردان سفارشی</string>
+    <string name="remote_use_default">استفاده از سرور پیش‌فرض</string>
 </resources>

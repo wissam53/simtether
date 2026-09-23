@@ -21,6 +21,11 @@ class BridgeWsServer(
     // Validator rather than a raw token — token rotation means two
     // values can be valid during the pending-window.
     private val tokenValid: (ByteArray) -> Boolean,
+    // Mutual auth: the client's static key arrives inside encrypted
+    // msg1. The implementation pins it on first pair (TOFU) and
+    // rejects later mismatches — a stolen token alone stops being a
+    // sufficient credential.
+    private val clientKeyAccepted: (ByteArray) -> Boolean,
     private val onClientReady: () -> Unit,
     private val onClientDisconnected: () -> Unit = {},
     private val onCommand: (Protocol.Envelope) -> Unit,
@@ -45,6 +50,11 @@ class BridgeWsServer(
 
     @Volatile private var client: WebSocket? = null
     @Volatile private var session: SecureSession? = null
+
+    // Sockets past the LAN gate but not yet authenticated. Capped so a
+    // LAN peer looping connects can't pile up worker threads + X25519
+    // work; each entry also carries the AUTH_TIMEOUT_S reaper below.
+    private val pendingAuth = java.util.concurrent.ConcurrentHashMap.newKeySet<WebSocket>()
 
     /**
      * App-level heartbeat: a pocketed/dozing client can stall its WS
@@ -73,6 +83,9 @@ class BridgeWsServer(
 
     val staticPubKey: ByteArray get() = staticKeyPair.second
 
+    /** Registration proof needs the private half — RelayLink only. */
+    val staticPrivKey: ByteArray get() = staticKeyPair.first
+
     /** Client socket open AND encrypted session established. */
     fun isReady() = client?.isOpen == true && session != null
 
@@ -90,42 +103,30 @@ class BridgeWsServer(
             conn.close(4001, "lan only")
             return
         }
-        Log.d(TAG, "client socket open: ${conn.remoteSocketAddress}")
-        // Only one client makes sense — close any stale socket so its
-        // session can't hijack sends or linger as a zombie.
-        if (client != null && client != conn) {
-            Log.d(TAG, "closing replaced socket ${client?.remoteSocketAddress}")
-            client?.close(1000, "replaced")
+        pendingAuth.add(conn)
+        if (pendingAuth.size > MAX_PREAUTH) {
+            pendingAuth.remove(conn)
+            Log.w(TAG, "pre-auth slots full — rejected ${conn.remoteSocketAddress}")
+            conn.close(1013, "busy")
+            return
         }
-        client = conn
-        session = null
+        Log.d(TAG, "client socket open: ${conn.remoteSocketAddress}")
+        // The socket is NOT adopted here — an unauthenticated peer must
+        // never displace the live session (a bare connect used to kick
+        // the real client). Adoption happens on successful IK+token
+        // auth in onMessage. Idle pre-auth sockets are reaped below.
+        hbExecutor.schedule(
+            {
+                pendingAuth.remove(conn)
+                if (conn != client) conn.close(4000, "auth timeout")
+            },
+            AUTH_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
     }
 
-    override fun onMessage(conn: WebSocket, message: ByteBuffer) {
+    private fun onMessage(conn: WebSocket, message: ByteBuffer, remote: Boolean) {
         val bytes = ByteArray(message.remaining()).also { message.get(it) }
         val s = session
-        if (s == null) {
-            // First frame: Noise IK message 1 — the pairing token rides
-            // inside as encrypted payload, so a mangled/wrong-key frame
-            // fails AEAD before any session exists.
-            if (bytes.size > 2048) { conn.close(1009, "oversize"); return }
-            val hs = runCatching {
-                SecureSession.bridgeHandshake(staticKeyPair.first, bytes)
-            }.getOrElse {
-                conn.close(1002, "bad handshake")
-                return
-            }
-            if (!tokenValid(hs.peerPayload)) {
-                Log.w(TAG, "rejected client: bad pairing token")
-                conn.close(4003, "bad token")
-                return
-            }
-            val (reply, sess) = hs.complete()
-            conn.send(reply)
-            session = sess
-            Log.d(TAG, "session established")
-            onClientReady()
-        } else {
+        if (conn == client && s != null) {
             val env = runCatching {
                 Protocol.decode(s.decrypt(bytes).decodeToString())
             }.getOrElse {
@@ -134,8 +135,48 @@ class BridgeWsServer(
             }
             Log.d(TAG, "recv ${env.type} seq=${env.seq}")
             onCommand(env)
+        } else {
+            // Unauthenticated socket — only Noise IK msg1 is legal here.
+            // On the relay path a failure must NOT close the socket —
+            // it IS the registration link, and dropping it would let a
+            // spliced stranger kill our relay connection.
+            fun fail(code: Int, why: String) {
+                if (remote) Log.w(TAG, "remote peer failed auth: $why")
+                else conn.close(code, why)
+            }
+            if (bytes.size > 2048) { fail(1009, "oversize"); return }
+            val hs = runCatching {
+                SecureSession.bridgeHandshake(staticKeyPair.first, bytes)
+            }.getOrElse {
+                fail(1002, "bad handshake")
+                return
+            }
+            if (!tokenValid(hs.peerPayload)) {
+                Log.w(TAG, "rejected client: bad pairing token")
+                fail(4003, "bad token")
+                return
+            }
+            if (hs.peerStaticPub.isEmpty() || !clientKeyAccepted(hs.peerStaticPub)) {
+                // Token valid but the presenting key isn't the pinned
+                // client — QR replay from another device.
+                Log.w(TAG, "rejected client: unpinned key")
+                fail(4004, "unpaired client")
+                return
+            }
+            val (reply, sess) = hs.complete()
+            conn.send(reply)
+            // Verified — adopt now, replacing the previous client.
+            pendingAuth.remove(conn)
+            client?.takeIf { it != conn }?.close(1000, "replaced")
+            client = conn
+            session = sess
+            Log.d(TAG, "session established")
+            onClientReady()
         }
     }
+
+    override fun onMessage(conn: WebSocket, message: ByteBuffer) =
+        onMessage(conn, message, remote = false)
 
     /**
      * Relay-spliced inbound (remote access): frames arrive on the
@@ -147,13 +188,9 @@ class BridgeWsServer(
      * gated by the same pairing token.
      */
     fun handleRemoteFrame(conn: WebSocket, bytes: ByteBuffer) {
-        if (client != conn) {
-            Log.d(TAG, "remote client spliced in — adopting relay socket")
-            client?.close(1000, "replaced")
-            client = conn
-            session = null
-        }
-        onMessage(conn, bytes)
+        // Same auth gate as LAN — the spliced peer must complete IK +
+        // pairing token before it displaces any live session.
+        onMessage(conn, bytes, remote = true)
     }
 
     /** The relay reported the spliced client left ("st-peer-gone") or
@@ -173,6 +210,7 @@ class BridgeWsServer(
 
     override fun onClose(conn: WebSocket, code: Int, reason: String, remote: Boolean) {
         Log.d(TAG, "client closed code=$code reason=$reason remote=$remote")
+        pendingAuth.remove(conn)
         if (conn == client) {
             client = null
             session = null
@@ -187,5 +225,11 @@ class BridgeWsServer(
     private companion object {
         const val TAG = "SimTether.Server"
         const val HB_SECS = 30L
+        // Pre-auth sockets get one handshake window — after this an
+        // unauthenticated socket is closed so it can't pile up.
+        const val AUTH_TIMEOUT_S = 8L
+        // Max simultaneous sockets waiting to authenticate — a connect
+        // flood gets fast-closed instead of growing unbounded.
+        const val MAX_PREAUTH = 8
     }
 }

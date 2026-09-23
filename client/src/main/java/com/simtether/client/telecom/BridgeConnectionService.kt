@@ -7,6 +7,7 @@ import android.telecom.DisconnectCause
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
 import com.simtether.client.ClientServiceHolder
+import com.simtether.shared.CallStateBus
 import com.simtether.shared.protocol.Protocol
 
 /**
@@ -15,28 +16,6 @@ import com.simtether.shared.protocol.Protocol
  * Actions taken on the native UI flow back through onAnswer/onReject
  * and are relayed to the bridge as CallAction commands.
  */
-/**
- * Live call state for the in-call UI — the ConnectionService feeds it,
- * InCallActivity renders it.
- */
-object CallStateBus {
-    data class Ui(
-        val callId: String,
-        val number: String?,
-        val name: String?,
-        val state: Protocol.CallEvent.State,
-        val incoming: Boolean,
-        // GSM-side audio routing on the bridge (CallAudioState.ROUTE_*).
-        val audioRoute: Int? = null,
-        val availableRoutes: Int? = null,
-    )
-
-    private val _call = kotlinx.coroutines.flow.MutableStateFlow<Ui?>(null)
-    val call: kotlinx.coroutines.flow.StateFlow<Ui?> = _call
-
-    fun publish(u: Ui?) { _call.value = u }
-}
-
 class BridgeConnectionService : ConnectionService() {
 
     override fun onCreateIncomingConnection(
@@ -97,9 +76,10 @@ class BridgeConnectionService : ConnectionService() {
                 name?.let { setCallerDisplayName(it, TelecomManager.PRESENTATION_ALLOWED) }
                 connectionProperties = connectionProperties or
                     Connection.PROPERTY_SELF_MANAGED
-                // API 37.2+: PROPERTY_IS_TETHERED_CALL — marks this as a
-                // call physically handled on the bridge. TODO once the
-                // constant ships in a compileSdk: set it here.
+                // PROPERTY_IS_TETHERED_CALL (API 37.2+) is deliberately
+                // NOT set: the API forbids it on self-managed
+                // connections — that model is for system-managed
+                // companion calls, not ours.
                 if (incoming) setRinging() else setDialing()
                 connectionCapabilities = connectionCapabilities or
                     Connection.CAPABILITY_SUPPORT_HOLD
@@ -119,7 +99,7 @@ class BridgeConnectionService : ConnectionService() {
                     Connection.STATE_HOLDING -> publish(Protocol.CallEvent.State.HOLDING)
                     Connection.STATE_DISCONNECTED -> {
                         publish(Protocol.CallEvent.State.DISCONNECTED)
-                        calls.remove(callId)
+                        drop(callId)
                         CallStateBus.publish(null)
                     }
                     else -> Unit
@@ -179,9 +159,18 @@ class BridgeConnectionService : ConnectionService() {
     companion object {
         const val EXTRA_CALL_ID = "callId"
         const val EXTRA_NAME = "displayName"
-        private val calls = mutableMapOf<String, Connection>()
-        private val pendingOutgoing = mutableMapOf<String, String>() // number -> localId
-        private val aliases = mutableMapOf<String, String>() // localId -> bridgeCallId
+        // Touched from Telecom binder threads, the client event
+        // dispatcher, and the main handler — plain HashMap writes can
+        // corrupt the table under concurrency.
+        private val calls = java.util.concurrent.ConcurrentHashMap<String, Connection>()
+        private val pendingOutgoing = java.util.concurrent.ConcurrentHashMap<String, String>() // number -> localId
+        private val aliases = java.util.concurrent.ConcurrentHashMap<String, String>() // localId -> bridgeCallId
+
+        /** Remove a call and any localId↔bridgeCallId alias touching it. */
+        private fun drop(callId: String): Connection? {
+            aliases.entries.removeIf { it.key == callId || it.value == callId }
+            return calls.remove(callId)
+        }
 
         /**
          * Bridge reports a call we dialed locally — re-key the local
@@ -204,7 +193,7 @@ class BridgeConnectionService : ConnectionService() {
         }
 
         fun disconnect(callId: String) {
-            calls.remove(callId)?.let {
+            drop(callId)?.let {
                 it.setDisconnected(DisconnectCause(DisconnectCause.REMOTE))
                 it.destroy()
             }

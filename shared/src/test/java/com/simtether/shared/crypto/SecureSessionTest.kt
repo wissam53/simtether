@@ -11,11 +11,15 @@ class SecureSessionTest {
     @Test
     fun `ik handshake establishes bidirectional transport`() {
         val (priv, pub) = SecureSession.generateKeyPair()
+        val (clientPriv, clientPub) = SecureSession.generateKeyPair()
         val token = ByteArray(16) { (it * 7).toByte() }
 
-        val clientHs = SecureSession.clientHandshake(pub, token)
+        val clientHs = SecureSession.clientHandshake(pub, token, clientPriv)
         val bridgeHs = SecureSession.bridgeHandshake(priv, clientHs.outgoing)
         assertArrayEquals(token, bridgeHs.peerPayload)
+        // The initiator static rides encrypted msg1 — the bridge sees
+        // the client's identity key for pinning.
+        assertArrayEquals(clientPub, bridgeHs.peerStaticPub)
 
         val (reply, bridgeSession) = bridgeHs.complete()
         val clientSession = clientHs.complete(reply)
@@ -30,8 +34,9 @@ class SecureSessionTest {
     @Test
     fun `wrong responder key fails authentication`() {
         val (_, pub) = SecureSession.generateKeyPair()
+        val (clientPriv, _) = SecureSession.generateKeyPair()
         val (wrongPriv, _) = SecureSession.generateKeyPair()
-        val clientHs = SecureSession.clientHandshake(pub, ByteArray(16))
+        val clientHs = SecureSession.clientHandshake(pub, ByteArray(16), clientPriv)
         assertThrows(BadPaddingException::class.java) {
             SecureSession.bridgeHandshake(wrongPriv, clientHs.outgoing)
         }
@@ -40,7 +45,8 @@ class SecureSessionTest {
     @Test
     fun `tampered handshake frame rejected`() {
         val (priv, pub) = SecureSession.generateKeyPair()
-        val clientHs = SecureSession.clientHandshake(pub, ByteArray(16))
+        val (clientPriv, _) = SecureSession.generateKeyPair()
+        val clientHs = SecureSession.clientHandshake(pub, ByteArray(16), clientPriv)
         val bad = clientHs.outgoing.copyOf()
         bad[bad.size - 1] = (bad[bad.size - 1].toInt() xor 1).toByte()
         assertThrows(BadPaddingException::class.java) {
@@ -51,8 +57,9 @@ class SecureSessionTest {
     @Test
     fun `tampered ciphertext rejected`() {
         val (priv, pub) = SecureSession.generateKeyPair()
+        val (clientPriv, _) = SecureSession.generateKeyPair()
         val token = ByteArray(16)
-        val clientHs = SecureSession.clientHandshake(pub, token)
+        val clientHs = SecureSession.clientHandshake(pub, token, clientPriv)
         val bridgeHs = SecureSession.bridgeHandshake(priv, clientHs.outgoing)
         val (reply, bridgeSession) = bridgeHs.complete()
         clientHs.complete(reply)
@@ -60,7 +67,7 @@ class SecureSessionTest {
         // A tampered msg2 must fail AEAD on a waiting client.
         val bad = reply.copyOf()
         bad[bad.size - 1] = (bad[bad.size - 1].toInt() xor 1).toByte()
-        val clientHs2 = SecureSession.clientHandshake(pub, token)
+        val clientHs2 = SecureSession.clientHandshake(pub, token, clientPriv)
         assertThrows(BadPaddingException::class.java) {
             clientHs2.complete(bad)
         }

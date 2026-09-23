@@ -1,35 +1,35 @@
 package com.simtether.ui
 
-import android.media.AudioManager
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.CallMade
+import androidx.compose.material.icons.automirrored.filled.CallMissed
+import androidx.compose.material.icons.automirrored.filled.CallMissedOutgoing
+import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.automirrored.filled.CallMissed
-import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
@@ -39,10 +39,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,24 +49,29 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.simtether.shared.R
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
-import androidx.activity.compose.rememberLauncherForActivityResult
+import com.simtether.shared.CallLogEntry
 import com.simtether.shared.CallLogStore
-import com.simtether.client.ClientServiceHolder
 import com.simtether.shared.ContactLookup
 import com.simtether.shared.ConversationStore
-import com.simtether.client.PairingStore
-import com.simtether.client.StatusBus
-import com.simtether.shared.pairing.PairingPayload
+import com.simtether.shared.UiBackend
 import com.simtether.shared.protocol.Protocol
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/**
+ * Generic phone UI — Messages/Calls/Dialer/Thread plus the shared
+ * chrome (Screen, nav, headers). Used by the client app AND the
+ * bridge's local mode, so nothing here may touch :client — sends and
+ * dials go through UiBackend, which each app wires to its own backend.
+ */
 
 sealed class Screen {
     data object Home : Screen()
@@ -81,61 +84,13 @@ sealed class Screen {
     data object Settings : Screen()
 }
 
-/** Client dashboard: bridge status card + icon nav + recent feed + quick-dial bar. */
-@Composable
-fun ClientScreen(onPaired: () -> Unit, onResetRole: () -> Unit) {
-    // Back stack — Home is the root; system back pops like a real app.
-    var stack by remember { mutableStateOf(listOf<Screen>(Screen.Home)) }
-    fun push(s: Screen) { stack = stack + s }
-    fun pop() { if (stack.size > 1) stack = stack.dropLast(1) }
-    fun home() { stack = listOf(Screen.Home) }
-    androidx.activity.compose.BackHandler(enabled = stack.size > 1) { pop() }
-
-    // Notification taps (e.g. new SMS) request navigation via NavBus.
-    val pendingThread by com.simtether.NavBus.openThread.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(pendingThread) {
-        pendingThread?.let {
-            stack = listOf(Screen.Home, Screen.Messages, Screen.Thread(it))
-            com.simtether.NavBus.openThread.value = null
-        }
+sealed class FeedItem {
+    abstract val timestamp: Long
+    data class Msg(val m: com.simtether.shared.ChatMessage) : FeedItem() {
+        override val timestamp get() = m.timestamp
     }
-    val openCalls by com.simtether.NavBus.openCalls.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(openCalls) {
-        if (openCalls) {
-            stack = listOf(Screen.Home, Screen.Calls)
-            com.simtether.NavBus.openCalls.value = false
-        }
-    }
-
-    when (val s = stack.last()) {
-        Screen.Home -> HomeScreen(
-            onNavigate = { push(it) },
-            onThread = { push(Screen.Thread(it)) },
-        )
-        Screen.Messages -> MessagesScreen(
-            onBack = { home() },
-            onThread = { push(Screen.Thread(it)) },
-            onNew = { push(Screen.NewMessage) },
-        )
-        Screen.NewMessage -> NewMessageScreen(
-            onBack = { pop() },
-            onSent = { pop(); push(Screen.Thread(it)) },
-        )
-        is Screen.Thread -> ThreadScreen(
-            address = s.address,
-            onBack = { pop() },
-        )
-        Screen.Calls -> CallsScreen(
-            onBack = { home() },
-            onDial = { push(Screen.Dialer) },
-        )
-        Screen.Dialer -> DialerScreen(onBack = { pop() })
-        Screen.Controls -> ControlsScreen(onBack = { home() })
-        Screen.Settings -> SettingsScreen(
-            onBack = { home() },
-            onPaired = onPaired,
-            onForget = onResetRole,
-        )
+    data class Call(val c: com.simtether.shared.CallLogEntry) : FeedItem() {
+        override val timestamp get() = c.timestamp
     }
 }
 
@@ -149,140 +104,32 @@ fun displayName(names: Map<String, String>, number: String?): String {
     return names[number] ?: number
 }
 
-// ── Home ─────────────────────────────────────────────────────────
-
-@Composable
-private fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit) {
-    val context = LocalContext.current
-    val connected by ClientServiceHolder.connected.collectAsState()
-    val status by StatusBus.status.collectAsState()
-    val messages by ConversationStore.messages.collectAsState()
-    val calls by CallLogStore.entries.collectAsState()
-    val names by ContactLookup.names.collectAsState()
-    val paired = remember { PairingStore.isPaired(context) }
-    val revoked by ClientServiceHolder.pairingRevoked.collectAsState()
-    val viaRelay by ClientServiceHolder.viaRelay.collectAsState()
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("SimTether", style = MaterialTheme.typography.headlineMedium)
-
-        if (paired && revoked) {
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(stringResource(R.string.pairing_revoked),
-                        style = MaterialTheme.typography.bodyMedium)
-                    Button(
-                        onClick = { onNavigate(Screen.Settings) },
-                        modifier = Modifier.padding(top = 8.dp),
-                    ) { Text(stringResource(R.string.repair_scan)) }
-                }
-            }
-        }
-
-        if (!paired) {
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(stringResource(R.string.home_no_bridge_title),
-                        style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        stringResource(R.string.home_no_bridge_body),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Button(
-                        onClick = { onNavigate(Screen.Settings) },
-                        modifier = Modifier.padding(top = 8.dp),
-                    ) { Text(stringResource(R.string.home_pair_now)) }
-                }
-            }
-        }
-
-        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    status?.deviceName ?: stringResource(R.string.bridge_fallback_name),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    if (connected)
-                        if (viaRelay) stringResource(R.string.home_linked_remote)
-                        else status?.network?.let {
-                            stringResource(R.string.home_linked_via, it)
-                        } ?: stringResource(R.string.home_linked)
-                    else stringResource(R.string.home_offline),
-                    color = if (connected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error,
-                )
-                status?.let {
-                    Text(
-                        stringResource(
-                            R.string.home_battery_line, it.batteryPct,
-                            it.carrier ?: stringResource(R.string.carrier_unknown),
-                        ) + if (!it.simReady)
-                            stringResource(R.string.home_sim_not_ready) else "",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            NavIcon(Icons.Filled.Call, stringResource(R.string.nav_calls)) { onNavigate(Screen.Calls) }
-            NavIcon(Icons.AutoMirrored.Filled.Message, stringResource(R.string.nav_messages)) { onNavigate(Screen.Messages) }
-            NavIcon(Icons.Filled.Tune, stringResource(R.string.nav_controls)) { onNavigate(Screen.Controls) }
-            NavIcon(Icons.Filled.Settings, stringResource(R.string.nav_settings)) { onNavigate(Screen.Settings) }
-        }
-
-        Text(stringResource(R.string.recent), style = MaterialTheme.typography.labelLarge)
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            val feed = (messages.map { FeedItem.Msg(it) } +
-                        calls.map { FeedItem.Call(it) })
-                .sortedByDescending { it.timestamp }
-                .take(5)
-            items(feed) { item ->
-                when (item) {
-                    is FeedItem.Msg -> FeedRow(
-                        title = displayName(names, item.m.address),
-                        subtitle = item.m.body,
-                        time = item.m.timestamp,
-                        icon = Icons.AutoMirrored.Filled.Message,
-                        onClick = { onThread(item.m.address) },
-                    )
-                    is FeedItem.Call -> FeedRow(
-                        title = item.c.displayName
-                            ?: displayName(names, item.c.number),
-                        subtitle = item.c.label(context),
-                        time = item.c.timestamp,
-                        icon = if (item.c.missed) Icons.AutoMirrored.Filled.CallMissed
-                               else Icons.Filled.Call,
-                        onClick = { onNavigate(Screen.Calls) },
-                    )
-                }
-            }
-        }
-    }
+/** Direction/status glyph — shared by the feed, Recents, and local mode. */
+fun callIcon(c: CallLogEntry): ImageVector = when {
+    c.missed -> Icons.AutoMirrored.Filled.CallMissed
+    c.incoming -> Icons.AutoMirrored.Filled.CallReceived
+    c.state == Protocol.CallEvent.State.DISCONNECTED && !c.answered ->
+        Icons.AutoMirrored.Filled.CallMissedOutgoing
+    else -> Icons.AutoMirrored.Filled.CallMade
 }
 
-sealed class FeedItem {
-    abstract val timestamp: Long
-    data class Msg(val m: com.simtether.shared.ChatMessage) : FeedItem() {
-        override val timestamp get() = m.timestamp
-    }
-    data class Call(val c: com.simtether.shared.CallLogEntry) : FeedItem() {
-        override val timestamp get() = c.timestamp
-    }
-}
+/** Missed calls read red; everything else keeps the primary tint. */
+@Composable
+fun callIconTint(c: CallLogEntry): Color? =
+    if (c.missed) MaterialTheme.colorScheme.error else null
 
 @Composable
-fun NavIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+fun NavIcon(icon: ImageVector, label: String, badgeCount: Int = 0, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(4.dp),
     ) {
         IconButton(onClick = onClick) {
-            Icon(icon, label, tint = MaterialTheme.colorScheme.primary)
+            BadgedBox(badge = {
+                if (badgeCount > 0) Badge { Text("$badgeCount") }
+            }) {
+                Icon(icon, label, tint = MaterialTheme.colorScheme.primary)
+            }
         }
         Text(label, style = MaterialTheme.typography.labelSmall)
     }
@@ -291,7 +138,7 @@ fun NavIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
 /** Offline warning strip — shown under every screen header. */
 @Composable
 private fun OfflineBanner() {
-    val connected by ClientServiceHolder.connected.collectAsState()
+    val connected by UiBackend.connected.collectAsState()
     if (!connected) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -310,14 +157,14 @@ private fun OfflineBanner() {
     }
 }
 
-private fun offlineToast(context: android.content.Context) {
+fun offlineToast(context: android.content.Context) {
     android.widget.Toast.makeText(
         context, context.getString(R.string.toast_offline),
         android.widget.Toast.LENGTH_SHORT).show()
 }
 
 @Composable
-private fun BackHeader(title: String, onBack: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
+fun BackHeader(title: String, onBack: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
     Column {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -338,6 +185,8 @@ private fun BackHeader(title: String, onBack: () -> Unit, trailing: (@Composable
 fun FeedRow(
     title: String, subtitle: String, time: Long,
     icon: ImageVector, onClick: () -> Unit,
+    unread: Boolean = false,
+    iconTint: Color? = null,
 ) {
     Card(
         onClick = onClick,
@@ -348,11 +197,13 @@ fun FeedRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(icon, null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = iconTint ?: MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(end = 10.dp).size(20.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.labelMedium)
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                Text(title, style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (unread) FontWeight.Bold else null)
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                    color = iconTint ?: Color.Unspecified)
             }
             Text(fmtTime(time), style = MaterialTheme.typography.labelSmall)
         }
@@ -372,12 +223,15 @@ fun MessagesScreen(
     val threads = messages.groupBy { it.address }
         .mapValues { it.value.maxByOrNull { m -> m.timestamp }!! }
         .values.sortedByDescending { it.timestamp }
+    val unreadByThread = messages.filter { !it.outgoing && !it.read }
+        .groupingBy { it.address }.eachCount()
 
     Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         BackHeader(stringResource(R.string.nav_messages), onBack)
         LazyColumn {
             items(threads) { last ->
+                val unread = unreadByThread[last.address] ?: 0
                 Card(
                     onClick = { onThread(last.address) },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
@@ -390,12 +244,17 @@ fun MessagesScreen(
                             Text(
                                 displayName(names, last.address),
                                 style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (unread > 0) FontWeight.Bold else null,
                             )
                             Text(last.body, maxLines = 1,
-                                style = MaterialTheme.typography.bodySmall)
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = if (unread > 0) FontWeight.Bold else null)
                         }
-                        Text(fmtTime(last.timestamp),
-                            style = MaterialTheme.typography.labelSmall)
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(fmtTime(last.timestamp),
+                                style = MaterialTheme.typography.labelSmall)
+                            if (unread > 0) Badge { Text("$unread") }
+                        }
                     }
                 }
             }
@@ -413,8 +272,6 @@ fun NewMessageScreen(onBack: () -> Unit, onSent: (String) -> Unit) {
     var address by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
     var picking by remember { mutableStateOf(false) }
-    val connected by ClientServiceHolder.connected.collectAsState()
-    val context = LocalContext.current
 
     if (picking) {
         ContactPickerDialog(
@@ -448,7 +305,7 @@ fun NewMessageScreen(onBack: () -> Unit, onSent: (String) -> Unit) {
                 val to = address.trim()
                 if (to.isNotBlank() && body.isNotBlank()) {
                     val ref = ConversationStore.onOutgoing(to, body.trim())
-                    ClientServiceHolder.sendSms(to, body.trim(), ref)
+                    UiBackend.sendSms(to, body.trim(), ref)
                     onSent(to)
                 }
             },
@@ -534,12 +391,19 @@ fun ThreadScreen(address: String, onBack: () -> Unit) {
     var body by remember { mutableStateOf("") }
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     val toastContext = LocalContext.current
-    val connected by ClientServiceHolder.connected.collectAsState()
+    val connected by UiBackend.connected.collectAsState()
+
+    // Opening the thread — or a new message landing while it's open —
+    // marks it read and clears its notification.
+    androidx.compose.runtime.LaunchedEffect(address, thread.size) {
+        ConversationStore.markThreadRead(address)
+        com.simtether.shared.SmsNotifier.dismiss(toastContext, address)
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         BackHeader(displayName(names, address), onBack) {
             IconButton(onClick = {
-                if (connected) ClientServiceHolder.dial(address)
+                if (connected) UiBackend.dial(address)
                 else offlineToast(toastContext)
             }) {
                 Icon(Icons.Filled.Call, stringResource(R.string.action_call),
@@ -600,7 +464,7 @@ fun ThreadScreen(address: String, onBack: () -> Unit) {
                 onClick = {
                     if (body.isNotBlank()) {
                         val ref = ConversationStore.onOutgoing(address, body.trim())
-                        ClientServiceHolder.sendSms(address, body.trim(), ref)
+                        UiBackend.sendSms(address, body.trim(), ref)
                         body = ""
                     }
                 },
@@ -620,8 +484,17 @@ fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
     val calls by CallLogStore.entries.collectAsState()
     val names by ContactLookup.names.collectAsState()
-    val connected by ClientServiceHolder.connected.collectAsState()
+    val connected by UiBackend.connected.collectAsState()
     val context = LocalContext.current
+
+    // Viewing Recents acknowledges missed calls and clears their
+    // notifications — including one that lands while the list is open.
+    androidx.compose.runtime.LaunchedEffect(calls) {
+        calls.filter { !it.seen }.forEach {
+            UiBackend.dismissMissedCall(context, it.callId)
+        }
+        CallLogStore.markAllSeen()
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -643,12 +516,13 @@ fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
             LazyColumn {
                 items(calls.sortedByDescending { it.timestamp }) { c ->
                     CallRow(
+                        entry = c,
                         title = c.displayName ?: displayName(names, c.number),
                         subtitle = c.label(context),
                         time = c.timestamp,
                         onCall = {
                             c.number?.let {
-                                if (connected) ClientServiceHolder.dial(it)
+                                if (connected) UiBackend.dial(it)
                                 else offlineToast(context)
                             }
                         },
@@ -658,12 +532,12 @@ fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
         } else {
             ContactPicker(
                 onPick = {
-                    if (connected) ClientServiceHolder.dial(it.number)
+                    if (connected) UiBackend.dial(it.number)
                     else offlineToast(context)
                 },
                 trailing = { c ->
                     IconButton(onClick = {
-                        if (connected) ClientServiceHolder.dial(c.number)
+                        if (connected) UiBackend.dial(c.number)
                         else offlineToast(context)
                     }) {
                         Icon(Icons.Filled.Call, stringResource(R.string.action_call),
@@ -681,14 +555,22 @@ fun CallsScreen(onBack: () -> Unit, onDial: () -> Unit) {
 }
 
 @Composable
-private fun CallRow(title: String, subtitle: String, time: Long?, onCall: () -> Unit) {
+private fun CallRow(
+    entry: CallLogEntry, title: String, subtitle: String,
+    time: Long?, onCall: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Icon(callIcon(entry), null,
+            tint = callIconTint(entry) ?: MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(end = 10.dp).size(20.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
+            Text(title, style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (!entry.seen) FontWeight.Bold else null)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                color = callIconTint(entry) ?: Color.Unspecified)
         }
         time?.let { Text(fmtTime(it), style = MaterialTheme.typography.labelSmall) }
         IconButton(onClick = onCall) {
@@ -701,7 +583,7 @@ private fun CallRow(title: String, subtitle: String, time: Long?, onCall: () -> 
 @Composable
 fun DialerScreen(onBack: () -> Unit) {
     var number by remember { mutableStateOf("") }
-    val connected by ClientServiceHolder.connected.collectAsState()
+    val connected by UiBackend.connected.collectAsState()
     val context = LocalContext.current
     val names by ContactLookup.names.collectAsState()
     androidx.compose.runtime.LaunchedEffect(number) {
@@ -747,7 +629,7 @@ fun DialerScreen(onBack: () -> Unit) {
             Button(
                 onClick = {
                     if (!connected) { offlineToast(context); return@Button }
-                    if (number.isNotBlank()) ClientServiceHolder.dial(number)
+                    if (number.isNotBlank()) UiBackend.dial(number)
                 },
             ) {
                 Icon(Icons.Filled.Call, null)
@@ -758,204 +640,6 @@ fun DialerScreen(onBack: () -> Unit) {
     }
 }
 
-// ── Controls & Settings ──────────────────────────────────────────
-
-@Composable
-private fun ControlsScreen(onBack: () -> Unit) {
-    val status by StatusBus.status.collectAsState()
-    val connected by ClientServiceHolder.connected.collectAsState()
-    val context = LocalContext.current
-    Column(modifier = Modifier.fillMaxSize()
-        .verticalScroll(rememberScrollState()).padding(16.dp)) {
-        BackHeader(stringResource(R.string.controls_title), onBack)
-        status?.let {
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(stringResource(R.string.controls_network, it.network ?: "?"))
-                    Text(stringResource(R.string.controls_battery, it.batteryPct))
-                    Text(stringResource(R.string.controls_carrier, it.carrier ?: "?"))
-                    Text(stringResource(R.string.controls_ringer, when (it.ringerMode) {
-                        AudioManager.RINGER_MODE_SILENT -> stringResource(R.string.ringer_silent)
-                        AudioManager.RINGER_MODE_VIBRATE -> stringResource(R.string.ringer_vibrate)
-                        AudioManager.RINGER_MODE_NORMAL -> stringResource(R.string.ringer_normal)
-                        else -> stringResource(R.string.ringer_unknown)
-                    }))
-                }
-            }
-        }
-        Button(
-            onClick = {
-                if (!connected) { offlineToast(context); return@Button }
-                ClientServiceHolder.sendBridgeCommand(
-                    Protocol.BridgeCommand.Action.STATUS_REFRESH
-                )
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        ) { Text(stringResource(R.string.refresh_status)) }
-        val muted = status?.ringerMode != AudioManager.RINGER_MODE_NORMAL
-        OutlinedButton(
-            onClick = {
-                if (!connected) { offlineToast(context); return@OutlinedButton }
-                ClientServiceHolder.sendBridgeCommand(
-                    if (muted) Protocol.BridgeCommand.Action.UNMUTE
-                    else Protocol.BridgeCommand.Action.MUTE
-                )
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        ) {
-            Text(stringResource(
-                if (muted) R.string.unmute_bridge else R.string.mute_bridge))
-        }
-        Text(
-            stringResource(R.string.controls_wifi_note),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 12.dp),
-        )
-    }
-}
-
-@Composable
-private fun SettingsScreen(
-    onBack: () -> Unit,
-    onPaired: () -> Unit,
-    onForget: () -> Unit,
-) {
-    val context = LocalContext.current
-    var pairing by remember { mutableStateOf(PairingStore.load(context)) }
-    val scanner = rememberLauncherForActivityResult(ScanContract()) { result ->
-        result.contents?.let { text ->
-            runCatching { PairingPayload.decode(text) }
-                .onSuccess {
-                    PairingStore.save(context, it)
-                    pairing = PairingStore.load(context)
-                    onPaired()
-                }
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxSize()
-        .verticalScroll(rememberScrollState()).padding(16.dp)) {
-        BackHeader(stringResource(R.string.nav_settings), onBack)
-        Text(stringResource(R.string.settings_bridge_section),
-            style = MaterialTheme.typography.labelMedium)
-        Text(stringResource(R.string.settings_last_bridge,
-            pairing?.deviceName ?: "?", pairing?.host ?: "?",
-            pairing?.port?.toString() ?: "?"))
-        Button(
-            onClick = {
-                scanner.launch(ScanOptions().apply {
-                    setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                    setPrompt(context.getString(R.string.scan_prompt))
-                })
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        ) {
-            Icon(Icons.Filled.QrCodeScanner, null)
-            Text(stringResource(R.string.repair_scan),
-                modifier = Modifier.padding(start = 6.dp))
-        }
-        OutlinedButton(
-            onClick = {
-                PairingStore.clear(context)
-                onForget()
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        ) { Text(stringResource(R.string.forget_bridge)) }
-
-        RemoteAccessCard(pairing)
-
-        Text(
-            stringResource(R.string.settings_language).uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-        LanguagePicker()
-    }
-}
-
-/**
- * Remote-access card — opt-in internet fallback through a splice
- * relay the user chooses (BYO). The toggle is the consent: enabling
- * asks once what the internet path means, disabling drops a live
- * relay link immediately.
- */
-@Composable
-private fun RemoteAccessCard(pairing: PairingPayload?) {
-    val context = LocalContext.current
-    var enabled by remember {
-        mutableStateOf(com.simtether.shared.RemoteStore.isEnabled(context))
-    }
-    var confirm by remember { mutableStateOf(false) }
-    var relayAddr by remember { mutableStateOf(pairing?.relay ?: "") }
-    var relayTok by remember { mutableStateOf(pairing?.relayToken ?: "") }
-
-    Text(
-        stringResource(R.string.remote_access).uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        modifier = Modifier.padding(top = 16.dp),
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            stringResource(R.string.remote_client_hint),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.weight(1f).padding(end = 8.dp),
-        )
-        Switch(
-            checked = enabled,
-            onCheckedChange = { want ->
-                if (want) confirm = true
-                else {
-                    com.simtether.shared.RemoteStore.setEnabled(context, false)
-                    enabled = false
-                    ClientServiceHolder.service?.applyRemotePref()
-                }
-            },
-        )
-    }
-    if (enabled) {
-        OutlinedTextField(
-            value = relayAddr, onValueChange = { relayAddr = it },
-            label = { Text(stringResource(R.string.remote_relay_address)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        )
-        OutlinedTextField(
-            value = relayTok, onValueChange = { relayTok = it },
-            label = { Text(stringResource(R.string.remote_relay_token)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        )
-        OutlinedButton(
-            onClick = {
-                PairingStore.updateRelay(context, relayAddr, relayTok)
-                ClientServiceHolder.service?.reconnect()
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        ) { Text(stringResource(R.string.remote_save)) }
-    }
-    if (confirm) AlertDialog(
-        onDismissRequest = { confirm = false },
-        title = { Text(stringResource(R.string.remote_consent_title)) },
-        text = { Text(stringResource(R.string.remote_consent_client)) },
-        confirmButton = {
-            TextButton(onClick = {
-                confirm = false
-                com.simtether.shared.RemoteStore.setEnabled(context, true)
-                enabled = true
-                ClientServiceHolder.service?.reconnect()
-            }) { Text(stringResource(R.string.remote_agree)) }
-        },
-        dismissButton = {
-            TextButton(onClick = { confirm = false }) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
-    )
-}
-
 /**
  * In-app language override picker — framework per-app locales are API
  * 33+, so the tag is stored and applied via LocaleHelper.wrap on every
@@ -963,8 +647,7 @@ private fun RemoteAccessCard(pairing: PairingPayload?) {
  * mode. Picking recreates the activity to apply the new config.
  *
  * [onLanguageChanged] lets each app refresh its own service's ongoing
- * notification in the new language — the client service is handled
- * here; the bridge app passes its own hook.
+ * notification in the new language.
  */
 @Composable
 fun LanguagePicker(onLanguageChanged: () -> Unit = {}) {
@@ -996,10 +679,6 @@ fun LanguagePicker(onLanguageChanged: () -> Unit = {}) {
                                 com.simtether.shared.LocaleHelper.set(context, tag)
                                 langTag = tag
                                 picking = false
-                                // Re-post the running service's ongoing
-                                // notification in the new language.
-                                com.simtether.client.ClientServiceHolder.service
-                                    ?.refreshNotification()
                                 onLanguageChanged()
                                 // New config only applies to freshly
                                 // created components — recreate.

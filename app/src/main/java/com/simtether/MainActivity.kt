@@ -107,7 +107,7 @@ class MainActivity : ComponentActivity() {
         intent?.getStringExtra(com.simtether.shared.SmsNotifier.EXTRA_OPEN_THREAD)
             ?.let { NavBus.openThread.value = it }
         if (intent?.getBooleanExtra(
-                com.simtether.client.telecom.CallRouter.EXTRA_OPEN_CALLS, false) == true)
+                com.simtether.shared.IntentKeys.EXTRA_OPEN_CALLS, false) == true)
             NavBus.openCalls.value = true
     }
 

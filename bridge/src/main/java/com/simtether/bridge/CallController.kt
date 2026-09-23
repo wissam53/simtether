@@ -16,6 +16,17 @@ import com.simtether.shared.protocol.Protocol
  */
 object CallController {
 
+    /** Fired when Telecom sends a canned reply on reject — the SMS
+     *  bypasses sms.send, so the service records + relays it here. */
+    var onRejectSms: ((number: String, text: String) -> Unit)? = null
+
+    // DTMF sequences need timed play/stop pairs — serialize them off
+    // the caller's thread so digits can't interleave across calls.
+    private val dtmfExec = java.util.concurrent.Executors
+        .newSingleThreadExecutor { r -> Thread(r, "dtmf").also { it.isDaemon = true } }
+    private const val DTMF_TONE_MS = 120L
+    private const val DTMF_GAP_MS = 70L
+
     fun dispatch(context: Context, cmd: Protocol.CallAction) {
         val call = CallRegistry.byId(cmd.callId) ?: return
         when (cmd.action) {
@@ -31,8 +42,15 @@ object CallController {
                 if (call.state == Call.STATE_RINGING) call.reject(false, null)
                 else call.disconnect()
 
-            Protocol.CallAction.Action.REJECT_WITH_SMS ->
+            Protocol.CallAction.Action.REJECT_WITH_SMS -> {
                 call.reject(true, cmd.smsTemplate ?: "")
+                // Telecom sends the canned reply itself — capture the
+                // caller number + text so both phones log it.
+                val num = call.details?.handle?.schemeSpecificPart
+                val text = cmd.smsTemplate
+                if (!num.isNullOrBlank() && !text.isNullOrBlank())
+                    onRejectSms?.invoke(num, text)
+            }
 
             Protocol.CallAction.Action.DISCONNECT ->
                 call.disconnect()
@@ -43,8 +61,20 @@ object CallController {
             Protocol.CallAction.Action.UNHOLD ->
                 if (call.details.can(Call.Details.CAPABILITY_HOLD)) call.unhold()
 
-            Protocol.CallAction.Action.DTMF ->
-                cmd.digits?.forEach { call.playDtmfTone(it) }
+            Protocol.CallAction.Action.DTMF -> {
+                // Telecom requires play/stop pairs — a bare
+                // playDtmfTone latches the tone on and later digits
+                // never transmit (bank IVRs die here).
+                val digits = cmd.digits ?: return
+                dtmfExec.execute {
+                    for (d in digits) {
+                        runCatching { call.playDtmfTone(d) }
+                        runCatching { Thread.sleep(DTMF_TONE_MS) }
+                        runCatching { call.stopDtmfTone() }
+                        runCatching { Thread.sleep(DTMF_GAP_MS) }
+                    }
+                }
+            }
 
             Protocol.CallAction.Action.AUDIO_ROUTE ->
                 cmd.audioRoute?.let { BridgeInCallService.setRoute(it) }

@@ -23,6 +23,9 @@ data class PairingPayload(
     // pairing token), so the relay token can ride along.
     val relay: String? = null,      // "host:port" of a splice relay
     val relayToken: String? = null, // access token the relay expects
+    // base64 — derives the room ticket that gates /connect; only the
+    // bridge and the paired client ever hold it.
+    val relaySecret: String? = null,
 ) {
     fun encode(): String = Protocol.json.encodeToString(serializer(), this)
 

@@ -58,6 +58,18 @@ class ConversationStoreTest {
     }
 
     @Test
+    fun `incoming starts unread and markThreadRead clears it`() {
+        ConversationStore.onIncoming(sms("+90555-r1"))
+        assertFalse(ConversationStore.thread("+90555-r1").last().read)
+
+        ConversationStore.markThreadRead("+90555-r1")
+        assertEquals(0, ConversationStore.thread("+90555-r1").count { !it.read })
+        // Outgoing bubbles in the same thread are untouched.
+        ConversationStore.onOutgoing("+90555-r1", "ok")
+        assertEquals(0, ConversationStore.thread("+90555-r1").count { !it.read })
+    }
+
+    @Test
     fun `uninitialised store still records in memory`() {
         // file == null here — rewrite() no-ops, memory still updates.
         val ref = ConversationStore.onOutgoing("+90555-x4", "persistless")

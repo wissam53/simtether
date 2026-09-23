@@ -46,6 +46,17 @@ object Protocol {
         val subId: Int = -1,
     )
 
+    /** A message that left the SIM outside sms.send — e.g. Telecom's
+     *  canned reply on REJECT_WITH_SMS. Echoed so the client's thread
+     *  shows what actually went out. */
+    @Serializable
+    data class SmsEcho(
+        val address: String,
+        val body: String,
+        val timestamp: Long,
+        val ref: String? = null,    // correlates the follow-up sms.status
+    )
+
     @Serializable
     data class CallEvent(
         val callId: String,
@@ -99,7 +110,7 @@ object Protocol {
         val status: Status,
         val error: String? = null,
     ) {
-        enum class Status { SENT, DELIVERED, FAILED }
+        enum class Status { SENT, DELIVERED, FAILED, UNCONFIRMED }
     }
 
     @Serializable

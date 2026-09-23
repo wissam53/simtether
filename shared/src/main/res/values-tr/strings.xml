@@ -80,6 +80,7 @@
     <string name="bridge_mode_title">Köprü modu</string>
     <string name="bridge_scan_hint">Bunu ana telefonunuzla tarayın</string>
     <string name="cd_pairing_qr">Eşleme QR kodu</string>
+    <string name="bridge_show_qr">Eşleme QR kodunu göster</string>
     <string name="bridge_waiting_lan">LAN adresi bekleniyor — hotspot açık mı?</string>
     <string name="bridge_starting">Köprü servisi başlatılıyor…</string>
     <string name="dialer_held">✓ Telefon uygulaması rolü alındı — arama kontrolü aktif</string>
@@ -119,6 +120,10 @@
     <string name="scan_prompt">Köprü telefonundaki QR kodu tarayın</string>
     <string name="repair_scan">Yeniden eşle (QR tara)</string>
     <string name="forget_bridge">Bu köprüyü unut ve sıfırla</string>
+    <string name="forget_title">Bu köprü unutulsun mu?</string>
+    <string name="forget_body">Eşleşme, iletilen mesaj geçmişi ve arama kaydı bu telefondan silinecek. Yeniden bağlanmak için köprüde yeni bir QR kodu okutmanız gerekir.</string>
+    <string name="forget_confirm">Sil ve unut</string>
+    <string name="keystore_warning">Cihaz şifrelemesi kullanılamıyor — anahtarlar ve saklanan mesajlar korumasız</string>
     <string name="repair_button">Cihazı yeniden eşleştir</string>
     <string name="repair_title">Mevcut eşleşme iptal edilsin mi?</string>
     <string name="repair_body">Eşleşen telefon erişimi anında kaybeder ve yeniden bağlanmak için yeni QR kodu okutmalıdır. Telefon kaybolduysa veya QR görüntüsü sızdıysa bunu kullanın.</string>
@@ -138,6 +143,7 @@
     <string name="notif_waiting_client">Ana telefonunuz bekleniyor…</string>
     <string name="notif_answer_here">ana telefon çevrimdışı — buradan cevaplayın</string>
     <string name="notif_missed_call">Cevapsız arama</string>
+    <string name="notif_new_message">Yeni mesaj</string>
     <string name="companion_title">Eşlik cihazı bağlantısı</string>
     <string name="companion_hint">Ana telefonunuzun Bluetooth ayarlarını açın ki listede görünsün — tek bir sistem penceresi mesaj, arama ve arka plan izinlerini verir.</string>
     <string name="companion_link">Ana telefona bağla</string>
@@ -169,7 +175,11 @@
     <string name="remote_relay_address">Aktarım adresi (sunucu:port)</string>
     <string name="remote_relay_token">Aktarım anahtarı (gerekiyorsa)</string>
     <string name="remote_save">Aktarım ayarlarını kaydet</string>
+    <string name="remote_invalid_relay">Geçersiz aktarım adresi — sunucu:port veya wss://sunucu:port biçiminde olmalı</string>
     <string name="remote_repair_needed">Diğer telefonun aktarım adresini öğrenmesi için eşleme QR kodunu yeniden taratın.</string>
     <string name="home_linked_remote">Bağlı · internet üzerinden</string>
     <string name="remote_agree">Etkinleştir</string>
+    <string name="remote_active_relay">Aktarım: %1$s</string>
+    <string name="remote_custom_relay">Özel aktarım sunucusu</string>
+    <string name="remote_use_default">Varsayılan sunucuyu kullan</string>
 </resources>

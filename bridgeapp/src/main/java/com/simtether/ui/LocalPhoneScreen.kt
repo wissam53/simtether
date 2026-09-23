@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.Button
@@ -30,10 +29,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.simtether.shared.R
-import com.simtether.client.ClientServiceHolder
 import com.simtether.shared.CallLogStore
 import com.simtether.shared.ContactLookup
 import com.simtether.shared.ConversationStore
+import com.simtether.shared.PhoneBackend
+import com.simtether.shared.UiBackend
 
 /**
  * Bridge-off mode: the SIM phone runs the same Messages/Calls UI the
@@ -49,7 +49,7 @@ fun LocalPhoneScreen(onStartBridge: () -> Unit) {
         ConversationStore.init(context)
         CallLogStore.init(context)
         ContactLookup.init(context)
-        ClientServiceHolder.localBackend = object : ClientServiceHolder.LocalBackend {
+        UiBackend.impl = object : PhoneBackend {
             override fun sendSms(address: String, body: String, ref: String?) {
                 com.simtether.bridge.sms.SmsSender.send(
                     context, address, body, deliveryReport = true, ref = ref)
@@ -65,12 +65,16 @@ fun LocalPhoneScreen(onStartBridge: () -> Unit) {
                     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             }
+            override fun dismissMissedCall(context: android.content.Context, callId: String) {
+                com.simtether.bridge.telecom.BridgeCallUi
+                    .dismissMissed(context, callId)
+            }
         }
         // Local link is always "up" — hides the offline banner.
-        ClientServiceHolder.setConnected(true)
+        UiBackend.setConnected(true)
         onDispose {
-            ClientServiceHolder.localBackend = null
-            ClientServiceHolder.setConnected(false)
+            UiBackend.impl = null
+            UiBackend.setConnected(false)
         }
     }
 
@@ -86,6 +90,13 @@ fun LocalPhoneScreen(onStartBridge: () -> Unit) {
         pendingThread?.let {
             stack = listOf(Screen.Home, Screen.Messages, Screen.Thread(it))
             com.simtether.NavBus.openThread.value = null
+        }
+    }
+    val openCalls by com.simtether.NavBus.openCalls.collectAsState()
+    LaunchedEffect(openCalls) {
+        if (openCalls) {
+            stack = listOf(Screen.Home, Screen.Calls)
+            com.simtether.NavBus.openCalls.value = false
         }
     }
 
@@ -149,8 +160,10 @@ private fun LocalHome(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            NavIcon(Icons.Filled.Call, stringResource(R.string.nav_calls)) { onNavigate(Screen.Calls) }
-            NavIcon(Icons.AutoMirrored.Filled.Message, stringResource(R.string.nav_messages)) { onNavigate(Screen.Messages) }
+            NavIcon(Icons.Filled.Call, stringResource(R.string.nav_calls),
+                badgeCount = calls.count { !it.seen }) { onNavigate(Screen.Calls) }
+            NavIcon(Icons.AutoMirrored.Filled.Message, stringResource(R.string.nav_messages),
+                badgeCount = messages.count { !it.outgoing && !it.read }) { onNavigate(Screen.Messages) }
         }
 
         Text(stringResource(R.string.recent), style = MaterialTheme.typography.labelLarge)
@@ -166,6 +179,7 @@ private fun LocalHome(
                         subtitle = item.m.body,
                         time = item.m.timestamp,
                         icon = Icons.AutoMirrored.Filled.Message,
+                        unread = !item.m.read && !item.m.outgoing,
                         onClick = { onThread(item.m.address) },
                     )
                     is FeedItem.Call -> FeedRow(
@@ -173,8 +187,9 @@ private fun LocalHome(
                             ?: displayName(names, item.c.number),
                         subtitle = item.c.label(context),
                         time = item.c.timestamp,
-                        icon = if (item.c.missed) Icons.AutoMirrored.Filled.CallMissed
-                               else Icons.Filled.Call,
+                        icon = callIcon(item.c),
+                        iconTint = callIconTint(item.c),
+                        unread = !item.c.seen,
                         onClick = { onNavigate(Screen.Calls) },
                     )
                 }

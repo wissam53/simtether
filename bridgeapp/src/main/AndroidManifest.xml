@@ -40,6 +40,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <!-- API 35+ refuses the types above when the process was started by
+         BOOT_COMPLETED — specialUse is the declared escape hatch for
+         that restart path. Play requires a specialUse declaration at
+         upload. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -53,7 +58,7 @@
     <application
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:name=".App"
+        android:name="com.simtether.App"
         android:label="@string/app_name"
         android:theme="@style/Theme.SimTether"
         android:allowBackup="false"
@@ -62,7 +67,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.simtether.MainActivity"
             android:launchMode="singleTask"
             android:exported="true">
             <intent-filter>
@@ -74,14 +79,14 @@
         <!-- Bridge-local fallback in-call UI (default-dialer duty when
              no client is linked) -->
         <activity
-            android:name=".BridgeCallActivity"
+            android:name="com.simtether.BridgeCallActivity"
             android:exported="false"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:launchMode="singleTask" />
 
         <activity
-            android:name=".DialActivity"
+            android:name="com.simtether.DialActivity"
             android:exported="true"
             android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
@@ -99,7 +104,11 @@
         <service
             android:name="com.simtether.bridge.BridgeService"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice|dataSync|phoneCall" />
+            android:foregroundServiceType="connectedDevice|dataSync|phoneCall|specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Relays this SIM's SMS and calls to your paired phone after reboot" />
+        </service>
 
         <!-- Default-dialer role requirements -->
         <service
@@ -147,7 +156,7 @@
 
         <!-- Restart the bridge service after reboot/OTA -->
         <receiver
-            android:name=".BootReceiver"
+            android:name="com.simtether.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

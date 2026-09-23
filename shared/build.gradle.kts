@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// The hosted-relay access token lives in the gitignored root
+// relay.properties — never in source (the repo ships public via
+// GitHub/F-Droid, and history is forever). It's an abuse gate, not a
+// security boundary: room ownership is proven by RelayProof. Missing
+// file → empty → the default relay simply won't auth; custom relays
+// are unaffected.
+val relayProps = Properties().apply {
+    rootProject.file("relay.properties").takeIf { it.exists() }
+        ?.inputStream()?.use { load(it) }
 }
 
 android {
@@ -10,6 +23,15 @@ android {
 
     defaultConfig {
         minSdk = 26
+
+        buildConfigField(
+            "String", "DEFAULT_RELAY_TOKEN",
+            "\"${relayProps.getProperty("relayToken", "")}\"",
+        )
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {

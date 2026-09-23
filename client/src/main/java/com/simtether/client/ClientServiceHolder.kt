@@ -8,20 +8,14 @@ import kotlinx.coroutines.flow.StateFlow
 object ClientServiceHolder {
     var service: ClientService? = null
 
-    /**
-     * When the bridge is off, the SIM phone runs the same Messages /
-     * Calls UI against its own GSM radio — this backend intercepts
-     * sends/dials before they reach the (absent) WS service.
-     */
-    interface LocalBackend {
-        fun sendSms(address: String, body: String, ref: String?)
-        fun dial(number: String)
-    }
-    var localBackend: LocalBackend? = null
-
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected
-    fun setConnected(v: Boolean) { _connected.value = v }
+    fun setConnected(v: Boolean) {
+        _connected.value = v
+        // Generic screens (shared :ui) read UiBackend.connected — keep
+        // the two in lockstep.
+        com.simtether.shared.UiBackend.setConnected(v)
+    }
 
     /** True while the live session rides the relay (internet) rather
      *  than the LAN — surfaced in the status line. */
@@ -43,7 +37,6 @@ object ClientServiceHolder {
     fun setPeerNewer(v: Boolean) { _peerNewer.value = v }
 
     fun sendSms(address: String, body: String, ref: String? = null) {
-        localBackend?.let { it.sendSms(address, body, ref); return }
         val payload = Protocol.json.encodeToString(
             Protocol.SmsSend.serializer(),
             Protocol.SmsSend(address, body, ref = ref),
@@ -73,7 +66,6 @@ object ClientServiceHolder {
      * dial to the bridge via [sendDial].
      */
     fun dial(number: String) {
-        localBackend?.let { it.dial(number); return }
         val ctx = service ?: return
         com.simtether.client.telecom.CallRouter.placeOutgoingCall(ctx, number)
     }

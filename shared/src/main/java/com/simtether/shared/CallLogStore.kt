@@ -4,6 +4,7 @@ import android.content.Context
 import com.simtether.shared.protocol.Protocol
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -20,6 +21,9 @@ data class CallLogEntry(
     // missed call (RINGING→DISCONNECTED) from an ended one.
     val incoming: Boolean = false,
     val answered: Boolean = false,
+    // Unseen = a missed call the user hasn't opened Recents for yet.
+    // Defaults true so pre-upgrade history doesn't flood as unseen.
+    val seen: Boolean = true,
 ) {
     val missed: Boolean get() =
         state == Protocol.CallEvent.State.DISCONNECTED && incoming && !answered
@@ -71,7 +75,7 @@ object CallLogStore {
                 .mapNotNull { runCatching { json.decodeFromString<CallLogEntry>(it) }.getOrNull() }
                 .toList()
             // Keep anything appended before this load landed.
-            _entries.value = (loaded + _entries.value).distinct()
+            _entries.update { (loaded + it).distinct() }
         }
     }
 
@@ -85,28 +89,57 @@ object CallLogStore {
     }
 
     private fun append(e: Protocol.CallEvent): CallLogEntry {
-        // Update in place if this callId already logged — direction and
-        // answered accumulate over the call's states.
-        val existing = _entries.value.indexOfLast { it.callId == e.callId }
-        val prev = _entries.value.getOrNull(existing)
-        val entry = CallLogEntry(
-            callId = e.callId,
-            number = e.number ?: prev?.number,
-            displayName = e.displayName ?: prev?.displayName,
-            state = e.state,
-            timestamp = System.currentTimeMillis(),
-            incoming = prev?.incoming ?: (e.state == Protocol.CallEvent.State.RINGING),
-            answered = prev?.answered == true ||
+        // Read-modify-write inside update{} — the previous entry feeds
+        // derived fields, so the whole accumulation must be atomic.
+        // (update may re-run its lambda on contention; result capture
+        // is idempotent.)
+        var result: CallLogEntry? = null
+        _entries.update { list ->
+            val existing = list.indexOfLast { it.callId == e.callId }
+            val prev = list.getOrNull(existing)
+            // Prefer the event's own direction flag — it's set on the
+            // wire even when the RINGING event was dropped.
+            val incoming = prev?.incoming ?: e.incoming
+            val answered = prev?.answered == true ||
                 e.state == Protocol.CallEvent.State.ACTIVE ||
-                e.state == Protocol.CallEvent.State.HOLDING,
-        )
-        _entries.value = if (existing >= 0) {
-            _entries.value.toMutableList().also { it[existing] = entry }
-        } else {
-            _entries.value + entry
+                e.state == Protocol.CallEvent.State.HOLDING
+            val missed = e.state == Protocol.CallEvent.State.DISCONNECTED &&
+                incoming && !answered
+            val entry = CallLogEntry(
+                callId = e.callId,
+                number = e.number ?: prev?.number,
+                displayName = e.displayName ?: prev?.displayName,
+                state = e.state,
+                timestamp = System.currentTimeMillis(),
+                incoming = incoming,
+                answered = answered,
+                // Newly missed → unseen. An already-missed entry keeps
+                // its flag so a late duplicate can't re-flag it.
+                seen = if (missed) prev?.takeIf { it.missed }?.seen ?: false else true,
+            )
+            result = entry
+            if (existing >= 0) list.toMutableList().also { it[existing] = entry }
+            else list + entry
         }
         rewrite()
-        return entry
+        return result!!
+    }
+
+    /** Unpair = erase — same semantics as ConversationStore.wipe(). */
+    fun wipe() {
+        _entries.value = emptyList()
+        synchronized(writeLock) {
+            writeTask?.cancel(false)
+            writeTask = null
+        }
+        file?.let { f -> writer.execute { f.delete() } }
+    }
+
+    /** Viewing Recents acknowledges every unseen (missed) entry. */
+    fun markAllSeen() {
+        if (_entries.value.none { !it.seen }) return
+        _entries.update { list -> list.map { if (it.seen) it else it.copy(seen = true) } }
+        rewrite()
     }
 
     /** Debounced persist — a call generates several events in a row. */

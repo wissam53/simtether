@@ -22,6 +22,7 @@ object PairingStore {
         SecureStore.putString(context, PREFS, "name", p.deviceName)
         SecureStore.putString(context, PREFS, "relay", p.relay)
         SecureStore.putString(context, PREFS, "relay_token", p.relayToken)
+        SecureStore.putString(context, PREFS, "relay_secret", p.relaySecret)
     }
 
     fun load(context: Context): PairingPayload? {
@@ -35,6 +36,7 @@ object PairingStore {
             deviceName = SecureStore.getString(context, PREFS, "name") ?: "bridge",
             relay = SecureStore.getString(context, PREFS, "relay"),
             relayToken = SecureStore.getString(context, PREFS, "relay_token"),
+            relaySecret = SecureStore.getString(context, PREFS, "relay_secret"),
         )
     }
 
@@ -42,6 +44,26 @@ object PairingStore {
     fun updateRelay(context: Context, relay: String?, token: String?) {
         SecureStore.putString(context, PREFS, "relay", relay?.trim() ?: "")
         SecureStore.putString(context, PREFS, "relay_token", token?.trim() ?: "")
+    }
+
+    /**
+     * The client's own X25519 identity, generated once and persisted
+     * Keystore-wrapped. IK transmits the public half inside encrypted
+     * msg1; the bridge pins it, so after first pair the pairing token
+     * alone is no longer a sufficient credential (a photographed QR
+     * can't be replayed from a stranger's device). clear() wipes it —
+     * a re-pair generates a fresh identity.
+     */
+    fun clientKeyPair(context: Context): Pair<ByteArray, ByteArray> {
+        val dec = java.util.Base64.getDecoder()
+        val enc = java.util.Base64.getEncoder()
+        val priv = SecureStore.getString(context, PREFS, "client_priv")
+        val pub = SecureStore.getString(context, PREFS, "client_pub")
+        if (priv != null && pub != null) return dec.decode(priv) to dec.decode(pub)
+        val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
+        SecureStore.putString(context, PREFS, "client_priv", enc.encodeToString(pair.first))
+        SecureStore.putString(context, PREFS, "client_pub", enc.encodeToString(pair.second))
+        return pair
     }
 
     /** Token rotation — the bridge pushes a fresh credential inside

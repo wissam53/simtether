@@ -47,11 +47,19 @@ class SmsRelayReceiver : BroadcastReceiver() {
         // Deliver the event via the start intent — survives the race
         // where the service isn't in memory yet (onStartCommand emits
         // once it's up). Works whether the service is running or not.
-        context.startForegroundService(
-            Intent(context, BridgeService::class.java)
-                .putExtra(BridgeService.EXTRA_EVENT_TYPE, "sms.received")
-                .putExtra(BridgeService.EXTRA_EVENT_PAYLOAD, payload)
-        )
+        // Android 12+ can refuse the background FGS start until the
+        // dialer role / CDM association grants the exemption — park
+        // the event instead of crashing the receiver.
+        runCatching {
+            context.startForegroundService(
+                Intent(context, BridgeService::class.java)
+                    .putExtra(BridgeService.EXTRA_EVENT_TYPE, "sms.received")
+                    .putExtra(BridgeService.EXTRA_EVENT_PAYLOAD, payload)
+            )
+        }.onFailure {
+            Log.w(TAG, "FGS start refused — parking event for next start", it)
+            BridgeService.parkEvent(context, "sms.received", payload)
+        }
     }
 
     private companion object {

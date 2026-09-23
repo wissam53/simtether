@@ -4,6 +4,7 @@ import android.content.Context
 import com.simtether.shared.protocol.Protocol
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -18,6 +19,9 @@ data class ChatMessage(
     val outgoing: Boolean,
     val ref: String? = null,        // outgoing only — correlates sms.status
     val status: String? = null,     // sending | sent | delivered | failed
+    // Incoming messages arrive read=false. Default true so history
+    // written before this field existed doesn't flood as unread.
+    val read: Boolean = true,
 )
 
 /**
@@ -53,12 +57,26 @@ object ConversationStore {
                 .mapNotNull { runCatching { json.decodeFromString<ChatMessage>(it) }.getOrNull() }
                 .toList()
             // Keep anything appended before this load landed.
-            _messages.value = (loaded + _messages.value).distinct()
+            _messages.update { (loaded + it).distinct() }
         }
     }
 
     fun onIncoming(sms: Protocol.SmsReceived) =
-        append(ChatMessage(sms.address, sms.body, sms.timestamp, outgoing = false))
+        append(ChatMessage(sms.address, sms.body, sms.timestamp,
+            outgoing = false, read = false))
+
+    /** Viewing a thread marks its incoming messages read. */
+    fun markThreadRead(address: String) {
+        if (_messages.value.none { it.address == address && !it.outgoing && !it.read }) return
+        _messages.update { list ->
+            list.map { if (it.address == address && !it.outgoing) it.copy(read = true) else it }
+        }
+        rewrite()
+    }
+
+    /** Total unread incoming messages — drives nav badges. */
+    fun unreadCount(): Int =
+        _messages.value.count { !it.outgoing && !it.read }
 
     /** Returns the generated ref so the caller can echo it in sms.send. */
     fun onOutgoing(address: String, body: String): String {
@@ -72,9 +90,11 @@ object ConversationStore {
         scope.launch {
             kotlinx.coroutines.delay(SEND_TIMEOUT_MS)
             val idx = _messages.value.indexOfLast { it.ref == ref }
-            if (idx >= 0 && _messages.value[idx].status == "sending") {
-                _messages.value = _messages.value.toMutableList().also {
-                    it[idx] = it[idx].copy(status = "unconfirmed")
+            if (_messages.value.getOrNull(idx)?.status == "sending") {
+                _messages.update { list ->
+                    list.mapIndexed { i, m ->
+                        if (i == idx && m.status == "sending") m.copy(status = "unconfirmed") else m
+                    }
                 }
                 rewrite()
             }
@@ -82,19 +102,27 @@ object ConversationStore {
         return ref
     }
 
+    /** An SMS that left the SIM outside the sms.send pipeline —
+     *  e.g. Telecom's canned reply on reject-with-message. With a ref
+     *  the bridge tracks the sent-box write and a sms.status resolves
+     *  it; without one (old wire) it's optimistically "sent". */
+    fun onEcho(address: String, body: String, timestamp: Long, ref: String? = null) =
+        append(ChatMessage(address, body, timestamp, outgoing = true,
+            ref = ref, status = if (ref != null) "sending" else "sent"))
+
     /** sms.status event → mark the outgoing bubble. */
     fun onStatus(s: Protocol.SmsStatus) {
         val ref = s.ref ?: return
-        val idx = _messages.value.indexOfLast { it.ref == ref }
-        if (idx < 0) return
-        _messages.value = _messages.value.toMutableList().also {
-            it[idx] = it[idx].copy(status = s.status.name.lowercase())
+        _messages.update { list ->
+            val idx = list.indexOfLast { it.ref == ref }
+            if (idx < 0) return@update list
+            list.toMutableList().also { it[idx] = it[idx].copy(status = s.status.name.lowercase()) }
         }
         rewrite()
     }
 
     private fun append(m: ChatMessage) {
-        _messages.value = _messages.value + m
+        _messages.update { it + m }
         rewrite()
     }
 
@@ -115,6 +143,21 @@ object ConversationStore {
                 WRITE_DELAY_MS, java.util.concurrent.TimeUnit.MILLISECONDS,
             )
         }
+    }
+
+    /**
+     * Unpair = erase: drop every message in memory and delete the
+     * encrypted file. The delete rides the writer thread so it can't
+     * race an in-flight write, and the pending debounced write is
+     * cancelled or it would rewrite the cleared state afterwards.
+     */
+    fun wipe() {
+        _messages.value = emptyList()
+        synchronized(writeLock) {
+            writeTask?.cancel(false)
+            writeTask = null
+        }
+        file?.let { f -> writer.execute { f.delete() } }
     }
 
     fun thread(address: String): List<ChatMessage> =

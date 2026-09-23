@@ -73,8 +73,29 @@ class BridgeService : LifecycleService() {
         val (staticKey, token) = loadOrCreateIdentity()
         tokenRotator = com.simtether.shared.TokenRotator(
             token, loadPendingToken()) { cur, pend -> persistTokens(cur, pend) }
+        // Telecom sends the canned reply itself on reject-with-message —
+        // record it locally, echo it to the client, and confirm via the
+        // sent-box write rather than optimistically marking it sent.
+        com.simtether.bridge.sms.SentBoxWatcher.start(this)
+        CallController.onRejectSms = { number, text ->
+            val ref = UUID.randomUUID().toString()
+            val ts = System.currentTimeMillis()
+            com.simtether.shared.ConversationStore.onEcho(number, text, ts, ref)
+            com.simtether.bridge.sms.SentBoxWatcher.expect(number, text, ref) { sent ->
+                val st = Protocol.SmsStatus(ref,
+                    if (sent) Protocol.SmsStatus.Status.SENT
+                    else Protocol.SmsStatus.Status.UNCONFIRMED)
+                com.simtether.shared.ConversationStore.onStatus(st)
+                emit("sms.status", Protocol.json.encodeToString(
+                    Protocol.SmsStatus.serializer(), st))
+            }
+            emit("sms.echo", Protocol.json.encodeToString(
+                Protocol.SmsEcho.serializer(),
+                Protocol.SmsEcho(number, text, ts, ref)))
+        }
         startRelay(staticKey)
         pending.load()
+        drainParked()
         acquireLocks()
         // Fresh battery/signal for the client's home card while a
         // session is live — not just once at connect time.
@@ -91,6 +112,7 @@ class BridgeService : LifecycleService() {
             port = Protocol.WS_PORT,
             staticKeyPair = staticKey,
             tokenValid = { tokenRotator?.accept(it) == true },
+            clientKeyAccepted = { pub -> acceptClientKey(pub) },
             onClientReady = {
                 lifecycleScope.launch {
                     clientConnected = true
@@ -121,10 +143,11 @@ class BridgeService : LifecycleService() {
      * Called on service start, on re-pair (the room name is the key
      * fingerprint — it changes), and from the settings toggle.
      */
+    @Synchronized
     fun refreshRemote() {
         val srv = server ?: return
         val addr = if (com.simtether.shared.RemoteStore.isEnabled(this))
-            com.simtether.shared.RemoteStore.relay(this) else null
+            com.simtether.shared.RemoteStore.effectiveRelay(this) else null
         if (addr == null) {
             relayLink?.stop()
             relayLink = null
@@ -135,7 +158,10 @@ class BridgeService : LifecycleService() {
             srv,
             addr,
             Identity.fingerprint(srv.staticPubKey),
-            com.simtether.shared.RemoteStore.relayToken(this),
+            com.simtether.shared.RemoteStore.effectiveRelayToken(this),
+            staticPriv = srv.staticPrivKey,
+            staticPub = srv.staticPubKey,
+            relaySecret = loadRelaySecret() ?: ByteArray(0),
         ).also { it.start() }
         Log.d(TAG, "remote access on — registering with relay $addr")
     }
@@ -151,17 +177,24 @@ class BridgeService : LifecycleService() {
         val enc = Base64.getEncoder()
         val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
         val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+        val relaySecret = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "static_priv", enc.encodeToString(pair.first))
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "static_pub", enc.encodeToString(pair.second))
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(token))
+        com.simtether.shared.SecureStore
+            .putString(this, "bridge_keys", "relay_secret", enc.encodeToString(relaySecret))
         tokenRotator = com.simtether.shared.TokenRotator(token) { cur, pend ->
             persistTokens(cur, pend)
         }
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "pairing_token_pending", null)
+        // Fresh identity = fresh trust — the pinned client key goes
+        // too, so the next valid-token auth re-pins whoever pairs.
+        com.simtether.shared.SecureStore
+            .putString(this, "bridge_keys", "client_pub", null)
         runCatching { server?.stop() }
         server = null
         runCatching { advertiser?.stop() }
@@ -223,6 +256,15 @@ class BridgeService : LifecycleService() {
     fun clientReady() = server?.isReady() == true
 
     /**
+     * Call audio is (about to be) flowing — raise the relay's
+     * per-socket byte cap for this room. Idempotent; safe to call
+     * with no relay link (LAN-only mode is a no-op).
+     */
+    fun setCallMedia(active: Boolean) {
+        relayLink?.setMediaMode(active)
+    }
+
+    /**
      * Entry point for all bridge→client events (SMS, call state, status).
      * Reliable events stay in [pending] — persisted — until the client
      * acks them; a send into a half-dead socket is otherwise
@@ -271,7 +313,27 @@ class BridgeService : LifecycleService() {
             .putString(this, "bridge_keys", "static_pub", enc.encodeToString(pair.second))
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(token))
+        // Same lifetime as the identity — loadRelaySecret creates it
+        // on first read if an upgrade left it absent.
+        loadRelaySecret()
         return pair to token
+    }
+
+    /**
+     * Per-identity secret that derives the relay room ticket — rides
+     * the QR so the paired client can prove it belongs to our room
+     * without the relay ever learning the pairing token. Rotates with
+     * rePair(); load-or-create so pre-feature installs gain one.
+     */
+    private fun loadRelaySecret(): ByteArray? {
+        val existing = com.simtether.shared.SecureStore
+            .getString(this, "bridge_keys", "relay_secret")
+        if (existing != null) return Base64.getDecoder().decode(existing)
+        val s = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        com.simtether.shared.SecureStore.putString(
+            this, "bridge_keys", "relay_secret",
+            Base64.getEncoder().encodeToString(s))
+        return s
     }
 
     /** QR content for pairing: LAN addr hint + pinned pubkey + pairing token. */
@@ -288,10 +350,37 @@ class BridgeService : LifecycleService() {
             // rendezvous without a second config step. Only present
             // while the bridge owner opted in.
             relay = if (com.simtether.shared.RemoteStore.isEnabled(this))
-                com.simtether.shared.RemoteStore.relay(this) else null,
+                com.simtether.shared.RemoteStore.effectiveRelay(this) else null,
             relayToken = if (com.simtether.shared.RemoteStore.isEnabled(this))
-                com.simtether.shared.RemoteStore.relayToken(this) else null,
+                com.simtether.shared.RemoteStore.effectiveRelayToken(this) else null,
+            // The room ticket derives from this — the client can't
+            // /connect without it, and the relay never learns it.
+            relaySecret = if (com.simtether.shared.RemoteStore.isEnabled(this))
+                loadRelaySecret()?.let { b64.encodeToString(it) } else null,
         )
+    }
+
+    /**
+     * Re-queue events a receiver parked because Android refused the
+     * FGS start (background-start restrictions before the dialer role
+     * or CDM association lands). Envelopes keep the id assigned at
+     * park time, so a drain that raced a process death is idempotent —
+     * the client dedups on id.
+     */
+    private fun drainParked() {
+        emitExec.execute {
+            val f = java.io.File(filesDir, PARKED_FILE)
+            val text = com.simtether.shared.SecureFile.read(f) ?: return@execute
+            text.lineSequence()
+                .mapNotNull { runCatching { Protocol.decode(it) }.getOrNull() }
+                .forEach { env ->
+                    pending.add(env).forEach {
+                        Log.w(TAG, "pending full — dropped parked ${it.type}")
+                    }
+                }
+            f.delete()
+            flushPending()
+        }
     }
 
     /**
@@ -310,6 +399,30 @@ class BridgeService : LifecycleService() {
     private fun loadPendingToken(): ByteArray? = com.simtether.shared.SecureStore
         .getString(this, "bridge_keys", "pairing_token_pending")
         ?.let { Base64.getDecoder().decode(it) }
+
+    /**
+     * Mutual auth — trust-on-first-use pin of the client's static key.
+     * The first caller to pass token verification gets pinned; after
+     * that the same key must present every session. A QR photographed
+     * mid-window still yields a valid token, but the thief's key won't
+     * match the pin once the real client has connected — and if the
+     * thief connects FIRST, the real client's mismatch shows up as a
+     * revoked banner on its side, surfacing the compromise instead of
+     * silently coexisting. rePair() clears the pin.
+     */
+    private val clientKeyLock = Any()
+    private fun acceptClientKey(pub: ByteArray): Boolean = synchronized(clientKeyLock) {
+        val pin = com.simtether.shared.SecureStore
+            .getString(this, "bridge_keys", "client_pub")
+        if (pin == null) {
+            com.simtether.shared.SecureStore.putString(
+                this, "bridge_keys", "client_pub",
+                Base64.getEncoder().encodeToString(pub))
+            Log.i(TAG, "pinned client key fp=${Identity.fingerprint(pub)}")
+            return true
+        }
+        java.security.MessageDigest.isEqual(Base64.getDecoder().decode(pin), pub)
+    }
 
     private fun persistTokens(current: ByteArray, pending: ByteArray?) {
         val enc = Base64.getEncoder()
@@ -377,13 +490,35 @@ class BridgeService : LifecycleService() {
                 CHANNEL_ID, com.simtether.shared.LocaleHelper.wrap(this)
                     .getString(com.simtether.shared.R.string.channel_bridge),
                 NotificationManager.IMPORTANCE_LOW)
+                // Persistent status — never counts toward the app badge.
+                .apply { setShowBadge(false) }
         )
-        val notif = buildNotification(connected = false)
+        startForegroundSafely(buildNotification(connected = false))
+    }
+
+    /**
+     * API 34+ needs an explicit type, and API 35 refuses
+     * connectedDevice/dataSync/phoneCall when the process was started
+     * by a BOOT_COMPLETED receiver — exactly the path BootReceiver
+     * uses. Fall back to specialUse (declared in the manifest for this
+     * case), and never let a refusal crash the service: an untyped
+     * start is the last resort on 29–33, and on 34+ a total refusal
+     * means the system stops us — logged, not crashed.
+     */
+    private fun startForegroundSafely(notif: Notification) {
         if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIF_ID, notif, foregroundType())
-        } else {
-            startForeground(NOTIF_ID, notif)
+            for (type in listOf(foregroundType(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE).distinct()) {
+                try {
+                    startForeground(NOTIF_ID, notif, type)
+                    return
+                } catch (e: IllegalStateException) {
+                    Log.w(TAG, "startForeground type=$type refused: ${e.message}")
+                }
+            }
         }
+        runCatching { startForeground(NOTIF_ID, notif) }
+            .onFailure { Log.e(TAG, "startForeground refused entirely", it) }
     }
 
     /**
@@ -420,6 +555,9 @@ class BridgeService : LifecycleService() {
             ))
             .setSmallIcon(com.simtether.shared.R.drawable.ic_stat_simtether)
             .setOngoing(true)
+            // Channel badge setting is locked at creation — the
+            // per-notification flag fixes installs that already have it.
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
             .build()
     }
 
@@ -439,8 +577,22 @@ class BridgeService : LifecycleService() {
         private const val TAG = "SimTether.Bridge"
         private const val MAX_PENDING = 200
         private const val STATUS_PUSH_MS = 60_000L
+        private const val PARKED_FILE = "parked_events.jsonl"
         const val EXTRA_EVENT_TYPE = "com.simtether.bridge.EVENT_TYPE"
         const val EXTRA_EVENT_PAYLOAD = "com.simtether.bridge.EVENT_PAYLOAD"
+
+        /**
+         * Receiver-side parking for when the OS refuses the FGS start
+         * (Android 12+ background-start rules before the dialer role /
+         * CDM association grants the exemption). Stored as a full
+         * envelope — the fixed id makes a re-drain idempotent.
+         */
+        fun parkEvent(context: android.content.Context, type: String, payload: String) {
+            val env = Protocol.Envelope(UUID.randomUUID().toString(), type, 0, payload)
+            val f = java.io.File(context.filesDir, PARKED_FILE)
+            val prev = com.simtether.shared.SecureFile.read(f) ?: ""
+            com.simtether.shared.SecureFile.write(f, prev + Protocol.encode(env) + "\n")
+        }
 
         /**
          * User-controlled master switch — when off, nothing may restart

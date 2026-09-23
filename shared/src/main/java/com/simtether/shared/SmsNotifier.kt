@@ -33,6 +33,15 @@ object SmsNotifier {
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or
                 android.app.PendingIntent.FLAG_IMMUTABLE,
         )
+        // Lockscreen-safe public version — forwarded SMS are often OTPs;
+        // a locked device shows only the sender, never the body.
+        val pub = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(context.getString(R.string.notif_new_message))
+            .setSmallIcon(R.drawable.ic_stat_simtether)
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
         nm.notify(
             sms.address.hashCode(),
             NotificationCompat.Builder(context, CHANNEL_ID)
@@ -41,8 +50,16 @@ object SmsNotifier {
                 .setSmallIcon(R.drawable.ic_stat_simtether)
                 .setContentIntent(pi)
                 .setAutoCancel(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                .setPublicVersion(pub)
                 .build(),
         )
+    }
+
+    /** Drop this thread's notification — the user just read it. */
+    fun dismiss(context: Context, address: String) {
+        context.getSystemService(NotificationManager::class.java)
+            ?.cancel(address.hashCode())
     }
 
     const val EXTRA_OPEN_THREAD = "com.simtether.OPEN_THREAD"

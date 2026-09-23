@@ -68,6 +68,14 @@ object SecureStore {
         }.getOrNull()
     }
 
+    /**
+     * False when the AndroidKeyStore key couldn't be created/loaded —
+     * writes fall back to plaintext prefs. The bridge's identity key
+     * and pairing token then sit unprotected; the UI surfaces this as
+     * a warning banner rather than failing silently.
+     */
+    fun encryptionReady(): Boolean = key != null
+
     /** Reads [key] from [store]; migrates a legacy plaintext value. */
     fun getString(context: Context, store: String, key: String): String? {
         val sp = context.getSharedPreferences(store, Context.MODE_PRIVATE)

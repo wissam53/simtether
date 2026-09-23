@@ -42,6 +42,10 @@ class BridgeWsClient(
     // Provider, not a snapshot — the bridge rotates the token every
     // session, so each connect attempt must read the latest stored one.
     private val pairingTokenProvider: () -> ByteArray,
+    // The client's persistent identity key — IK sends its public half
+    // in encrypted msg1 and the bridge pins it. A stolen token without
+    // this key fails the pin check.
+    private val clientStaticPriv: ByteArray,
     private val onEvent: (Protocol.Envelope) -> Unit,
     private val onState: (Boolean) -> Unit = {},
     // Reports which transport the live session rides (LAN vs relay) —
@@ -128,7 +132,9 @@ class BridgeWsClient(
     }
 
     private fun openSocket(target: ResolvedTarget) {
-        Log.d(TAG, "connecting to ${target.host}:${target.port}${target.path}" +
+        // Path carries ?token= on relay targets — never log the query.
+        Log.d(TAG, "connecting to ${target.host}:${target.port}" +
+            target.path.substringBefore('?') +
             if (target.viaRelay) " (relay)" else "")
         currentViaRelay = target.viaRelay
         val request = Request.Builder()
@@ -138,7 +144,8 @@ class BridgeWsClient(
         } ?: http
         client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                val hs = SecureSession.clientHandshake(bridgeStaticPub, pairingTokenProvider())
+                val hs = SecureSession.clientHandshake(
+                    bridgeStaticPub, pairingTokenProvider(), clientStaticPriv)
                 pendingHandshake = hs
                 ws = webSocket
                 // First frame: IK msg1 — e/es/s/ss + pairing token, all
@@ -187,9 +194,12 @@ class BridgeWsClient(
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.d(TAG, "ws closed code=$code reason=$reason")
-                if (code == 4003) {
-                    // Pairing token rejected — the bridge rotated its
-                    // identity. Mark closed so no retry ever fires.
+                if (code == 4003 || code == 4004) {
+                    // 4003: pairing token rejected — the bridge rotated
+                    // its identity. 4004: token valid but our client
+                    // key isn't the pinned one (credential cloned to
+                    // another device, or bridge re-paired). Either way
+                    // reconnecting is futile until the user re-pairs.
                     closed = true
                     emitState(false)
                     onRevoked()

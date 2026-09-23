@@ -17,6 +17,12 @@ object BridgeCallUi {
     private const val CHANNEL = "bridge_calls"
     private const val NOTIF_ID = 43
     private const val ACTIVITY = "com.simtether.BridgeCallActivity"
+    // Must match CallRouter's missed-call scheme so the shared Calls
+    // screen's dismissMissedCall() clears these too.
+    private const val MISSED_CHANNEL = "missed_calls"
+    private const val MISSED_NOTIF_ID = 1000
+    private const val EXTRA_OPEN_CALLS =
+        com.simtether.shared.IntentKeys.EXTRA_OPEN_CALLS
 
     fun notify(context: Context) {
         val context = com.simtether.shared.LocaleHelper.wrap(context)
@@ -25,6 +31,9 @@ object BridgeCallUi {
             NotificationChannel(
                 CHANNEL, context.getString(com.simtether.shared.R.string.nav_calls),
                 NotificationManager.IMPORTANCE_HIGH)
+                // Transient ring state — the missed-call notif is the
+                // one that should badge afterwards.
+                .apply { setShowBadge(false) }
         )
         val intent = Intent()
             .setClassName(context.packageName, ACTIVITY)
@@ -42,6 +51,7 @@ object BridgeCallUi {
             .setContentIntent(pi)
             .setFullScreenIntent(pi, true)
             .setOngoing(true)
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
             .build()
         runCatching { nm.notify(NOTIF_ID, n) }
         // Direct launch works while the app is foreground.
@@ -49,9 +59,47 @@ object BridgeCallUi {
         startRinging(context)
     }
 
+    /** Clear one missed-call notification (Recents viewed it). */
+    fun dismissMissed(context: Context, callId: String) {
+        context.getSystemService(NotificationManager::class.java)
+            .cancel(MISSED_NOTIF_ID + callId.hashCode())
+    }
+
     fun dismiss(context: Context) {
         context.getSystemService(NotificationManager::class.java).cancel(NOTIF_ID)
         stopRinging()
+    }
+
+    /**
+     * Missed call while no client was linked — the fallback ring was
+     * the only place it surfaced, so leave a local notification that
+     * opens the Calls tab.
+     */
+    fun notifyMissed(context: Context, event: com.simtether.shared.protocol.Protocol.CallEvent) {
+        val context = com.simtether.shared.LocaleHelper.wrap(context)
+        val nm = context.getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(
+                MISSED_CHANNEL,
+                context.getString(com.simtether.shared.R.string.channel_missed),
+                NotificationManager.IMPORTANCE_DEFAULT)
+        )
+        val intent = Intent()
+            .setClassName(context.packageName, "com.simtether.MainActivity")
+            .putExtra(EXTRA_OPEN_CALLS, true)
+        val pi = PendingIntent.getActivity(
+            context, event.callId.hashCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val n = NotificationCompat.Builder(context, MISSED_CHANNEL)
+            .setSmallIcon(com.simtether.shared.R.drawable.ic_stat_call)
+            .setContentTitle(context.getString(com.simtether.shared.R.string.notif_missed_call))
+            .setContentText(event.displayName ?: event.number
+                ?: context.getString(com.simtether.shared.R.string.unknown))
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        runCatching { nm.notify(MISSED_NOTIF_ID + event.callId.hashCode(), n) }
     }
 
     // ── Ringing ─────────────────────────────────────────────────

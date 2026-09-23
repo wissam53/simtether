@@ -80,6 +80,7 @@
     <string name="bridge_mode_title">Режим моста</string>
     <string name="bridge_scan_hint">Отсканируйте на основном телефоне</string>
     <string name="cd_pairing_qr">QR-код сопряжения</string>
+    <string name="bridge_show_qr">Показать QR сопряжения</string>
     <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
     <string name="bridge_starting">Запуск службы моста…</string>
     <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>
@@ -119,6 +120,10 @@
     <string name="scan_prompt">Отсканируйте QR-код на телефоне-мосте</string>
     <string name="repair_scan">Сопрячь заново (QR)</string>
     <string name="forget_bridge">Забыть мост и сбросить</string>
+    <string name="forget_title">Забыть этот мост?</string>
+    <string name="forget_body">Привязка, история пересланных сообщений и журнал звонков будут стёрты с этого телефона. Для повторного подключения потребуется отсканировать новый QR-код на мосте.</string>
+    <string name="forget_confirm">Стереть и забыть</string>
+    <string name="keystore_warning">Шифрование устройства недоступно — ключи и сохранённые сообщения не защищены</string>
     <string name="repair_button">Перепривязать устройство</string>
     <string name="repair_title">Отозвать текущую привязку?</string>
     <string name="repair_body">Сопряжённый телефон сразу потеряет доступ и должен будет отсканировать новый QR-код. Используйте, если телефон утерян или изображение QR утекло.</string>
@@ -138,6 +143,7 @@
     <string name="notif_waiting_client">Ожидание основного телефона…</string>
     <string name="notif_answer_here">основной телефон не в сети — ответьте здесь</string>
     <string name="notif_missed_call">Пропущенный вызов</string>
+    <string name="notif_new_message">Новое сообщение</string>
     <string name="companion_title">Связь-компаньон</string>
     <string name="companion_hint">Откройте настройки Bluetooth на основном телефоне, чтобы он появился в списке — один системный диалог выдаст разрешения на сообщения, звонки и фоновую работу.</string>
     <string name="companion_link">Привязать основной телефон</string>
@@ -158,4 +164,22 @@
     <string name="paywall_subscribe_price">Подписаться — %1$s / месяц</string>
     <string name="paywall_trial_line">14 дней бесплатно, затем %1$s / месяц. Отмена в любой момент.</string>
     <string name="paywall_restore">Восстановить покупку</string>
+
+    <!-- Remote access -->
+    <string name="remote_access">Удалённый доступ</string>
+    <string name="remote_client_hint">Подключайтесь к мосту через интернет, когда его нет в вашей локальной сети — через выбранный вами сервер-ретранслятор.</string>
+    <string name="remote_bridge_hint">Сделайте этот телефон доступным через интернет через сервер-ретранслятор, чтобы сопряжённый телефон мог найти его вне дома.</string>
+    <string name="remote_consent_title">Включить удалённый доступ?</string>
+    <string name="remote_consent_client">Когда моста нет в локальной сети, соединения идут через сервер-ретранслятор по интернету.\n\nСообщения и звонки остаются сквозно-зашифрованными — ретранслятор пересылает только шифртекст и ничего не может прочитать. Тот, кто управляет ретранслятором, всё же видит время соединений и объёмы данных.</string>
+    <string name="remote_consent_bridge">Пока включён удалённый доступ, этот телефон подключается к ретранслятору и остаётся доступным через интернет.\n\nВсё остаётся сквозно-зашифрованным — ретранслятор пересылает только шифртекст и ничего не может прочитать. Тот, кто управляет ретранслятором, всё же видит время соединений и объёмы данных.</string>
+    <string name="remote_relay_address">Адрес ретранслятора (хост:порт)</string>
+    <string name="remote_relay_token">Токен ретранслятора (если требуется)</string>
+    <string name="remote_save">Сохранить настройки ретранслятора</string>
+    <string name="remote_invalid_relay">Неверный адрес ретранслятора — нужен формат хост:порт или wss://хост:порт</string>
+    <string name="remote_repair_needed">Отсканируйте QR-код сопряжения на другом телефоне заново, чтобы он узнал адрес ретранслятора.</string>
+    <string name="home_linked_remote">Связь есть · через интернет</string>
+    <string name="remote_agree">Включить</string>
+    <string name="remote_active_relay">Ретранслятор: %1$s</string>
+    <string name="remote_custom_relay">Свой сервер-ретранслятор</string>
+    <string name="remote_use_default">Сервер по умолчанию</string>
 </resources>

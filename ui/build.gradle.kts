@@ -30,10 +30,11 @@ kotlin {
 }
 
 dependencies {
-    // api — screens call into ClientServiceHolder/StatusBus/Protocol
-    // directly, so consumers inherit both on their compile classpath.
+    // Shared-only: generic screens reach a backend via UiBackend, so
+    // this module must stay free of :client — bridgeapp bundles it.
+    // (Client-coupled screens — dashboard/settings/pairing — moved to
+    // :uiclient along with the QR scanner deps.)
     api(project(":shared"))
-    api(project(":client"))
 
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
@@ -42,11 +43,4 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui-tooling-preview")
-
-    // QR scan — SettingsScreen launches ScanContract; QR *render*
-    // stays with the bridge app (zxing core only).
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-    implementation("com.google.zxing:core:3.5.3")
-    // zxing drags an old androidx.fragment — force the version up.
-    implementation("androidx.fragment:fragment:1.8.5")
 }

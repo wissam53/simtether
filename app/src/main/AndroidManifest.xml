@@ -25,6 +25,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+    <!-- API 35+ refuses the types above when the process was started by
+         BOOT_COMPLETED — specialUse is the declared escape hatch for
+         that restart path. Play requires a specialUse declaration at
+         upload. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -75,7 +80,11 @@
         <service
             android:name="com.simtether.client.ClientService"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice|dataSync|phoneCall" />
+            android:foregroundServiceType="connectedDevice|dataSync|phoneCall|specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the encrypted link to your paired bridge phone alive after reboot" />
+        </service>
 
         <service
             android:name="com.simtether.client.telecom.BridgeConnectionService"

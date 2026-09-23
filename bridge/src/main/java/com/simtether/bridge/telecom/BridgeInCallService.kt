@@ -31,6 +31,10 @@ class BridgeInCallService : InCallService() {
             lastEvents.remove(id)
         }
         CallRegistry.remove(call)
+        // emit() ran while the call was still registered — re-check
+        // now that it's gone, or a stale ACTIVE could latch media on.
+        BridgeServiceHolder.service?.setCallMedia(
+            CallRegistry.all().any { it.second.state == Call.STATE_ACTIVE })
         super.onCallRemoved(call)
     }
 
@@ -77,9 +81,14 @@ class BridgeInCallService : InCallService() {
         )
         if (lastEvents[id] == event) return
         lastEvents[id] = event
+        // Call audio needs the relay's media byte cap (~34KB/s vs the
+        // 2KB/s signaling cap). On while any call is ACTIVE; the flag
+        // survives reconnects via RelayLink's re-assert.
+        BridgeServiceHolder.service?.setCallMedia(
+            CallRegistry.all().any { it.second.state == Call.STATE_ACTIVE })
         // Local call log — the SIM phone's own Calls tab needs recents
         // whether or not a client is linked.
-        com.simtether.shared.CallLogStore.onEvent(event)
+        val entry = com.simtether.shared.CallLogStore.onEvent(event)
         // Bridge-local fallback UI state — when the main phone isn't
         // linked, someone still has to be able to answer this call.
         BridgeCallBus.call.value =
@@ -91,6 +100,12 @@ class BridgeInCallService : InCallService() {
             // Anything past RINGING (answered locally, ended, outgoing)
             // kills the fallback ring/notification — the activity stays.
             BridgeCallUi.dismiss(applicationContext)
+            // Unanswered incoming with no client linked: the fallback
+            // ring was the only surface, so post a missed-call notif.
+            if (entry?.missed == true &&
+                BridgeServiceHolder.service?.clientReady() != true) {
+                BridgeCallUi.notifyMissed(applicationContext, event)
+            }
         }
         val payload = Protocol.json.encodeToString(Protocol.CallEvent.serializer(), event)
         // Unreliable on purpose: a replayed RINGING would phantom-ring a

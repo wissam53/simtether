@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.simtether.bridge.CallController
 import com.simtether.bridge.telecom.BridgeCallBus
-import com.simtether.client.telecom.CallStateBus
+import com.simtether.shared.CallStateBus
 import com.simtether.ui.InCallScreen
 
 /**

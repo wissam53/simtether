@@ -12,7 +12,11 @@ import com.simtether.shared.protocol.Protocol
 /**
  * Turns bridge call events into native Telecom calls on the main phone.
  * Uses a self-managed ConnectionService (MANAGE_OWN_CALLS — unrestricted
- * permission) + PROPERTY_IS_TETHERED_CALL on API 37.2+.
+ * permission). PROPERTY_IS_TETHERED_CALL (API 37.2+) was considered and
+ * rejected: the API forbids combining it with PROPERTY_SELF_MANAGED —
+ * tethered calls must be system-managed (Telecom owns the UI), which
+ * only system/ble companion apps qualify for. Self-managed is the
+ * model that lets us render our own call UI; it stays.
  */
 object CallRouter {
     private const val ACCOUNT_ID = "simtether_bridge"
@@ -164,7 +168,7 @@ object CallRouter {
         )
         val intent = android.content.Intent()
             .setClassName(context.packageName, "com.simtether.MainActivity")
-            .putExtra(EXTRA_OPEN_CALLS, true)
+            .putExtra(com.simtether.shared.IntentKeys.EXTRA_OPEN_CALLS, true)
         val pi = android.app.PendingIntent.getActivity(
             context, event.callId.hashCode(), intent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or
@@ -179,6 +183,12 @@ object CallRouter {
             .setAutoCancel(true)
             .build()
         runCatching { nm.notify(MISSED_NOTIF_ID + event.callId.hashCode(), n) }
+    }
+
+    /** Clear one missed-call notification (e.g. when Recents is viewed). */
+    fun dismissMissedCall(context: Context, callId: String) {
+        context.getSystemService(android.app.NotificationManager::class.java)
+            .cancel(MISSED_NOTIF_ID + callId.hashCode())
     }
 
     // ── Ringing ─────────────────────────────────────────────────
@@ -222,5 +232,4 @@ object CallRouter {
     private const val CALL_NOTIF_ID = 42
     private const val MISSED_CHANNEL = "missed_calls"
     private const val MISSED_NOTIF_ID = 1000
-    const val EXTRA_OPEN_CALLS = "com.simtether.OPEN_CALLS"
 }

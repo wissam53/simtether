@@ -1,6 +1,7 @@
 package com.simtether.shared
 
 import android.content.Context
+import java.net.URI
 
 /**
  * Remote-access (internet fallback) settings — opt-in on BOTH apps.
@@ -13,6 +14,25 @@ import android.content.Context
 object RemoteStore {
     private const val PREFS = "remote"
 
+    /**
+     * Built-in hosted relay (Fly.io) — used when remote is on and no
+     * custom server is configured. The token is an abuse gate, not a
+     * security boundary: room ownership is proven cryptographically
+     * (RelayProof). It ships in the APK via BuildConfig — sourced from
+     * the gitignored root relay.properties so it never lands in git
+     * history. Rollover: `fly secrets set ACCESS_TOKENS=old,new` keeps
+     * installed clients working while the new token ships.
+     */
+    const val DEFAULT_RELAY = "wss://simtether-relay.fly.dev:443"
+    private val DEFAULT_RELAY_TOKEN = BuildConfig.DEFAULT_RELAY_TOKEN
+
+    /** Relay in effect — the custom override, else the built-in server. */
+    fun effectiveRelay(context: Context): String =
+        relay(context) ?: DEFAULT_RELAY
+
+    fun effectiveRelayToken(context: Context): String? =
+        relayToken(context) ?: DEFAULT_RELAY_TOKEN.takeIf { it.isNotBlank() }
+
     fun isEnabled(context: Context): Boolean =
         SecureStore.getString(context, PREFS, "enabled") == "1"
 
@@ -21,13 +41,52 @@ object RemoteStore {
     }
 
     fun relay(context: Context): String? =
-        SecureStore.getString(context, PREFS, "relay")?.takeIf { it.isNotBlank() }
+        SecureStore.getString(context, PREFS, "relay")
+            ?.let(::normalizeRelay)
 
     fun relayToken(context: Context): String? =
         SecureStore.getString(context, PREFS, "token")?.takeIf { it.isNotBlank() }
 
     fun setRelay(context: Context, addr: String?, token: String?) {
-        SecureStore.putString(context, PREFS, "relay", addr?.trim() ?: "")
+        SecureStore.putString(context, PREFS, "relay", normalizeRelay(addr) ?: "")
         SecureStore.putString(context, PREFS, "token", token?.trim() ?: "")
+    }
+
+    /**
+     * Canonical "ws(s)://host[:port]" form, or null when the input is
+     * unusable. Bare "host:port" gets ws://; foreign schemes are
+     * rejected. A trailing all-digit label with no port ("host.443")
+     * is the classic '.'-for-':' typo — it never resolves (Java URI
+     * even reports host=null, which java-websocket silently turns
+     * into a localhost dial), so rewrite it as the intended port.
+     */
+    fun normalizeRelay(addr: String?): String? {
+        var s = addr?.trim().orEmpty()
+        if (s.isEmpty()) return null
+        if ("://" !in s) s = "ws://$s"
+        if (!s.startsWith("ws://") && !s.startsWith("wss://")) return null
+        val u = runCatching { URI(s) }.getOrNull() ?: return null
+        var host = u.host
+        var port = u.port
+        if (host == null) {
+            // Authority that isn't a legal host — try the dot-port rescue.
+            val auth = u.rawAuthority?.substringAfterLast('@').orEmpty()
+            val tail = auth.substringAfterLast('.', "")
+            val p = tail.toIntOrNull()
+            if (p == null || p !in 1..65535) return null
+            host = auth.substringBeforeLast('.', "")
+            port = p
+        }
+        if (port < 0) {
+            val tail = host.substringAfterLast('.', "")
+            val p = tail.toIntOrNull()
+            if (p != null && p in 1..65535) {
+                host = host.substringBeforeLast('.')
+                port = p
+            }
+        }
+        if (host.isEmpty() || port > 65535) return null
+        val h = if (':' in host) "[$host]" else host
+        return "${u.scheme}://$h" + if (port >= 0) ":$port" else ""
     }
 }

@@ -25,16 +25,26 @@ class SecureSession private constructor(
     private val sendCipher: CipherState,
     private val recvCipher: CipherState,
 ) {
-    fun encrypt(plaintext: ByteArray): ByteArray {
+    // CipherState holds a nonce counter and is NOT thread-safe.
+    // encrypt() is called from multiple threads (emit loop, heartbeat,
+    // UI taps, outbox flush) — an unsynchronized race either desyncs
+    // the peer's nonce (every subsequent frame undecryptable) or, worse,
+    // reuses a ChaCha20 nonce (keystream reuse → plaintext XOR recovery
+    // + Poly1305 forgery). One lock per direction keeps send/recv
+    // parallel while serializing the counter.
+    private val sendLock = Any()
+    private val recvLock = Any()
+
+    fun encrypt(plaintext: ByteArray): ByteArray = synchronized(sendLock) {
         val out = ByteArray(plaintext.size + TAG_LEN)
         val len = sendCipher.encryptWithAd(null, plaintext, 0, out, 0, plaintext.size)
-        return out.copyOf(len)
+        out.copyOf(len)
     }
 
-    fun decrypt(ciphertext: ByteArray): ByteArray {
+    fun decrypt(ciphertext: ByteArray): ByteArray = synchronized(recvLock) {
         val out = ByteArray(ciphertext.size)
         val len = recvCipher.decryptWithAd(null, ciphertext, 0, out, 0, ciphertext.size)
-        return out.copyOf(len)
+        out.copyOf(len)
     }
 
     fun destroy() {
@@ -64,6 +74,13 @@ class SecureSession private constructor(
         private val hs: HandshakeState,
         /** Decrypted msg1 payload — the pairing token to verify. */
         val peerPayload: ByteArray,
+        /**
+         * The initiator's static pubkey, transmitted inside encrypted
+         * msg1 (IK's "s"). The bridge pins it on first pair — after
+         * that, a valid token presented by a DIFFERENT key (e.g. a
+         * photographed QR replayed from another device) is rejected.
+         */
+        val peerStaticPub: ByteArray,
     ) {
         /** Writes IK msg2; returns (frame to send, live session). */
         fun complete(): Pair<ByteArray, SecureSession> {
@@ -91,13 +108,20 @@ class SecureSession private constructor(
 
         /**
          * Client side: builds IK message 1 with the pairing token as
-         * encrypted payload. The returned handshake must be kept until
+         * encrypted payload. [clientStaticPriv] is the client's
+         * persistent identity key — the bridge pins its public half,
+         * so the token alone stops being a sufficient credential
+         * after first pair. The returned handshake must be kept until
          * the bridge's reply arrives (complete()).
          */
-        fun clientHandshake(bridgeStaticPub: ByteArray, pairingToken: ByteArray): ClientHandshake {
+        fun clientHandshake(
+            bridgeStaticPub: ByteArray,
+            pairingToken: ByteArray,
+            clientStaticPriv: ByteArray,
+        ): ClientHandshake {
             val hs = HandshakeState(PROTOCOL, HandshakeState.INITIATOR)
             hs.remotePublicKey.setPublicKey(bridgeStaticPub, 0)
-            hs.localKeyPair.generateKeyPair()
+            hs.localKeyPair.setPrivateKey(clientStaticPriv, 0)
             hs.start()
             val buf = ByteArray(256)
             val len = hs.writeMessage(buf, 0, pairingToken, 0, pairingToken.size)
@@ -116,7 +140,13 @@ class SecureSession private constructor(
             hs.start()
             val payload = ByteArray(256)
             val plen = hs.readMessage(msg1, 0, msg1.size, payload, 0)
-            return BridgeHandshake(hs, payload.copyOf(plen))
+            // IK msg1 carries the initiator static ("s") — readable
+            // only after the es/ss dh steps, i.e. now.
+            val peerPub = if (hs.remotePublicKey.hasPublicKey()) {
+                ByteArray(hs.remotePublicKey.publicKeyLength)
+                    .also { hs.remotePublicKey.getPublicKey(it, 0) }
+            } else ByteArray(0)
+            return BridgeHandshake(hs, payload.copyOf(plen), peerPub)
         }
     }
 }

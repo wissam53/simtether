@@ -69,7 +69,12 @@ class ClientService : LifecycleService() {
         return START_STICKY
     }
 
-    /** Retry the bridge the moment a WiFi/LAN transport appears. */
+    /**
+     * Retry the bridge the moment ANY internet-capable network appears.
+     * WiFi-only used to leave the relay path asleep: a phone that's
+     * cellular-only (the whole point of remote access) never fired the
+     * kick and waited out the full backoff after a flap.
+     */
     private var netCallback: android.net.ConnectivityManager.NetworkCallback? = null
 
     private fun registerNetCallback() {
@@ -77,14 +82,15 @@ class ClientService : LifecycleService() {
         val cb = object : android.net.ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: android.net.Network) {
                 if (!ClientServiceHolder.connected.value) {
-                    Log.d(TAG, "wifi transport up — kicking reconnect")
+                    Log.d(TAG, "network up — kicking reconnect")
                     ws?.kick()
                 }
             }
         }
         cm.registerNetworkCallback(
             android.net.NetworkRequest.Builder()
-                .addTransportType(android.net.NetworkCapabilities.TRANSPORT_WIFI)
+                .addCapability(
+                    android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build(),
             cb,
         )
@@ -109,6 +115,9 @@ class ClientService : LifecycleService() {
         ws = BridgeWsClient(
             targetProvider = { resolveTarget(pairing, pubKey) },
             bridgeStaticPub = pubKey,
+            // Persistent identity key — the bridge pins it, so the
+            // pairing token alone stops being a sufficient credential.
+            clientStaticPriv = PairingStore.clientKeyPair(applicationContext).first,
             pairingTokenProvider = {
                 // Read fresh each attempt — a pairing.rotate lands
                 // between connects, and the token we were built with
@@ -173,7 +182,10 @@ class ClientService : LifecycleService() {
         fp: String,
     ): com.simtether.client.net.ResolvedTarget? {
         if (!com.simtether.shared.RemoteStore.isEnabled(applicationContext)) return null
-        val relay = pairing.relay?.takeIf { it.isNotBlank() } ?: return null
+        // Blank in the pairing = the built-in hosted relay; a non-blank
+        // value is either the QR-carried address or a custom override.
+        val relay = com.simtether.shared.RemoteStore.normalizeRelay(pairing.relay)
+            ?: com.simtether.shared.RemoteStore.DEFAULT_RELAY
         // Address may carry a scheme — "wss://host:port" when the relay
         // sits behind TLS termination; bare "host:port" means ws.
         val secure = relay.startsWith("wss://")
@@ -181,11 +193,21 @@ class ClientService : LifecycleService() {
         val host = hostport.substringBeforeLast(':', "")
         val port = hostport.substringAfterLast(':', "").toIntOrNull()
         if (host.isBlank() || port == null) return null
-        val token = pairing.relayToken
+        var query = (pairing.relayToken?.takeIf { it.isNotBlank() }
+            ?: com.simtether.shared.RemoteStore.effectiveRelayToken(applicationContext))
             ?.let { "?token=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""
+        // Room ticket — derived from the QR-carried relay secret. The
+        // relay rejects /connect without it once the bridge has proven
+        // ownership, so a token holder can't occupy a stranger's room.
+        pairing.relaySecret?.let { s ->
+            val t = com.simtether.shared.RelayProof.ticket(
+                java.util.Base64.getDecoder().decode(s), fp)
+            query += "&t=" + java.util.Base64.getUrlEncoder()
+                .withoutPadding().encodeToString(t)
+        }
         Log.d(TAG, "LAN unreachable — falling back to relay $relay")
         return com.simtether.client.net.ResolvedTarget(
-            host, port, null, "/connect/$fp$token", viaRelay = true,
+            host, port, null, "/connect/$fp$query", viaRelay = true,
             scheme = if (secure) "wss" else "ws")
     }
 
@@ -310,6 +332,12 @@ class ClientService : LifecycleService() {
                 Log.d(TAG, "sms.status ref=${e.ref} -> ${e.status}")
                 ConversationStore.onStatus(e)
             }
+            "sms.echo" -> {
+                // A message left the SIM outside sms.send (e.g. Telecom
+                // canned reply on call reject) — log it in the thread.
+                val e = env.payloadAs<Protocol.SmsEcho>()
+                ConversationStore.onEcho(e.address, e.body, e.timestamp, e.ref)
+            }
             "pairing.rotate" -> {
                 // Bridge rotated the token — persist so the NEXT
                 // connect authenticates with it. The ack for this
@@ -332,13 +360,35 @@ class ClientService : LifecycleService() {
                 CHANNEL_ID, com.simtether.shared.LocaleHelper.wrap(this)
                     .getString(com.simtether.shared.R.string.channel_bridge_link),
                 NotificationManager.IMPORTANCE_LOW)
+                // Persistent status — never counts toward the app badge.
+                .apply { setShowBadge(false) }
         )
-        val notif = buildNotification(connected = false)
+        startForegroundSafely(buildNotification(connected = false))
+    }
+
+    /**
+     * API 34+ needs an explicit type, and API 35 refuses
+     * connectedDevice/dataSync/phoneCall when the process was started
+     * by a BOOT_COMPLETED receiver — exactly the path BootReceiver
+     * uses. Fall back to specialUse (declared in the manifest for this
+     * case), and never let a refusal crash the service: an untyped
+     * start is the last resort on 29–33, and on 34+ a total refusal
+     * means the system stops us — logged, not crashed.
+     */
+    private fun startForegroundSafely(notif: Notification) {
         if (Build.VERSION.SDK_INT >= 34) {
-            startForeground(NOTIF_ID, notif, foregroundType())
-        } else {
-            startForeground(NOTIF_ID, notif)
+            for (type in listOf(foregroundType(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE).distinct()) {
+                try {
+                    startForeground(NOTIF_ID, notif, type)
+                    return
+                } catch (e: IllegalStateException) {
+                    Log.w(TAG, "startForeground type=$type refused: ${e.message}")
+                }
+            }
         }
+        runCatching { startForeground(NOTIF_ID, notif) }
+            .onFailure { Log.e(TAG, "startForeground refused entirely", it) }
     }
 
     /**
@@ -369,6 +419,9 @@ class ClientService : LifecycleService() {
             .setSmallIcon(com.simtether.shared.R.drawable.ic_stat_simtether)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            // Channel badge setting is locked at creation — the
+            // per-notification flag fixes installs that already have it.
+            .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
             .build()
     }
 

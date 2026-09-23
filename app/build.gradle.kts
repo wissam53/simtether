@@ -74,6 +74,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(project(":client"))
     implementation(project(":ui"))
+    implementation(project(":uiclient"))
 
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")

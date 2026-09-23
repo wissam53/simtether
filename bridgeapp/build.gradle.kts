@@ -26,6 +26,28 @@ android {
         versionName = "0.1"
     }
 
+    // Two distribution builds, same applicationId + signing key so the
+    // rooted APK upgrades cleanly over the store one on the same phone:
+    //   store  — Google Play: everything the policies allow
+    //   rooted — GitHub only: adds capabilities Android keeps from
+    //            unrooted apps (live GSM call audio). Feature-gated by
+    //            BuildConfig.DIST_ROOTED — the extra code paths require
+    //            root at runtime, not just this build flag.
+    flavorDimensions += "dist"
+    productFlavors {
+        create("store") {
+            dimension = "dist"
+            buildConfigField("boolean", "DIST_ROOTED", "false")
+            resValue("string", "app_name", "SimTether Bridge")
+        }
+        create("rooted") {
+            dimension = "dist"
+            buildConfigField("boolean", "DIST_ROOTED", "true")
+            resValue("string", "app_name", "SimTether Bridge (rooted)")
+            versionNameSuffix = "-rooted"
+        }
+    }
+
     signingConfigs {
         create("release") {
             keyAlias = keystoreProps.getProperty("keyAlias")
@@ -57,6 +79,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -67,9 +90,10 @@ kotlin {
 }
 
 dependencies {
+    // No :client — the sideloaded bridge APK must not carry client
+    // code (the paid app). Generic screens come via :ui's UiBackend.
     implementation(project(":shared"))
     implementation(project(":bridge"))
-    implementation(project(":client"))
     implementation(project(":ui"))
 
     implementation("androidx.core:core-ktx:1.15.0")

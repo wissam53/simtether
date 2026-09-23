@@ -67,6 +67,50 @@ class CallLogStoreTest {
     }
 
     @Test
+    fun `missed call is unseen until Recents is viewed`() {
+        val id = "t-unseen"
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.RINGING, incoming = true))
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.DISCONNECTED, incoming = true))
+        assertFalse(entry(id).seen)
+        CallLogStore.markAllSeen()
+        assertTrue(entry(id).seen)
+    }
+
+    @Test
+    fun `answered and outgoing calls are never unseen`() {
+        val id = "t-seen"
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.RINGING, incoming = true))
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.ACTIVE, incoming = true))
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.DISCONNECTED, incoming = true))
+        assertTrue(entry(id).seen)
+        val out = "t-seen-out"
+        CallLogStore.onEvent(ev(out, Protocol.CallEvent.State.DIALING, incoming = false))
+        CallLogStore.onEvent(ev(out, Protocol.CallEvent.State.DISCONNECTED, incoming = false))
+        assertTrue(entry(out).seen)
+    }
+
+    @Test
+    fun `viewed missed call stays seen on a duplicate event`() {
+        val id = "t-dupmissed"
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.RINGING, incoming = true))
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.DISCONNECTED, incoming = true))
+        CallLogStore.markAllSeen()
+        CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.DISCONNECTED, incoming = true))
+        assertTrue(entry(id).seen)
+    }
+
+    @Test
+    fun `disconnected-first event still counts as missed`() {
+        // Client was offline for RINGING — direction comes from the
+        // event's own incoming flag, not from having seen RINGING.
+        val id = "t-latemissed"
+        val e = CallLogStore.onEvent(
+            ev(id, Protocol.CallEvent.State.DISCONNECTED, incoming = true))
+        assertTrue(e!!.missed)
+        assertFalse(e.seen)
+    }
+
+    @Test
     fun `answered via ACTIVE survives a later hold`() {
         val id = "t-anshold"
         CallLogStore.onEvent(ev(id, Protocol.CallEvent.State.RINGING, incoming = true))

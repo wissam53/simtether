@@ -24,10 +24,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -61,6 +67,14 @@ fun BridgeScreen() {
     var payload by remember { mutableStateOf<PairingPayload?>(null) }
     var serviceUp by remember { mutableStateOf(false) }
     var enabled by remember { mutableStateOf(BridgeService.isEnabled(context)) }
+    // The QR is a live bearer token (pairing + relay credentials) —
+    // it must never sit on screen unattended; show on demand only.
+    var showQr by remember { mutableStateOf(false) }
+    LaunchedEffect(showQr) {
+        if (!showQr) return@LaunchedEffect
+        kotlinx.coroutines.delay(QR_VISIBLE_MS)
+        showQr = false
+    }
 
     var batteryExempt by remember { mutableStateOf(false) }
     var dndGranted by remember { mutableStateOf(false) }
@@ -167,13 +181,30 @@ fun BridgeScreen() {
         Text(stringResource(R.string.bridge_mode_title),
             style = MaterialTheme.typography.headlineSmall)
 
+        // Keystore fell back to plaintext — the identity key and
+        // pairing token sit unprotected. Surface it loudly instead of
+        // silently accepting a degraded store.
+        if (!com.simtether.shared.SecureStore.encryptionReady()) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            ) {
+                Text(
+                    stringResource(R.string.keystore_warning),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(12.dp),
+                )
+            }
+        }
 
         Text(
             stringResource(R.string.bridge_scan_hint),
             modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
         )
         val p = payload
-        if (p != null) {
+        if (p != null && showQr) {
             Image(
                 bitmap = remember(p) { qrBitmap(p.encode()) }.asImageBitmap(),
                 contentDescription = stringResource(R.string.cd_pairing_qr),
@@ -184,6 +215,10 @@ fun BridgeScreen() {
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 16.dp),
             )
+        } else if (p != null) {
+            Button(onClick = { showQr = true }) {
+                Text(stringResource(R.string.bridge_show_qr))
+            }
         } else {
             Text(
                 if (serviceUp) stringResource(R.string.bridge_waiting_lan)
@@ -282,6 +317,7 @@ fun BridgeScreen() {
                     Text(
                         stringResource(R.string.remote_bridge_hint),
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f).padding(end = 8.dp),
                     )
                     Switch(
@@ -297,35 +333,100 @@ fun BridgeScreen() {
                     )
                 }
                 if (remoteOn) {
+                    var advanced by remember { mutableStateOf(false) }
                     var relayAddr by remember {
                         mutableStateOf(RemoteStore.relay(context) ?: "")
                     }
                     var relayTok by remember {
                         mutableStateOf(RemoteStore.relayToken(context) ?: "")
                     }
-                    OutlinedTextField(
-                        value = relayAddr, onValueChange = { relayAddr = it },
-                        label = { Text(stringResource(R.string.remote_relay_address)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    )
-                    OutlinedTextField(
-                        value = relayTok, onValueChange = { relayTok = it },
-                        label = { Text(stringResource(R.string.remote_relay_token)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    )
-                    TextButton(
-                        onClick = {
-                            RemoteStore.setRelay(context, relayAddr, relayTok)
-                            BridgeServiceHolder.service?.refreshRemote()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(stringResource(R.string.remote_save)) }
-                    Text(
-                        stringResource(R.string.remote_repair_needed),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    var relayError by remember { mutableStateOf(false) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(R.string.remote_active_relay,
+                                relayAddr.ifBlank { RemoteStore.DEFAULT_RELAY }),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = {
+                            if (!advanced) {
+                                relayAddr = RemoteStore.relay(context).orEmpty()
+                                relayTok = RemoteStore.relayToken(context).orEmpty()
+                                relayError = false
+                            }
+                            advanced = !advanced
+                        }) {
+                            Text(stringResource(R.string.remote_custom_relay))
+                            Icon(
+                                if (advanced) Icons.Filled.ExpandLess
+                                else Icons.Filled.ExpandMore,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp).padding(start = 2.dp),
+                            )
+                        }
+                    }
+                    if (advanced) {
+                        OutlinedTextField(
+                            value = relayAddr,
+                            onValueChange = { relayAddr = it; relayError = false },
+                            label = { Text(stringResource(R.string.remote_relay_address)) },
+                            isError = relayError,
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        )
+                        if (relayError) Text(
+                            stringResource(R.string.remote_invalid_relay),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        OutlinedTextField(
+                            value = relayTok, onValueChange = { relayTok = it },
+                            label = { Text(stringResource(R.string.remote_relay_token)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        )
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedButton(
+                                onClick = {
+                                    val norm = RemoteStore.normalizeRelay(relayAddr)
+                                    if (relayAddr.isNotBlank() && norm == null) {
+                                        relayError = true
+                                    } else {
+                                        // Blank address = token-only edit —
+                                        // keep the stored relay. Clearing is
+                                        // what "Use default" is for.
+                                        val kept = norm ?: RemoteStore.relay(context)
+                                        RemoteStore.setRelay(context, kept, relayTok)
+                                        relayAddr = kept.orEmpty()
+                                        BridgeServiceHolder.service?.refreshRemote()
+                                        advanced = false
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).padding(vertical = 4.dp),
+                            ) { Text(stringResource(R.string.remote_save)) }
+                            TextButton(
+                                onClick = {
+                                    relayAddr = ""
+                                    relayTok = ""
+                                    relayError = false
+                                    RemoteStore.setRelay(context, null, null)
+                                    BridgeServiceHolder.service?.refreshRemote()
+                                    advanced = false
+                                },
+                                modifier = Modifier.padding(start = 4.dp).padding(vertical = 4.dp),
+                            ) { Text(stringResource(R.string.remote_use_default)) }
+                        }
+                        Text(
+                            stringResource(R.string.remote_repair_needed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 if (confirmRemote) AlertDialog(
                     onDismissRequest = { confirmRemote = false },
@@ -502,6 +603,8 @@ private fun openOemBackgroundSettings(context: android.content.Context) {
         if (runCatching { context.startActivity(i); true }.getOrDefault(false)) return
     }
 }
+
+private const val QR_VISIBLE_MS = 60_000L
 
 private fun qrBitmap(content: String, size: Int = 512): Bitmap {
     val matrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size)

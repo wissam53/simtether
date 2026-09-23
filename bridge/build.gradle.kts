@@ -12,6 +12,12 @@ android {
         minSdk = 26
     }
 
+    testOptions {
+        // JVM unit tests touch android.util.Log — return defaults
+        // instead of "not mocked" crashes.
+        unitTests.isReturnDefaultValues = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -31,4 +37,9 @@ dependencies {
     api("androidx.lifecycle:lifecycle-service:2.8.7")
     // WebSocket server for the hotspot LAN channel
     implementation("org.java-websocket:Java-WebSocket:1.5.7")
+    testImplementation("junit:junit:4.13.2")
+    // RelayLink tests drive a real RelayServer on loopback — the
+    // registration-proof handshake only gets coverage if both halves
+    // run their production code against each other.
+    testImplementation(project(":relay"))
 }
