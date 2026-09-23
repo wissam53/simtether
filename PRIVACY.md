@@ -75,6 +75,12 @@ aren't on the same network. What this means honestly:
 - You can also point both phones at your **own relay server** instead
   of ours, in which case we see nothing at all.
 
+The hosted relay is a **best-effort service** — we may change,
+suspend, or discontinue it at any time, and remote access through our
+relay carries no availability guarantee. If the hosted relay stops,
+local/hotspot mode and self-hosted relays keep working unchanged; the
+app itself never depends on our infrastructure to function.
+
 Leave remote access off and everything stays on your local network.
 
 ## Optional call relay (planned, off by default)
