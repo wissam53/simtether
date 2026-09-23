@@ -322,6 +322,16 @@ private fun SettingsScreen(
         Text(stringResource(R.string.settings_last_bridge,
             pairing?.deviceName ?: "?", pairing?.host ?: "?",
             pairing?.port?.toString() ?: "?"))
+        // This phone's own identity fingerprint — compare against the
+        // "Paired client" line on the bridge screen. Match = this phone
+        // holds the pin; mismatch = someone else won the pairing race.
+        Text(
+            stringResource(R.string.client_identity_fp,
+                com.simtether.shared.Identity.fingerprint(
+                    PairingStore.clientKeyPair(context).second)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Button(
             onClick = {
                 scanner.launch(ScanOptions().apply {

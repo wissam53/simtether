@@ -31,9 +31,10 @@ ours, so a successful install-over is itself a weak positive signal.
 ## What the bridge will tell you
 
 The bridge home screen shows the fingerprint of the **paired client
-key** under the QR card. If a client you don't recognize holds the
-link, use Re-pair — it rotates the bridge identity and revokes every
-prior credential.
+key** under the QR card, and the client's Settings screen shows **this
+phone's own identity fingerprint**. Compare the two: a match means your
+phone holds the pin; a mismatch means an unrecognized device paired.
+Re-pair rotates the bridge identity and revokes every prior credential.
 
 ## Design notes
 

@@ -83,6 +83,7 @@
     <string name="bridge_show_qr">إظهار رمز الاقتران</string>
     <string name="bridge_client_pinned">العميل المقترن: %1$s</string>
     <string name="bridge_client_none">لا يوجد عميل مقترن بعد</string>
+    <string name="client_identity_fp">هوية هذا الهاتف: %1$s</string>
     <string name="bridge_waiting_lan">بانتظار عنوان LAN — هل نقطة الاتصال مفعّلة؟</string>
     <string name="bridge_starting">جارٍ بدء خدمة الجسر…</string>
     <string name="dialer_held">✓ دور تطبيق الهاتف محفوظ — التحكم بالمكالمات نشط</string>

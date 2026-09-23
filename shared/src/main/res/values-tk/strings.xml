@@ -83,6 +83,7 @@
     <string name="bridge_show_qr">Jübi QR-kodyny görkez</string>
     <string name="bridge_client_pinned">Jübütlenen müşteri: %1$s</string>
     <string name="bridge_client_none">Henüz müşteri jübütlenmedi</string>
+    <string name="client_identity_fp">Bu telefonuň kimligi: %1$s</string>
     <string name="bridge_waiting_lan">LAN salgysy garaşylýar — hotspot açykmy?</string>
     <string name="bridge_starting">Köpri hyzmaty işe girizilýär…</string>
     <string name="dialer_held">✓ Telefon programmasynyň ornyna — jaň dolandyryşy işjeň</string>
