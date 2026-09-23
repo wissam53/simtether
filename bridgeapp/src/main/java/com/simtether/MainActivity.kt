@@ -95,6 +95,11 @@ class MainActivity : ComponentActivity() {
             add(Manifest.permission.CALL_PHONE)
             add(Manifest.permission.ANSWER_PHONE_CALLS)
             add(Manifest.permission.READ_CONTACTS)
+            // Rooted flavor only: the in-app capture path needs mic
+            // access (the root-daemon path doesn't). Absent from the
+            // store manifest — the request is a no-op there.
+            if (com.simtether.RootFeatures.HAS_ROOT_FEATURES)
+                add(Manifest.permission.RECORD_AUDIO)
             // connectedDevice FGS prerequisite on 33+ (the CDM
             // association also qualifies once pairing completes).
             if (Build.VERSION.SDK_INT >= 33)

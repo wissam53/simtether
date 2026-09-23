@@ -114,6 +114,14 @@ fun InCallScreen(
             Text(stringResource(R.string.call_via_bridge),
                 style = MaterialTheme.typography.labelSmall,
                 color = CallColors.Tertiary, modifier = Modifier.padding(top = 4.dp))
+            // Rooted-bridge relay is streaming this call's audio —
+            // "audio relay: active" tells the user the call is live
+            // here, not on the bridge speakerphone.
+            if (call.audioRelay)
+                Text(stringResource(R.string.call_audio_active),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CallColors.AnswerAccent,
+                    modifier = Modifier.padding(top = 2.dp))
         }
 
         // ── Actions ───────────────────────────────────────────────

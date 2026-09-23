@@ -29,6 +29,10 @@ class BridgeWsServer(
     private val onClientReady: () -> Unit,
     private val onClientDisconnected: () -> Unit = {},
     private val onCommand: (Protocol.Envelope) -> Unit,
+    // Media frames (client mic → GSM uplink injection). Only called
+    // for decrypted bytes tagged MEDIA_TAG — untagged plaintext is
+    // still the JSON envelope path.
+    private val onMedia: (ByteArray) -> Unit = {},
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
 
     // Wildcard bind is required to survive hotspot↔WiFi topology
@@ -101,6 +105,18 @@ class BridgeWsServer(
         c.send(s.encrypt(Protocol.encode(env).toByteArray()))
     }
 
+    /**
+     * Downlink call audio → client. Tagged MEDIA_TAG so the peer keeps
+     * it out of the JSON path. Only called after the client's hello
+     * advertised the audio cap — an older client would fail the JSON
+     * decode and tear the session down per the Noise AEAD rule.
+     */
+    fun sendMedia(pcm: ByteArray) {
+        val s = session ?: return
+        val c = client ?: return
+        c.send(s.encrypt(byteArrayOf(Protocol.MEDIA_TAG) + pcm))
+    }
+
     override fun onOpen(conn: WebSocket, handshake: ClientHandshake) {
         val ip = conn.remoteSocketAddress?.address
         if (ip == null || !isLanPeer(ip)) {
@@ -132,8 +148,17 @@ class BridgeWsServer(
         val bytes = ByteArray(message.remaining()).also { message.get(it) }
         val s = session
         if (conn == client && s != null) {
+            val plain = runCatching { s.decrypt(bytes) }.getOrElse {
+                Log.e(TAG, "decrypt failed — resetting session", it)
+                conn.close(1008, "decrypt")
+                return
+            }
+            if (plain.isNotEmpty() && plain[0] == Protocol.MEDIA_TAG) {
+                onMedia(plain.copyOfRange(1, plain.size))
+                return
+            }
             val env = runCatching {
-                Protocol.decode(s.decrypt(bytes).decodeToString())
+                Protocol.decode(plain.decodeToString())
             }.getOrElse {
                 // A failed AEAD tag means the nonce streams desynced —
                 // per the Noise spec the session is unrecoverable and

@@ -35,6 +35,12 @@ class ClientService : LifecycleService() {
     private var ws: BridgeWsClient? = null
     private var target: String? = null
 
+    // Live call-audio session (rooted bridge relay). Started by the
+    // bridge's call.audio event; torn down on call end or link loss —
+    // a stale session would hold the mic open, so every exit path
+    // closes it.
+    private var audioSession: com.simtether.client.audio.ClientAudioSession? = null
+
     // Single-threaded: preserves event ordering while keeping store
     // writes, contact lookups, and Telecom binder calls off the UI
     // thread. Dispatchers.IO is a pool — ordering would not hold.
@@ -135,8 +141,10 @@ class ClientService : LifecycleService() {
                     PairingStore.load(applicationContext)?.pairingToken ?: "")
             },
             onEvent = { env -> eventScope.launch { handleEvent(env) } },
+            onMedia = { pcm -> audioSession?.onDownlink(pcm) },
             onState = { up ->
                 ClientServiceHolder.setConnected(up)
+                if (!up) stopAudio()
                 updateNotification(up)
             },
             onTransport = { viaRelay -> ClientServiceHolder.setViaRelay(viaRelay) },
@@ -275,6 +283,7 @@ class ClientService : LifecycleService() {
 
     override fun onDestroy() {
         ClientServiceHolder.service = null
+        stopAudio()
         ClientServiceHolder.setConnected(false)
         netCallback?.let {
             runCatching {
@@ -338,6 +347,17 @@ class ClientService : LifecycleService() {
                 if (entry?.missed == true)
                     CallRouter.notifyMissedCall(applicationContext, e)
                 CallRouter.onCallEvent(applicationContext, e)
+                // Belt-and-suspenders mic teardown: if the bridge's
+                // call.audio(off) was lost, DISCONNECTED still kills
+                // the session — a stale one holds the mic open.
+                if (e.state == Protocol.CallEvent.State.DISCONNECTED) stopAudio()
+            }
+            "call.audio" -> {
+                // Rooted bridge: its audio relay is up for the call —
+                // open (or close) our playback + mic session to match.
+                val e = env.payloadAs<Protocol.CallAudio>()
+                Log.d(TAG, "call.audio active=${e.active} uplink=${e.uplink}")
+                if (e.active) startAudio(e.uplink) else stopAudio()
             }
             "bridge.status" -> {
                 val e = env.payloadAs<Protocol.BridgeStatus>()
@@ -362,6 +382,34 @@ class ClientService : LifecycleService() {
                 PairingStore.updateToken(applicationContext, e.token)
                 Log.d(TAG, "pairing token rotated")
             }
+        }
+    }
+
+    /**
+     * The bridge's rooted audio relay is live — open our half:
+     * playback for downlink frames + mic capture for uplink (when the
+     * bridge will inject and RECORD_AUDIO is granted).
+     */
+    private fun startAudio(uplink: Boolean) {
+        audioSession?.stop()
+        audioSession = com.simtether.client.audio.ClientAudioSession(
+            applicationContext, uplink,
+            sendPcm = { pcm -> ws?.sendMedia(pcm) },
+        ).also { it.start() }
+        ClientServiceHolder.setAudioActive(true)
+        // Re-publish the live call with the relay badge on.
+        com.simtether.shared.CallStateBus.call.value?.let {
+            com.simtether.shared.CallStateBus.publish(it.copy(audioRelay = true))
+        }
+    }
+
+    private fun stopAudio() {
+        audioSession?.stop()
+        audioSession = null
+        ClientServiceHolder.setAudioActive(false)
+        com.simtether.shared.CallStateBus.call.value?.let {
+            if (it.audioRelay)
+                com.simtether.shared.CallStateBus.publish(it.copy(audioRelay = false))
         }
     }
 

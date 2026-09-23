@@ -11,6 +11,10 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Flavor wiring: the rooted build installs its call-audio relay
+        // into :bridge here; the store build's RootFeatures is a no-op,
+        // so this call is inert on Play.
+        RootFeatures.install(applicationContext)
         // The bridge service starts from MainActivity / BootReceiver.
     }
 }

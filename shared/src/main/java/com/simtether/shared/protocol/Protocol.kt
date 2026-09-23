@@ -23,6 +23,22 @@ object Protocol {
      *  can't understand instead of failing silently. */
     const val PROTOCOL_VERSION = 1
 
+    /**
+     * First byte of a decrypted frame that carries raw call audio
+     * instead of a JSON envelope. Envelopes always start with '{' —
+     * a media tag keeps audio bytes out of the serializer entirely
+     * (no base64/JSON overhead at 50 frames/s).
+     *
+     * Only sent to peers that advertised "audio" in client.hello:
+     * an older peer would JSON-decode the frame, fail the AEAD-path
+     * decode, and tear the session down — the caps handshake is what
+     * makes this safe to add.
+     */
+    const val MEDIA_TAG: Byte = 0x01
+
+    /** client.hello capability string: understands MEDIA_TAG frames. */
+    const val CAP_AUDIO = "audio"
+
     // ── Envelope ──────────────────────────────────────────────────
 
     @Serializable
@@ -94,6 +110,19 @@ object Protocol {
     @Serializable
     data class PairingRotate(val token: String)   // base64
 
+    /**
+     * Bridge → client: the rooted bridge's call-audio relay started or
+     * stopped for the live call. `active` opens the client's audio
+     * session; on false the client tears it down. Old clients ignore
+     * the unknown type (no audio, call control still works).
+     */
+    @Serializable
+    data class CallAudio(
+        val active: Boolean,
+        val downlink: Boolean = true,   // caller's voice is streamed to us
+        val uplink: Boolean = true,     // bridge will try to inject our mic
+    )
+
     // ── Client → Bridge commands ──────────────────────────────────
 
     @Serializable
@@ -126,6 +155,16 @@ object Protocol {
 
     @Serializable
     data class DialRequest(val number: String)
+
+    /**
+     * Client → bridge, sent once per session right after the Noise
+     * handshake: which optional features this client understands.
+     * The bridge must not emit a feature's frames to a session that
+     * didn't claim it (see MEDIA_TAG — unknown bytes kill old
+     * clients' sessions).
+     */
+    @Serializable
+    data class ClientHello(val caps: List<String> = emptyList())
 
     /** Client → bridge housekeeping commands (remote control surface). */
     @Serializable

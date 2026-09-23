@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Rooted flavor only — the store manifest never carries these.
+
+         RECORD_AUDIO: in-app AudioRecord capture attempt (the primary
+         path is the root daemon, which needs no app permission).
+         Runtime permission, requested with the rest at first run.
+
+         CAPTURE_AUDIO_OUTPUT: signature|privileged — only granted when
+         the app is installed as a privileged app (Magisk module /
+         /system/priv-app + privapp-whitelist). Declared so that
+         placement works; ignored (never granted) on a normal install.
+         The root-daemon capture path does not need it. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT" />
+
+</manifest>

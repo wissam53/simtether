@@ -126,9 +126,18 @@ class BridgeService : LifecycleService() {
             },
             onClientDisconnected = {
                 clientConnected = false
+                // The new session re-announces caps via client.hello —
+                // until then assume the peer can't take media frames.
+                clientCaps = emptySet()
+                audioActive = false
+                audioAttempted = false
+                com.simtether.bridge.audio.AudioRelayProvider.relay?.stop()
                 lifecycleScope.launch { updateNotification(connected = false) }
             },
             onCommand = { env -> lifecycleScope.launch(Dispatchers.IO) { handleCommand(env) } },
+            onMedia = { pcm ->
+                com.simtether.bridge.audio.AudioRelayProvider.relay?.inject(pcm)
+            },
         ).also { it.start() }
         advertiser = BridgeAdvertiser(
             applicationContext,
@@ -538,7 +547,70 @@ class BridgeService : LifecycleService() {
                 val cmd = env.payloadAs<Protocol.BridgeCommand>()
                 StatusReporter.handleCommand(applicationContext, cmd)
             }
+            "client.hello" -> {
+                val caps = env.payloadAs<Protocol.ClientHello>().caps.toSet()
+                clientCaps = caps
+                Log.d(TAG, "client caps: ${caps.joinToString()}")
+                // A call may already be ACTIVE when the hello lands —
+                // evaluate the audio relay now that we know the peer.
+                updateCallAudio(
+                    com.simtether.bridge.telecom.CallRegistry.all()
+                        .any { it.second.state == android.telecom.Call.STATE_ACTIVE })
+            }
         }
+    }
+
+    // Capabilities announced by the live client (empty = old client or
+    // no session). Media frames are never sent to a session that
+    // didn't claim "audio" — untagged binary would kill its session.
+    @Volatile private var clientCaps: Set<String> = emptySet()
+    @Volatile private var audioActive = false
+    // A failed start() latches for the call — Telecom re-emits details
+    // constantly and a dead capture path shouldn't be retried per
+    // detailsChanged. Reset when no call is active.
+    @Volatile private var audioAttempted = false
+
+    /**
+     * Call-audio relay lifecycle — driven by BridgeInCallService on
+     * every state change. Starts the rooted capture/injection session
+     * when a call is ACTIVE AND the client understands media frames;
+     * tears it down when neither holds. The relay impl lives in the
+     * rooted flavor; on the store build the provider is empty and
+     * this is a no-op.
+     *
+     * Runs on emitExec: relay.start() can block for seconds (su probe,
+     * tinymix scan, process spawn) and callers sit on Telecom's main-
+     * thread callback — a stall there would ANR the in-call service.
+     */
+    fun updateCallAudio(anyActive: Boolean) {
+        emitExec.execute { updateCallAudioInternal(anyActive) }
+    }
+
+    private fun updateCallAudioInternal(anyActive: Boolean) {
+        val relay = com.simtether.bridge.audio.AudioRelayProvider.relay
+        val want = anyActive && clientCaps.contains(Protocol.CAP_AUDIO) &&
+            relay?.available(applicationContext) == true
+        if (!want) {
+            if (audioActive || audioAttempted) {
+                audioActive = false
+                audioAttempted = false
+                relay?.stop()
+                emit("call.audio", Protocol.json.encodeToString(
+                    Protocol.CallAudio.serializer(),
+                    Protocol.CallAudio(active = false)), reliable = false)
+                Log.i(TAG, "call audio relay stopped")
+            }
+            return
+        }
+        if (audioActive || audioAttempted) return
+        audioAttempted = true
+        val up = relay!!.start(applicationContext) { pcm -> server?.sendMedia(pcm) }
+        audioActive = up
+        emit("call.audio", Protocol.json.encodeToString(
+            Protocol.CallAudio.serializer(),
+            Protocol.CallAudio(active = up, downlink = true, uplink = up)),
+            reliable = false)
+        Log.i(TAG, "call audio relay ${if (up) "started" else "unavailable"}")
     }
 
     private fun startForegroundWithNotification() {

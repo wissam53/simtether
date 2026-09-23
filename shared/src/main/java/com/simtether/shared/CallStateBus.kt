@@ -20,6 +20,8 @@ object CallStateBus {
         // GSM-side audio routing on the bridge (CallAudioState.ROUTE_*).
         val audioRoute: Int? = null,
         val availableRoutes: Int? = null,
+        // Rooted-bridge call-audio relay is live for this call.
+        val audioRelay: Boolean = false,
     )
 
     private val _call = MutableStateFlow<Ui?>(null)

@@ -33,8 +33,9 @@ class BridgeInCallService : InCallService() {
         CallRegistry.remove(call)
         // emit() ran while the call was still registered — re-check
         // now that it's gone, or a stale ACTIVE could latch media on.
-        BridgeServiceHolder.service?.setCallMedia(
-            CallRegistry.all().any { it.second.state == Call.STATE_ACTIVE })
+        val anyActive = CallRegistry.all().any { it.second.state == Call.STATE_ACTIVE }
+        BridgeServiceHolder.service?.setCallMedia(anyActive)
+        BridgeServiceHolder.service?.updateCallAudio(anyActive)
         super.onCallRemoved(call)
     }
 
@@ -84,8 +85,11 @@ class BridgeInCallService : InCallService() {
         // Call audio needs the relay's media byte cap (~34KB/s vs the
         // 2KB/s signaling cap). On while any call is ACTIVE; the flag
         // survives reconnects via RelayLink's re-assert.
-        BridgeServiceHolder.service?.setCallMedia(
-            CallRegistry.all().any { it.second.state == Call.STATE_ACTIVE })
+        val anyActive = CallRegistry.all().any { it.second.state == Call.STATE_ACTIVE }
+        BridgeServiceHolder.service?.setCallMedia(anyActive)
+        // Rooted build only: spin up/downlink capture + uplink
+        // injection for the active call. No-ops on the store build.
+        BridgeServiceHolder.service?.updateCallAudio(anyActive)
         // Local call log — the SIM phone's own Calls tab needs recents
         // whether or not a client is linked.
         val entry = com.simtether.shared.CallLogStore.onEvent(event)

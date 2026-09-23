@@ -57,6 +57,9 @@ class BridgeWsClient(
     // Fired when the bridge rejects our token (4003) — the pairing was
     // revoked/rotated; reconnecting is futile until the user re-pairs.
     private val onRevoked: () -> Unit = {},
+    // Bridge downlink audio — decrypted frames tagged MEDIA_TAG land
+    // here instead of the envelope path.
+    private val onMedia: (ByteArray) -> Unit = {},
 ) {
     private val http = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
@@ -171,6 +174,12 @@ class BridgeWsClient(
                         }
                     pendingHandshake = null
                     lastInbound = android.os.SystemClock.elapsedRealtime()
+                    // Announce optional features before any app traffic —
+                    // the bridge must know we understand MEDIA_TAG frames
+                    // before it may send them.
+                    sendCommand("client.hello", Protocol.json.encodeToString(
+                        Protocol.ClientHello.serializer(),
+                        Protocol.ClientHello(listOf(Protocol.CAP_AUDIO))))
                     emitState(true)
                     // WS frames are ordered — the session is live, flush
                     // anything queued while we were offline.
@@ -181,8 +190,19 @@ class BridgeWsClient(
                     }
                     return
                 }
+                val plain = runCatching { s.decrypt(bytes.toByteArray()) }.getOrElse {
+                    Log.e(TAG, "decrypt failed — resetting session", it)
+                    session = null
+                    webSocket.cancel()
+                    return
+                }
+                if (plain.isNotEmpty() && plain[0] == Protocol.MEDIA_TAG) {
+                    lastInbound = android.os.SystemClock.elapsedRealtime()
+                    onMedia(plain.copyOfRange(1, plain.size))
+                    return
+                }
                 val env = runCatching {
-                    Protocol.decode(s.decrypt(bytes.toByteArray()).decodeToString())
+                    Protocol.decode(plain.decodeToString())
                 }.getOrElse {
                     // A failed AEAD tag means the nonce streams desynced —
                     // per the Noise spec the session is unrecoverable and
@@ -236,6 +256,13 @@ class BridgeWsClient(
         }
         val env = Protocol.Envelope(UUID.randomUUID().toString(), type, seq.incrementAndGet(), payload)
         ws?.send(s.encrypt(Protocol.encode(env).toByteArray()).toByteString())
+    }
+
+    /** Mic frame → bridge uplink injection. Drops silently when the
+     *  session is down — audio is ephemeral, never queued. */
+    fun sendMedia(pcm: ByteArray) {
+        val s = session ?: return
+        ws?.send(s.encrypt(byteArrayOf(Protocol.MEDIA_TAG) + pcm).toByteString())
     }
 
     private fun scheduleReconnect() {

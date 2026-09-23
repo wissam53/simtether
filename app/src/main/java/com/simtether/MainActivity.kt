@@ -117,6 +117,9 @@ class MainActivity : ComponentActivity() {
             add(Manifest.permission.CAMERA)
             add(Manifest.permission.MANAGE_OWN_CALLS)
             add(Manifest.permission.READ_CONTACTS)
+            // Mic uplink for the rooted bridge's call-audio relay —
+            // sessions degrade to listen-only if the user declines.
+            add(Manifest.permission.RECORD_AUDIO)
             // WifiNetworkSpecifier (secondary hotspot link) on 33+
             if (Build.VERSION.SDK_INT >= 33)
                 add(Manifest.permission.NEARBY_WIFI_DEVICES)

@@ -36,6 +36,12 @@ object ClientServiceHolder {
     val peerNewer: StateFlow<Boolean> = _peerNewer
     fun setPeerNewer(v: Boolean) { _peerNewer.value = v }
 
+    /** Rooted-bridge audio relay is live for the current call —
+     *  the call UI shows this as "audio relay: active". */
+    private val _audioActive = MutableStateFlow(false)
+    val audioActive: StateFlow<Boolean> = _audioActive
+    fun setAudioActive(v: Boolean) { _audioActive.value = v }
+
     fun sendSms(address: String, body: String, ref: String? = null) {
         val payload = Protocol.json.encodeToString(
             Protocol.SmsSend.serializer(),

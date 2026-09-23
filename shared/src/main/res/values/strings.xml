@@ -210,4 +210,10 @@
     <string name="remote_active_relay">Relay: %1$s</string>
     <string name="remote_custom_relay">Custom relay server</string>
     <string name="remote_use_default">Use default server</string>
+
+    <!-- Call audio relay (rooted bridge flavor only) -->
+    <string name="audio_relay">Call audio relay</string>
+    <string name="audio_relay_hint">Stream this call\'s audio to your paired phone and send their voice back into the call — experimental.</string>
+    <string name="audio_relay_no_root">Root not detected — grant access in Magisk, then tap the switch to retry.</string>
+    <string name="call_audio_active">Audio relay: active</string>
 </resources>

@@ -190,4 +190,10 @@
     <string name="remote_active_relay">Aktarım: %1$s</string>
     <string name="remote_custom_relay">Özel aktarım sunucusu</string>
     <string name="remote_use_default">Varsayılan sunucuyu kullan</string>
+
+    <!-- Call audio relay (rooted bridge flavor only) -->
+    <string name="audio_relay">Arama sesi aktarımı</string>
+    <string name="audio_relay_hint">Bu aramanın sesini eşlenen telefona gönderir ve karşı tarafın sesini aramaya iletir — deneysel.</string>
+    <string name="audio_relay_no_root">Root algılanmadı — Magisk üzerinden izin verin, sonra anahtara dokunarak tekrar deneyin.</string>
+    <string name="call_audio_active">Ses aktarımı: etkin</string>
 </resources>

@@ -489,6 +489,65 @@ fun BridgeScreen() {
             }
         }
 
+        // Call audio relay — rooted build only. The store flavor
+        // compiles this card out entirely (RootFeatures.HAS_ROOT_FEATURES
+        // is a compile-time false there and R8 drops the branch).
+        if (com.simtether.RootFeatures.HAS_ROOT_FEATURES) {
+            Card(modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    var audioOn by remember {
+                        mutableStateOf(
+                            com.simtether.RootFeatures.audioRelayEnabled(context))
+                    }
+                    var rootOk by remember {
+                        mutableStateOf(com.simtether.RootFeatures.rootAvailable())
+                    }
+                    // Refresh the root answer when the card appears —
+                    // install()'s warm probe may still be in flight.
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        com.simtether.RootFeatures.probeAsync { ok -> rootOk = ok }
+                    }
+                    Text(stringResource(R.string.audio_relay),
+                        style = MaterialTheme.typography.labelMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(
+                                if (rootOk) R.string.audio_relay_hint
+                                else R.string.audio_relay_no_root),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        )
+                        Switch(
+                            checked = audioOn && rootOk,
+                            onCheckedChange = { want ->
+                                if (want && !rootOk) {
+                                    // Async — the probe can surface
+                                    // Magisk's grant dialog and must
+                                    // never hold a frame.
+                                    com.simtether.RootFeatures.probeAsync { ok ->
+                                        rootOk = ok
+                                        if (ok) {
+                                            com.simtether.RootFeatures
+                                                .setAudioRelayEnabled(context, true)
+                                            audioOn = true
+                                        }
+                                    }
+                                } else {
+                                    com.simtether.RootFeatures
+                                        .setAudioRelayEnabled(context, want)
+                                    audioOn = want
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
         // Doze killers: battery exemption + MIUI autostart keep the
         // socket alive; DND access lets remote mute go truly silent.
         Card(modifier = Modifier.padding(top = 24.dp)) {
