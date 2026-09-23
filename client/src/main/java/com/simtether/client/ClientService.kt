@@ -111,7 +111,16 @@ class ClientService : LifecycleService() {
         target = t
         ws?.close()
         ws = null
-        val pubKey = java.util.Base64.getDecoder().decode(pairing.bridgeStaticPubKey)
+        // Corrupt stored pairing (edited prefs, old-format value) —
+        // decode throws and connectToBridge dies into a START_STICKY
+        // restart loop. Forget it instead; the user re-scans.
+        val pubKey = runCatching {
+            java.util.Base64.getDecoder().decode(pairing.bridgeStaticPubKey)
+        }.getOrNull()?.takeIf { it.size == 32 } ?: run {
+            Log.w(TAG, "stored pairing has a bad pubkey — forgetting it")
+            PairingStore.clear(applicationContext)
+            return
+        }
         ws = BridgeWsClient(
             targetProvider = { resolveTarget(pairing, pubKey) },
             bridgeStaticPub = pubKey,

@@ -116,9 +116,13 @@ object StatusReporter {
      * to connect. arg format: "ssid" or "ssid|wpa2-password".
      */
     private fun switchWifi(context: Context, arg: String?) {
-        val ssid = arg?.substringBefore('|')?.takeIf { it.isNotBlank() }
+        // The wire value is attacker-shapable input — bound it before
+        // it reaches WifiManager: SSIDs are ≤32 chars, WPA2
+        // passphrases are 8..63, and neither may carry control bytes.
+        val ssid = arg?.substringBefore('|')
+            ?.takeIf { it.length in 1..32 && it.none { c -> c.code < 0x20 } }
         if (ssid == null) {
-            Log.w("SimTether.Bridge", "SWITCH_WIFI: missing ssid arg")
+            Log.w("SimTether.Bridge", "SWITCH_WIFI: bad ssid arg")
             return
         }
         // WifiNetworkSuggestion is API 29+ — on older builds there's
@@ -128,6 +132,10 @@ object StatusReporter {
             return
         }
         val pass = arg.substringAfter('|', "")
+        if ('|' in arg && pass.length !in 8..63) {
+            Log.w("SimTether.Bridge", "SWITCH_WIFI: bad passphrase length")
+            return
+        }
         val suggestion = android.net.wifi.WifiNetworkSuggestion.Builder()
             .setSsid(ssid)
             .apply { if (pass.isNotBlank()) setWpa2Passphrase(pass) }

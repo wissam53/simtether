@@ -96,20 +96,33 @@ object SecureStore {
         return v
     }
 
-    fun putString(context: Context, store: String, key: String, value: String?) {
+    /**
+     * Writes [key]; pass [failClosed] for crown-jewel values (identity
+     * key, pairing token) where an unencrypted write is worse than no
+     * write — a keystore failure then leaves nothing persisted rather
+     * than a plaintext private key. Returns false when the write was
+     * refused.
+     */
+    fun putString(context: Context, store: String, key: String,
+                  value: String?, failClosed: Boolean = false): Boolean {
         val sp = context.getSharedPreferences(store, Context.MODE_PRIVATE)
         if (value == null) {
             sp.edit().remove(key).apply()
-            return
+            return true
         }
         val enc = encrypt(value)
         if (enc != null) {
             sp.edit().putString(key, ENC_PREFIX + enc).apply()
-        } else {
-            // Keystore broken — plaintext fallback beats losing pairing.
-            Log.w(TAG, "storing $key unencrypted (keystore unavailable)")
-            sp.edit().putString(key, value).apply()
+            return true
         }
+        if (failClosed) {
+            Log.e(TAG, "refusing plaintext write of $key (keystore unavailable)")
+            return false
+        }
+        // Keystore broken — plaintext fallback beats losing pairing.
+        Log.w(TAG, "storing $key unencrypted (keystore unavailable)")
+        sp.edit().putString(key, value).apply()
+        return true
     }
 
     fun getInt(context: Context, store: String, key: String, def: Int): Int =

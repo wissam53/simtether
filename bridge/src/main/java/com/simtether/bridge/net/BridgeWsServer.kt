@@ -56,6 +56,11 @@ class BridgeWsServer(
     // work; each entry also carries the AUTH_TIMEOUT_S reaper below.
     private val pendingAuth = java.util.concurrent.ConcurrentHashMap.newKeySet<WebSocket>()
 
+    // Failed-auth counter per remote (relay-spliced) link — we can't
+    // close the attacker's socket (it lives on the relay), so the cap
+    // drops OUR registration socket after enough garbage instead.
+    private val authFails = java.util.concurrent.ConcurrentHashMap<WebSocket, Int>()
+
     /**
      * App-level heartbeat: a pocketed/dozing client can stall its WS
      * pings, and a half-dead TCP socket can blackhole silently for many
@@ -146,10 +151,18 @@ class BridgeWsServer(
             // Unauthenticated socket — only Noise IK msg1 is legal here.
             // On the relay path a failure must NOT close the socket —
             // it IS the registration link, and dropping it would let a
-            // spliced stranger kill our relay connection.
+            // spliced stranger kill our relay connection. But an
+            // uncapped failure counter lets that stranger burn X25519
+            // ops forever, so after MAX_REMOTE_AUTH_FAILS we drop the
+            // registration socket anyway — RelayLink re-dials and the
+            // room returns clean while the attacker has to re-/connect.
             fun fail(code: Int, why: String) {
-                if (remote) Log.w(TAG, "remote peer failed auth: $why")
-                else conn.close(code, why)
+                if (remote) {
+                    val n = authFails.merge(conn, 1) { a, b -> a + b } ?: 1
+                    Log.w(TAG, "remote peer failed auth: $why ($n)")
+                    if (n >= MAX_REMOTE_AUTH_FAILS)
+                        conn.close(4000, "auth flood")
+                } else conn.close(code, why)
             }
             if (bytes.size > 2048) { fail(1009, "oversize"); return }
             val hs = runCatching {
@@ -204,6 +217,7 @@ class BridgeWsServer(
      *  our own registration socket died — tear the session down. The
      *  registration socket itself is managed by RelayLink. */
     fun handleRemoteClose(conn: WebSocket) {
+        authFails.remove(conn)
         if (conn == client) {
             client = null
             session = null
@@ -218,6 +232,7 @@ class BridgeWsServer(
     override fun onClose(conn: WebSocket, code: Int, reason: String, remote: Boolean) {
         Log.d(TAG, "client closed code=$code reason=$reason remote=$remote")
         pendingAuth.remove(conn)
+        authFails.remove(conn)
         if (conn == client) {
             client = null
             session = null
@@ -238,5 +253,9 @@ class BridgeWsServer(
         // Max simultaneous sockets waiting to authenticate — a connect
         // flood gets fast-closed instead of growing unbounded.
         const val MAX_PREAUTH = 8
+        // Failed IK attempts tolerated on one relay registration link
+        // before we drop the socket — a spliced stranger gets this many
+        // X25519 ops per /connect, not an unbounded supply.
+        const val MAX_REMOTE_AUTH_FAILS = 5
     }
 }

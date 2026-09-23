@@ -178,14 +178,20 @@ class BridgeService : LifecycleService() {
         val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
         val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
         val relaySecret = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        // failClosed — same rule as loadOrCreateIdentity: the static
+        // private key never lands in plaintext prefs.
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_priv", enc.encodeToString(pair.first))
+            .putString(this, "bridge_keys", "static_priv",
+                enc.encodeToString(pair.first), failClosed = true)
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_pub", enc.encodeToString(pair.second))
+            .putString(this, "bridge_keys", "static_pub",
+                enc.encodeToString(pair.second), failClosed = true)
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(token))
+            .putString(this, "bridge_keys", "pairing_token",
+                enc.encodeToString(token), failClosed = true)
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "relay_secret", enc.encodeToString(relaySecret))
+            .putString(this, "bridge_keys", "relay_secret",
+                enc.encodeToString(relaySecret), failClosed = true)
         tokenRotator = com.simtether.shared.TokenRotator(token) { cur, pend ->
             persistTokens(cur, pend)
         }
@@ -307,12 +313,18 @@ class BridgeService : LifecycleService() {
         }
         val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
         val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+        // failClosed — the static private key IS the bridge identity;
+        // a plaintext write on a keystore-broken device is worse than
+        // an ephemeral identity that dies with the process.
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_priv", enc.encodeToString(pair.first))
+            .putString(this, "bridge_keys", "static_priv",
+                enc.encodeToString(pair.first), failClosed = true)
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_pub", enc.encodeToString(pair.second))
+            .putString(this, "bridge_keys", "static_pub",
+                enc.encodeToString(pair.second), failClosed = true)
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(token))
+            .putString(this, "bridge_keys", "pairing_token",
+                enc.encodeToString(token), failClosed = true)
         // Same lifetime as the identity — loadRelaySecret creates it
         // on first read if an upgrade left it absent.
         loadRelaySecret()
@@ -332,7 +344,7 @@ class BridgeService : LifecycleService() {
         val s = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
         com.simtether.shared.SecureStore.putString(
             this, "bridge_keys", "relay_secret",
-            Base64.getEncoder().encodeToString(s))
+            Base64.getEncoder().encodeToString(s), failClosed = true)
         return s
     }
 

@@ -30,7 +30,33 @@ data class PairingPayload(
     fun encode(): String = Protocol.json.encodeToString(serializer(), this)
 
     companion object {
-        fun decode(qrText: String): PairingPayload =
-            Protocol.json.decodeFromString(serializer(), qrText)
+        /**
+         * Parses AND validates — a malformed QR must throw here, not
+         * survive into ClientService where an undecodable field crashes
+         * connectToBridge into a service-restart loop.
+         */
+        fun decode(qrText: String): PairingPayload {
+            val p = Protocol.json.decodeFromString(serializer(), qrText)
+            require(p.port in 1..65535) { "bad port" }
+            require(p.host.isNotBlank() && p.host.length <= 255) { "bad host" }
+            require(p.deviceName.length <= 100) { "deviceName too long" }
+            val pub = runCatching {
+                java.util.Base64.getDecoder().decode(p.bridgeStaticPubKey)
+            }.getOrNull()
+            require(pub != null && pub.size == 32) { "bad bridge key" }
+            val tok = runCatching {
+                java.util.Base64.getDecoder().decode(p.pairingToken)
+            }.getOrNull()
+            require(tok != null && tok.size in 8..64) { "bad pairing token" }
+            p.relay?.let { require(it.length <= 255) { "relay too long" } }
+            p.relayToken?.let { require(it.length <= 255) { "token too long" } }
+            p.relaySecret?.let {
+                val s = runCatching {
+                    java.util.Base64.getDecoder().decode(it)
+                }.getOrNull()
+                require(s != null && s.size == 32) { "bad relay secret" }
+            }
+            return p
+        }
     }
 }
