@@ -85,6 +85,7 @@
     <string name="bridge_client_none">لا يوجد عميل مقترن بعد</string>
     <string name="client_identity_fp">هوية هذا الهاتف: %1$s</string>
     <string name="remote_enabled_since">فُعّل في %1$s — الموافقة مسجّلة على هذا الجهاز</string>
+    <string name="bridge_identity_fp">هوية الجسر: %1$s</string>
     <string name="bridge_waiting_lan">بانتظار عنوان LAN — هل نقطة الاتصال مفعّلة؟</string>
     <string name="bridge_starting">جارٍ بدء خدمة الجسر…</string>
     <string name="dialer_held">✓ دور تطبيق الهاتف محفوظ — التحكم بالمكالمات نشط</string>
@@ -121,7 +122,7 @@
 
     <string name="settings_bridge_section">الجسر</string>
     <string name="settings_last_bridge">%1$s · آخر %2$s:%3$s</string>
-    <string name="scan_prompt">امسح رمز QR على هاتف الجسر</string>
+    <string name="scan_prompt">امسح رمز QR على هاتف الجسر — فقط رمزاً يظهر على هاتفك أنت</string>
     <string name="repair_scan">إعادة الاقتران (مسح QR)</string>
     <string name="forget_bridge">نسيان هذا الجسر وإعادة الضبط</string>
     <string name="forget_title">نسيان هذا الجسر؟</string>

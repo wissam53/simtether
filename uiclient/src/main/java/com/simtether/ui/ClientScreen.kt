@@ -332,6 +332,19 @@ private fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // Which bridge this phone trusts — compare with the fingerprint
+        // on the bridge's own screen. A bridge you can't physically
+        // check is a bridge you shouldn't pair with.
+        pairing?.bridgeStaticPubKey?.let { pub ->
+            Text(
+                stringResource(R.string.bridge_identity_fp,
+                    com.simtether.shared.Identity.fingerprint(
+                        android.util.Base64.decode(
+                            pub, android.util.Base64.DEFAULT))),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Button(
             onClick = {
                 scanner.launch(ScanOptions().apply {

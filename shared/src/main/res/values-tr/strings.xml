@@ -85,6 +85,7 @@
     <string name="bridge_client_none">Henüz eşleşen istemci yok</string>
     <string name="client_identity_fp">Bu telefonun kimliği: %1$s</string>
     <string name="remote_enabled_since">%1$s tarihinde açıldı — onay bu cihazda kayıtlı</string>
+    <string name="bridge_identity_fp">Köprü kimliği: %1$s</string>
     <string name="bridge_waiting_lan">LAN adresi bekleniyor — hotspot açık mı?</string>
     <string name="bridge_starting">Köprü servisi başlatılıyor…</string>
     <string name="dialer_held">✓ Telefon uygulaması rolü alındı — arama kontrolü aktif</string>
@@ -121,7 +122,7 @@
 
     <string name="settings_bridge_section">KÖPRÜ</string>
     <string name="settings_last_bridge">%1$s · son %2$s:%3$s</string>
-    <string name="scan_prompt">Köprü telefonundaki QR kodu tarayın</string>
+    <string name="scan_prompt">Köprü telefonundaki QR kodu tarayın — yalnızca kendi telefonunuzda görüneni</string>
     <string name="repair_scan">Yeniden eşle (QR tara)</string>
     <string name="forget_bridge">Bu köprüyü unut ve sıfırla</string>
     <string name="forget_title">Bu köprü unutulsun mu?</string>

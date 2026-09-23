@@ -217,6 +217,18 @@ fun BridgeScreen() {
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 16.dp),
             )
+            // This bridge's identity fingerprint — the client settings
+            // screen shows the same value from the scanned payload.
+            // Compare to prove the paired bridge is THIS phone.
+            Text(
+                stringResource(R.string.bridge_identity_fp,
+                    com.simtether.shared.Identity.fingerprint(
+                        android.util.Base64.decode(
+                            p.bridgeStaticPubKey, android.util.Base64.DEFAULT))),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         } else if (p != null) {
             Button(onClick = { showQr = true }) {
                 Text(stringResource(R.string.bridge_show_qr))

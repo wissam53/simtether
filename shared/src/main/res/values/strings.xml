@@ -97,6 +97,7 @@
     <string name="bridge_client_none">No client paired yet</string>
     <string name="client_identity_fp">This phone\'s identity: %1$s</string>
     <string name="remote_enabled_since">Enabled %1$s — consent recorded on this device</string>
+    <string name="bridge_identity_fp">Bridge identity: %1$s</string>
     <string name="bridge_waiting_lan">Waiting for LAN address — is hotspot on?</string>
     <string name="bridge_starting">Bridge service starting…</string>
     <string name="dialer_held">✓ Phone app role held — call control active</string>
@@ -136,7 +137,7 @@
     <!-- Settings -->
     <string name="settings_bridge_section">BRIDGE</string>
     <string name="settings_last_bridge">%1$s · last %2$s:%3$s</string>
-    <string name="scan_prompt">Scan the QR on the bridge phone</string>
+    <string name="scan_prompt">Scan the QR on the bridge phone — only one you control</string>
     <string name="repair_scan">Re-pair (scan QR)</string>
     <string name="forget_bridge">Forget this bridge &amp; reset</string>
     <string name="forget_title">Forget this bridge?</string>

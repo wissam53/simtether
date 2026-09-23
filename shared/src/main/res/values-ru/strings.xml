@@ -85,6 +85,7 @@
     <string name="bridge_client_none">Клиент ещё не сопряжён</string>
     <string name="client_identity_fp">Идентификатор этого телефона: %1$s</string>
     <string name="remote_enabled_since">Включено %1$s — согласие записано на этом устройстве</string>
+    <string name="bridge_identity_fp">Идентификатор моста: %1$s</string>
     <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
     <string name="bridge_starting">Запуск службы моста…</string>
     <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>
@@ -121,7 +122,7 @@
 
     <string name="settings_bridge_section">МОСТ</string>
     <string name="settings_last_bridge">%1$s · последний %2$s:%3$s</string>
-    <string name="scan_prompt">Отсканируйте QR-код на телефоне-мосте</string>
+    <string name="scan_prompt">Отсканируйте QR-код на телефоне-мосте — только на вашем собственном устройстве</string>
     <string name="repair_scan">Сопрячь заново (QR)</string>
     <string name="forget_bridge">Забыть мост и сбросить</string>
     <string name="forget_title">Забыть этот мост?</string>
