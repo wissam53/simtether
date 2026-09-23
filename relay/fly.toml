@@ -1,0 +1,23 @@
+# Fly.io config — `fly deploy` from the relay/ directory.
+# App names are global; change this if "simtether-relay" is taken.
+app = "simtether-relay"
+primary_region = "fra"   # Frankfurt — closest low-latency region to Turkey
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Persistent WebSocket relay: machines must NOT auto-stop when idle —
+# a registered bridge holds a room open 24/7.
+# IMPORTANT: run exactly ONE machine (fly scale count 1). Rooms live in
+# per-instance memory — a bridge on machine A and a client landing on
+# machine B get "no bridge". There is no cross-machine room lookup.
+[http_service]
+  internal_port = 44711
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"   # 82MB idle JVM floor — 512 was paying for air

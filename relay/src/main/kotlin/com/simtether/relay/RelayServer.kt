@@ -24,16 +24,27 @@ import java.util.concurrent.ConcurrentHashMap
  * beyond connection lifecycle.
  *
  * Env:
- *   PORT         listen port (default 44711)
- *   ACCESS_TOKEN required — both endpoints must present it as ?token=.
- *                This is a private pipe: without the token, anyone who
- *                learns a room name can /register it and evict the real
- *                bridge (remote-access DoS). Put the relay behind TLS
- *                termination (wss://) so the token isn't on the wire
- *                in the clear.
+ *   PORT          listen port (default 44711)
+ *   ACCESS_TOKENS required — comma-separated accepted tokens, each
+ *                 presented as ?token=. A SET so rollover doesn't
+ *                 strand installed clients: ship token B in the app,
+ *                 run ACCESS_TOKENS=A,B until old clients age out,
+ *                 then drop A. ACCESS_TOKEN (singular) still works as
+ *                 a one-token shorthand.
+ *                 The token is an abuse gate, not a security boundary:
+ *                 registration completes only after the socket proves
+ *                 possession of the bridge static key matching the
+ *                 room fingerprint (ephemeral DH challenge + HMAC),
+ *                 and /connect must present the room's ticket
+ *                 (derived from a QR-carried secret only the bridge
+ *                 and its paired client hold). A token leak degrades
+ *                 to bandwidth abuse, not cross-tenant eviction —
+ *                 hence the per-IP caps below. Put the relay behind
+ *                 TLS termination (wss://) so neither token nor
+ *                 ticket is on the wire in the clear.
  *
- * Rooms are named by a 32-bit key fingerprint — enumerable in
- * principle, so the token is what actually gates registration.
+ * Rooms are named by a 32-bit key fingerprint — enumerable, which is
+ * why ownership is proven cryptographically rather than by the name.
  *
  * Client detach is signalled to the bridge as a text frame
  * "st-peer-gone" — the bridge clears the dead session but keeps its
@@ -41,16 +52,50 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class RelayServer(
     port: Int,
-    private val accessToken: String,
+    private val accessTokens: Set<String>,
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
+
+    constructor(port: Int, accessToken: String) : this(port, setOf(accessToken))
 
     private class Room {
         @Volatile var bridge: WebSocket? = null
         @Volatile var client: WebSocket? = null
+        @Volatile var ticket: ByteArray? = null
+        /** Epoch ms until which the media byte cap applies; 0 = off. */
+        @Volatile var mediaUntil = 0L
     }
+
+    /** In-flight key-ownership proof for a /register socket. */
+    private class PendingReg(
+        val fp: String,
+        val ephPriv: java.security.PrivateKey,
+        val ephPub: ByteArray,
+        val nonce: ByteArray,
+        val reaper: java.util.concurrent.ScheduledFuture<*>,
+    )
 
     private val rooms = ConcurrentHashMap<String, Room>()
     private val roles = ConcurrentHashMap<WebSocket, Pair<String, String>>() // conn → (fp, role)
+    private val pendingRegs = ConcurrentHashMap<WebSocket, PendingReg>()
+    /** Live sockets per source IP — a leaked token can't open a flood. */
+    private val connsPerIp = ConcurrentHashMap<String, Int>()
+    /** /register handshake timestamps per source IP, sliding window. */
+    private val regPerIp = ConcurrentHashMap<String, ArrayDeque<Long>>()
+    /**
+     * Per-socket forwarded-byte meter: (windowStartMs → bytes). A
+     * leaked token can mint its own rooms (own keypair → own fp → own
+     * ticket), which makes the relay a free anonymous byte pipe —
+     * the damage is throughput, not connection count. Legit splice
+     * traffic is SMS/call signaling: KB-scale bursts. Capping each
+     * socket's sustained rate kills the relay's value as a proxy
+     * while real use never notices.
+     */
+    private val byteMeters = ConcurrentHashMap<WebSocket, LongArray>() // [windowStart, bytes]
+    private val totalConns = java.util.concurrent.atomic.AtomicInteger(0)
+    private val reaperExec = java.util.concurrent.Executors
+        .newSingleThreadScheduledExecutor { r ->
+            Thread(r, "relay-reaper").also { it.isDaemon = true }
+        }
 
     /**
      * Rejections happen here — at the HTTP layer — not with a close
@@ -73,39 +118,122 @@ class RelayServer(
         } ?: ""
         // Constant-time — a timing oracle on the token comparison
         // would let a scanner recover it byte-by-byte.
-        if (!java.security.MessageDigest.isEqual(
-                tok.toByteArray(Charsets.UTF_8),
-                accessToken.toByteArray(Charsets.UTF_8))) {
+        val tokBytes = tok.toByteArray(Charsets.UTF_8)
+        if (accessTokens.none {
+                java.security.MessageDigest.isEqual(tokBytes, it.toByteArray(Charsets.UTF_8)) }) {
+            System.err.println("rejected ${conn.remoteSocketAddress}: bad token")
             throw InvalidDataException(401, "bad token")
+        }
+        // Per-IP caps — the access token ships inside every APK, so a
+        // leak is a bandwidth bill, not a breach. Limit how much of
+        // one a single source can run up. (Legit use = 1 register +
+        // 1 connect per phone pair, plus reconnect churn.)
+        val ip = conn.remoteSocketAddress?.address?.hostAddress ?: "?"
+        if (totalConns.get() >= MAX_TOTAL_CONNS ||
+            (connsPerIp[ip] ?: 0) >= MAX_CONNS_PER_IP) {
+            System.err.println("rejected ${conn.remoteSocketAddress}: conn cap")
+            throw InvalidDataException(429, "conn cap")
+        }
+        if (desc.substringBefore('?').trim('/').substringBefore('/') == "register") {
+            val now = System.currentTimeMillis()
+            val window = regPerIp.getOrPut(ip) { ArrayDeque() }
+            synchronized(window) {
+                while (window.isNotEmpty() && now - window.first() > REG_WINDOW_MS)
+                    window.removeFirst()
+                if (window.isEmpty()) regPerIp.remove(ip, window) // no unbounded per-IP growth
+                if (window.size >= MAX_REG_PER_WINDOW) {
+                    System.err.println("rejected ${conn.remoteSocketAddress}: reg rate")
+                    throw InvalidDataException(429, "reg rate")
+                }
+                window.addLast(now)
+            }
         }
         val seg = desc.substringBefore('?').trim('/').split('/')
         if (seg.size != 2 || seg[1].isBlank()
             || (seg[0] != "register" && seg[0] != "connect")) {
+            // Strip the query — desc carries the (valid) token.
+            System.err.println("rejected ${conn.remoteSocketAddress}: bad path " +
+                desc.substringBefore('?'))
             throw InvalidDataException(400, "bad path")
         }
+        if (seg[0] == "register" && pendingRegs.size >= MAX_PENDING_REG) {
+            throw InvalidDataException(503, "busy")
+        }
         if (seg[0] == "connect") {
-            val b = rooms[seg[1]]?.bridge
+            val room = rooms[seg[1]]
+            val b = room?.bridge
             if (b == null || !b.isOpen) throw InvalidDataException(404, "no bridge")
+            // A live client slot is not evictable — previously any
+            // token holder could /connect a victim's room and kick the
+            // real client. Stale ghosts are reaped by the ping timeout.
+            if (room.client?.isOpen == true) throw InvalidDataException(409, "room occupied")
+            // Rooms registered with a ticket (all current bridges)
+            // require the matching ticket — derived from a secret only
+            // the bridge and its paired client hold.
+            room.ticket?.let { expected ->
+                val t = queryParam(query, "t")
+                    ?.let { runCatching { b64urlDecode(it) }.getOrNull() }
+                if (t == null || !java.security.MessageDigest.isEqual(t, expected))
+                    throw InvalidDataException(403, "bad ticket")
+            }
         }
         return super.onWebsocketHandshakeReceivedAsServer(conn, draft, request)
     }
 
+    /** Sliding-window byte meter — true when this frame overflows the cap. */
+    private fun meterExceeded(conn: WebSocket, frameBytes: Int): Boolean {
+        val now = System.currentTimeMillis()
+        // Rooms in media mode get the audio-rate cap: the bridge (the
+        // authenticated socket) turned it on for a live call.
+        val cap = roles[conn]?.let { (fp, _) -> rooms[fp] }
+            ?.takeIf { it.mediaUntil > now }
+            ?.let { MEDIA_BYTES_PER_WINDOW }
+            ?: MAX_BYTES_PER_WINDOW
+        val m = byteMeters.getOrPut(conn) { longArrayOf(now, 0) }
+        synchronized(m) {
+            if (now - m[0] > BYTE_WINDOW_MS) { m[0] = now; m[1] = 0 }
+            m[1] += frameBytes
+            return m[1] > cap
+        }
+    }
+
+    private fun ipOf(conn: WebSocket): String =
+        conn.remoteSocketAddress?.address?.hostAddress ?: "?"
+
+    private fun queryParam(query: String, name: String): String? =
+        query.split('&').firstNotNullOfOrNull {
+            it.substringBefore('=').takeIf { k -> k == name }
+                ?.let { _ -> it.substringAfter('=') }
+        }
+
+    private fun b64urlDecode(s: String): ByteArray =
+        java.util.Base64.getUrlDecoder().decode(s)
+
     override fun onOpen(conn: WebSocket, hs: ClientHandshake) {
         // Path shape + token already validated during the handshake.
+        totalConns.incrementAndGet()
+        connsPerIp.merge(ipOf(conn), 1, Int::plus)
         val seg = (conn.resourceDescriptor ?: "")
             .substringBefore('?').trim('/').split('/')
         val (role, fp) = seg
         when (role) {
             "register" -> {
-                val room = rooms.getOrPut(fp) { Room() }
-                // One bridge per room — a re-registration replaces the
-                // stale socket (and drops any client spliced to it).
-                room.bridge?.takeIf { it != conn }?.close(1000, "replaced")
-                room.client?.close(1000, "bridge replaced")
-                room.client = null
-                room.bridge = conn
-                roles[conn] = fp to role
-                println("room $fp: bridge registered")
+                // Don't adopt yet — issue a key-ownership challenge
+                // first. The socket must prove it holds the static
+                // private key whose SHA-256 fingerprint is the room
+                // name before it can claim (or evict) the room.
+                val kpg = java.security.KeyPairGenerator.getInstance("X25519")
+                val kp = kpg.generateKeyPair()
+                val ephPub = uToBytes(
+                    (kp.public as java.security.interfaces.XECPublicKey).u)
+                val nonce = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+                val reaper = reaperExec.schedule(
+                    {
+                        pendingRegs.remove(conn)
+                        conn.close(4000, "proof timeout")
+                    }, PROOF_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
+                pendingRegs[conn] = PendingReg(fp, kp.private, ephPub, nonce, reaper)
+                conn.send(ephPub + nonce)
             }
             "connect" -> {
                 val room = rooms[fp]
@@ -127,16 +255,132 @@ class RelayServer(
     }
 
     override fun onMessage(conn: WebSocket, bytes: ByteBuffer) {
-        conn.getAttachment<WebSocket>()?.send(bytes)
+        val pending = pendingRegs.remove(conn)
+        if (pending != null) {
+            pending.reaper.cancel(false)
+            verifyRegistration(conn, pending, bytes)
+            return
+        }
+        val peer = conn.getAttachment<WebSocket>() ?: return
+        if (meterExceeded(conn, bytes.remaining())) {
+            println("rate exceeded: ${conn.remoteSocketAddress} — closed")
+            conn.close(1008, "rate")
+            return
+        }
+        peer.send(bytes)
+    }
+
+    /**
+     * Verify a register proof: staticPub(32) || ticket(32) || mac(32).
+     * mac = HMAC-SHA256(key=SHA256("st-relay-reg-v1"||DH), msg=
+     * "register"||fp||ephPub||nonce||staticPub||ticket). Only the
+     * holder of the static private key matching the room fingerprint
+     * can produce the DH shared secret — a token holder who isn't the
+     * real bridge can no longer claim the room.
+     */
+    private fun verifyRegistration(conn: WebSocket, reg: PendingReg, msg: ByteBuffer) {
+        val bytes = ByteArray(msg.remaining()).also { msg.get(it) }
+        fun reject(why: String) {
+            println("room ${reg.fp}: proof rejected ($why)")
+            conn.close(4003, why)
+        }
+        if (bytes.size != PROOF_LEN) return reject("bad proof")
+        val staticPub = bytes.copyOfRange(0, 32)
+        val ticket = bytes.copyOfRange(32, 64)
+        val mac = bytes.copyOfRange(64, 96)
+        if (fingerprint(staticPub) != reg.fp) return reject("fp mismatch")
+        val shared = runCatching {
+            javax.crypto.KeyAgreement.getInstance("X25519").run {
+                init(reg.ephPriv)
+                doPhase(x25519PublicKey(staticPub), true)
+                generateSecret()
+            }
+        }.getOrNull() ?: return reject("bad pubkey")
+        val macKey = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("st-relay-reg-v1".toByteArray() + shared)
+        val expected = javax.crypto.Mac.getInstance("HmacSHA256").run {
+            init(javax.crypto.spec.SecretKeySpec(macKey, "HmacSHA256"))
+            doFinal("register".toByteArray() + reg.fp.toByteArray() +
+                reg.ephPub + reg.nonce + staticPub + ticket)
+        }
+        if (!java.security.MessageDigest.isEqual(expected, mac)) return reject("bad mac")
+        // Verified — this socket owns the room.
+        val room = rooms.getOrPut(reg.fp) { Room() }
+        room.bridge?.takeIf { it != conn }?.close(1000, "replaced")
+        room.client?.close(1000, "bridge replaced")
+        room.client = null
+        room.bridge = conn
+        room.ticket = ticket
+        roles[conn] = reg.fp to "register"
+        println("room ${reg.fp}: bridge registered (proof ok)")
+    }
+
+    /** Same derivation as the client side: first 4 bytes of SHA-256, hex. */
+    private fun fingerprint(staticPub: ByteArray): String =
+        java.security.MessageDigest.getInstance("SHA-256").digest(staticPub)
+            .take(4).joinToString("") { "%02x".format(it) }
+
+    private fun x25519PublicKey(raw: ByteArray): java.security.PublicKey {
+        // RFC 7748 u-coordinate is little-endian; BigInteger wants BE.
+        val u = java.math.BigInteger(1, raw.reversedArray())
+        return java.security.KeyFactory.getInstance("X25519").generatePublic(
+            java.security.spec.XECPublicKeySpec(
+                java.security.spec.NamedParameterSpec.X25519, u))
+    }
+
+    /** XECPublicKey.u is a big-endian BigInteger; the wire wants 32B LE. */
+    private fun uToBytes(u: java.math.BigInteger): ByteArray {
+        val be = u.toByteArray()
+            .let { if (it.size > 32 && it[0] == 0.toByte()) it.copyOfRange(1, it.size) else it }
+        val padded = ByteArray(32)
+        System.arraycopy(be, 0, padded, 32 - be.size, be.size)
+        return padded.reversedArray()
     }
 
     // Text frames are control, not payload — the app protocol is
     // binary-only, so nothing user-originated ever reaches this path.
+    // The "st-" prefix is a reserved relay-control namespace and is
+    // never forwarded; everything else splices through, metered.
     override fun onMessage(conn: WebSocket, text: String) {
-        conn.getAttachment<WebSocket>()?.send(text)
+        if (text.startsWith("st-")) { handleControl(conn, text); return }
+        val peer = conn.getAttachment<WebSocket>() ?: return
+        if (meterExceeded(conn, text.toByteArray(Charsets.UTF_8).size)) {
+            println("rate exceeded: ${conn.remoteSocketAddress} — closed")
+            conn.close(1008, "rate")
+            return
+        }
+        peer.send(text)
+    }
+
+    /**
+     * Bridge-only relay commands (the register socket is the proven
+     * room owner; the client socket can't touch room policy):
+     *   st-media on   raise the byte cap for a live call
+     *   st-media off  return to the signaling cap
+     * Media mode auto-expires — a crashed bridge can't leave its room
+     * uncapped forever; a long call re-sends "st-media on" to renew.
+     */
+    private fun handleControl(conn: WebSocket, text: String) {
+        val (fp, role) = roles[conn] ?: return
+        if (role != "register") return
+        when (text) {
+            "st-media on" -> {
+                rooms[fp]?.mediaUntil =
+                    System.currentTimeMillis() + MEDIA_SESSION_MS
+                println("room $fp: media on")
+            }
+            "st-media off" -> {
+                rooms[fp]?.mediaUntil = 0L
+                println("room $fp: media off")
+            }
+        }
     }
 
     override fun onClose(conn: WebSocket, code: Int, reason: String, remote: Boolean) {
+        pendingRegs.remove(conn)?.reaper?.cancel(false)
+        byteMeters.remove(conn)
+        totalConns.decrementAndGet()
+        connsPerIp.computeIfPresent(ipOf(conn)) { _, n -> if (n > 1) n - 1 else null }
         val peer = conn.getAttachment<WebSocket>()
         conn.setAttachment<WebSocket?>(null)
         val r = roles.remove(conn)
@@ -173,16 +417,39 @@ class RelayServer(
     }
 
     companion object {
+        private const val PROOF_LEN = 96         // staticPub||ticket||mac
+        private const val PROOF_TIMEOUT_S = 10L  // idle challenge sockets reaped
+        private const val MAX_PENDING_REG = 32   // challenge flood cap
+        // Per-IP caps are CGNAT-tolerant: mobile carriers concentrate
+        // hundreds of subscribers behind one egress IP, so IP is a
+        // weak proxy for "abuser" — they only stop single-source
+        // floods. The byte meter above is the real cost bound.
+        private const val MAX_CONNS_PER_IP = 64
+        private const val MAX_TOTAL_CONNS = 2048  // ~1k pairs on a 256MB machine
+        private const val REG_WINDOW_MS = 60_000L
+        private const val MAX_REG_PER_WINDOW = 20 // reg floods burn memory, not just bw
+        private const val BYTE_WINDOW_MS = 60_000L
+        // ~2KB/s sustained per socket — hundreds of SMS/minute of
+        // headroom, useless as a proxy pipe.
+        private const val MAX_BYTES_PER_WINDOW = 128 * 1024L
+        // ~34KB/s sustained per socket while a call is live — Opus
+        // wideband (~32kbps) plus WS/jitter overhead. Media mode is
+        // bridge-authorized and auto-expires.
+        private const val MEDIA_BYTES_PER_WINDOW = 2L * 1024 * 1024
+        private const val MEDIA_SESSION_MS = 2 * 60 * 60 * 1000L // 2h max call
+
         @JvmStatic
         fun main(args: Array<String>) {
             val port = System.getenv("PORT")?.toIntOrNull() ?: 44711
-            val token = System.getenv("ACCESS_TOKEN")?.takeIf { it.isNotBlank() }
+            val tokens = (System.getenv("ACCESS_TOKENS") ?: System.getenv("ACCESS_TOKEN"))
+                ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+                ?.takeIf { it.isNotEmpty() }
                 ?: run {
                     System.err.println(
-                        "ACCESS_TOKEN is required — refusing to run an open relay")
+                        "ACCESS_TOKENS is required — refusing to run an open relay")
                     kotlin.system.exitProcess(1)
                 }
-            RelayServer(port, token).apply {
+            RelayServer(port, tokens.toSet()).apply {
                 // WS ping/liveness — reaps half-dead sockets so rooms
                 // don't stay registered to ghosts.
                 connectionLostTimeout = 60
