@@ -131,7 +131,7 @@
     <string name="forget_title">Bu köpri unutmalymy?</string>
     <string name="forget_body">Jübütleme, gönüdirilen habar taryhy we jaň gündeligi bu telefondan pozular. Täzeden birikmek üçin köprüde täze QR kod skanirlemeli.</string>
     <string name="forget_confirm">Poz we unut</string>
-    <string name="keystore_warning">Enjam şifrlemesi elýeterli däl — jübütleme täzeden başlatmady ýaşar</string>
+    <string name="keystore_warning">Enjam şifrlemesi elýeterli däl — saklanan maglumatlar goralmadyk we jübütleme täzeden başlatmady ýaşar</string>
     <string name="repair_button">Enjamy täzeden jübütle</string>
     <string name="repair_title">Häzirki jübütlik ýatyrylsynmy?</string>
     <string name="repair_body">Jübütlenen telefon derrew elýeterliligini ýitirer we täzeden birikmek üçin täze QR kody skanirlemeli. Telefon ýitirilse ýa-da QR şekili syýsa, munu ulanyň.</string>

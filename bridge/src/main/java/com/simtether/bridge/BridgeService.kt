@@ -179,21 +179,32 @@ class BridgeService : LifecycleService() {
         val token = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
         val relaySecret = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
         // failClosed — same rule as loadOrCreateIdentity: the static
-        // private key never lands in plaintext prefs.
-        val persisted = com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_priv",
-                enc.encodeToString(pair.first), failClosed = true) &&
-            com.simtether.shared.SecureStore
-                .putString(this, "bridge_keys", "static_pub",
-                    enc.encodeToString(pair.second), failClosed = true) &&
-            com.simtether.shared.SecureStore
-                .putString(this, "bridge_keys", "pairing_token",
-                    enc.encodeToString(token), failClosed = true) &&
-            com.simtether.shared.SecureStore
-                .putString(this, "bridge_keys", "relay_secret",
-                    enc.encodeToString(relaySecret), failClosed = true)
-        if (!persisted)
-            Log.e(TAG, "identity NOT persisted — pairing breaks on restart")
+        // private key never lands in plaintext prefs. .all{} not && —
+        // a skipped write must never leave a half-rotated identity.
+        val persisted = listOf(
+            "static_priv" to enc.encodeToString(pair.first),
+            "static_pub" to enc.encodeToString(pair.second),
+            "pairing_token" to enc.encodeToString(token),
+            "relay_secret" to enc.encodeToString(relaySecret),
+        ).all { (k, v) ->
+            com.simtether.shared.SecureStore.putString(
+                this, "bridge_keys", k, v, failClosed = true)
+        }
+        if (!persisted) {
+            // Transient keystore failure + recoverable old entries =
+            // the revoked pairing resurrects on next process start
+            // (SecureStore.key is lazy; getString would decrypt the
+            // stale copies fine once the keystore recovers). Clear
+            // them — removal needs no crypto.
+            Log.e(TAG, "identity NOT persisted — clearing stale keys so " +
+                "a recovered keystore can't resurrect the revoked pairing")
+            listOf("static_priv", "static_pub", "pairing_token",
+                "relay_secret", "client_pub", "pairing_token_pending"
+            ).forEach {
+                com.simtether.shared.SecureStore.putString(
+                    this, "bridge_keys", it, null)
+            }
+        }
         tokenRotator = com.simtether.shared.TokenRotator(token) { cur, pend ->
             persistTokens(cur, pend)
         }
@@ -318,19 +329,26 @@ class BridgeService : LifecycleService() {
         // failClosed — the static private key IS the bridge identity;
         // a plaintext write on a keystore-broken device is worse than
         // an ephemeral identity that dies with the process.
-        val persisted = com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_priv",
-                enc.encodeToString(pair.first), failClosed = true) &&
-            com.simtether.shared.SecureStore
-                .putString(this, "bridge_keys", "static_pub",
-                    enc.encodeToString(pair.second), failClosed = true) &&
-            com.simtether.shared.SecureStore
-                .putString(this, "bridge_keys", "pairing_token",
-                    enc.encodeToString(token), failClosed = true)
-        if (!persisted)
-            // The service still runs on the in-memory identity, but
-            // pairing dies on every restart — say so loudly.
+        val persisted = listOf(
+            "static_priv" to enc.encodeToString(pair.first),
+            "static_pub" to enc.encodeToString(pair.second),
+            "pairing_token" to enc.encodeToString(token),
+        ).all { (k, v) ->
+            com.simtether.shared.SecureStore.putString(
+                this, "bridge_keys", k, v, failClosed = true)
+        }
+        if (!persisted) {
+            // The service still runs on the in-memory identity — but
+            // clear stale entries too, or a transient keystore failure
+            // leaves old keys that a recovered keystore decrypts on the
+            // next start.
             Log.e(TAG, "identity NOT persisted — pairing breaks on restart")
+            listOf("static_priv", "static_pub", "pairing_token",
+                "relay_secret").forEach {
+                com.simtether.shared.SecureStore.putString(
+                    this, "bridge_keys", it, null)
+            }
+        }
         // Same lifetime as the identity — loadRelaySecret creates it
         // on first read if an upgrade left it absent.
         loadRelaySecret()

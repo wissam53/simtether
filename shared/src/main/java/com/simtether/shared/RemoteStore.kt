@@ -112,15 +112,19 @@ object RemoteStore {
             }
         }
         if (host.isEmpty() || port > 65535) return null
+        // URI.getHost() keeps IPv6 brackets — strip once, test and
+        // re-bracket, or "[fd00::1]" reads as a public host and the
+        // final form becomes "[[fd00::1]]".
+        val bare = host.removeSurrounding("[", "]")
         // Cleartext ws:// to a public host puts the access token and
         // room ticket on the wire for anyone on the path. A bare
         // "host:port" upgrades to wss://; an explicitly typed
         // "ws://public" is refused — don't silently honor a request
         // for something insecure.
-        val scheme = if (u.scheme == "ws" && !isPrivateHost(host)) {
+        val scheme = if (u.scheme == "ws" && !isPrivateHost(bare)) {
             if (explicitScheme) return null else "wss"
         } else u.scheme
-        val h = if (':' in host) "[$host]" else host
+        val h = if (':' in bare) "[$bare]" else bare
         return "$scheme://$h" + if (port >= 0) ":$port" else ""
     }
 }

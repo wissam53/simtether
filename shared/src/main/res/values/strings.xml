@@ -146,7 +146,7 @@
     <string name="forget_title">Forget this bridge?</string>
     <string name="forget_body">The pairing, forwarded message history, and call log will be erased from this phone. Reconnecting requires scanning a new QR code on the bridge.</string>
     <string name="forget_confirm">Erase &amp; forget</string>
-    <string name="keystore_warning">Device encryption unavailable — pairing will not survive a restart</string>
+    <string name="keystore_warning">Device encryption unavailable — stored data is unprotected and pairing will not survive a restart</string>
     <string name="repair_button">Re-pair device</string>
     <string name="repair_title">Revoke current pairing?</string>
     <string name="repair_body">The paired phone loses access immediately and must scan the new QR code. Use this if a phone was lost or a QR image leaked.</string>

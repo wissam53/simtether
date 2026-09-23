@@ -131,7 +131,7 @@
     <string name="forget_title">نسيان هذا الجسر؟</string>
     <string name="forget_body">سيتم محو الاقتران وسجل الرسائل المحوّلة وسجل المكالمات من هذا الهاتف. تتطلب إعادة الاتصال مسح رمز QR جديد على الجسر.</string>
     <string name="forget_confirm">محو ونسيان</string>
-    <string name="keystore_warning">تشفير الجهاز غير متاح — لن يبقى الاقتران بعد إعادة التشغيل</string>
+    <string name="keystore_warning">تشفير الجهاز غير متاح — البيانات المخزنة غير محمية ولن يبقى الاقتران بعد إعادة التشغيل</string>
     <string name="repair_button">إعادة إقران الجهاز</string>
     <string name="repair_title">إلغاء الإقران الحالي؟</string>
     <string name="repair_body">يفقد الهاتف المُقترن الوصول فورًا ويجب عليه مسح رمز QR الجديد لإعادة الاتصال. استخدم هذا إذا فُقد الهاتف أو تسربت صورة الرمز.</string>

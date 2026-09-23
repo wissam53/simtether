@@ -167,6 +167,25 @@ class BridgeWsServerTest {
     }
 
     @Test
+    fun `corrupt frame on a live session tears the link down`() {
+        // Regression for the AEAD-swallow bug: a failed decrypt used to
+        // be a silent no-op — the desynced session stayed "connected"
+        // while dropping every frame, and heartbeats masked it from
+        // the watchdog. Per the Noise spec a failed tag terminates
+        // the session: the socket must close so both sides re-handshake.
+        val port = startServer()
+        val c = connect(port)
+        authenticate(c)
+        assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+
+        c.send(byteArrayOf(0xde.toByte(), 0xad.toByte(), 0xbe.toByte(), 0xef.toByte()))
+        assertTrue("socket survived a decrypt failure",
+            c.closed.await(5, TimeUnit.SECONDS))
+        assertTrue("session still live after decrypt failure",
+            waitFor { !server!!.isReady() })
+    }
+
+    @Test
     fun `second authenticated client replaces the first`() {
         val port = startServer()
         val first = connect(port)
