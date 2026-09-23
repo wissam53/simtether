@@ -43,6 +43,9 @@ class BridgeService : LifecycleService() {
     private val seq = AtomicLong(0)
     private var server: BridgeWsServer? = null
     private var advertiser: BridgeAdvertiser? = null
+    /** Retained for watchdog restarts — same pair loadOrCreateIdentity
+     *  returned, or the fresh pair after rePair(). */
+    private var staticKey: Pair<ByteArray, ByteArray>? = null
     private var relayLink: com.simtether.bridge.net.RelayLink? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
@@ -71,6 +74,7 @@ class BridgeService : LifecycleService() {
         com.simtether.shared.ContactLookup.init(applicationContext)
         startForegroundWithNotification()
         val (staticKey, token) = loadOrCreateIdentity()
+        this.staticKey = staticKey
         tokenRotator = com.simtether.shared.TokenRotator(
             token, loadPendingToken()) { cur, pend -> persistTokens(cur, pend) }
         // Telecom sends the canned reply itself on reject-with-message —
@@ -103,6 +107,49 @@ class BridgeService : LifecycleService() {
             while (true) {
                 kotlinx.coroutines.delay(STATUS_PUSH_MS)
                 if (server?.isReady() == true) StatusReporter.emit(applicationContext)
+            }
+        }
+        startServerWatchdog()
+    }
+
+    /**
+     * The service outlives its own socket: if the WS selector thread
+     * dies (or the port is lost), the process stays up — FGS, wake
+     * lock, START_STICKY all look healthy — while the bridge is deaf.
+     * Probe the port; when it refuses, rebuild server+advertiser.
+     * Cooldown-bounded: a wedged port retries slowly rather than
+     * churning NSD registrations every cycle.
+     */
+    private var lastServerRestart = 0L
+    private fun startServerWatchdog() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                kotlinx.coroutines.delay(SERVER_WATCHDOG_MS)
+                val srv = server ?: continue
+                val alive = runCatching {
+                    java.net.Socket().use {
+                        it.connect(java.net.InetSocketAddress(
+                            "127.0.0.1", Protocol.WS_PORT), 2_000)
+                    }
+                }.isSuccess
+                if (alive) continue
+                val now = System.currentTimeMillis()
+                // Cooldown, not edge-trigger: a failed rebuild gets
+                // retried, but a wedged port never churns a rebuild
+                // every cycle (each attempt re-registers NSD + relay).
+                if (now - lastServerRestart < SERVER_RESTART_COOLDOWN_MS) continue
+                lastServerRestart = now
+                Log.w(TAG, "watchdog: WS server not listening — restarting")
+                val key = staticKey ?: continue
+                // rePair() may have swapped in a fresh server while
+                // the probe was in flight — only rebuild when the
+                // dead instance is still the live one.
+                if (server !== srv) continue
+                runCatching { advertiser?.stop() }
+                runCatching { srv.stop(1_000) }
+                advertiser = null
+                runCatching { startRelay(key) }
+                    .onFailure { Log.e(TAG, "watchdog restart failed", it) }
             }
         }
     }
@@ -227,6 +274,7 @@ class BridgeService : LifecycleService() {
         server = null
         runCatching { advertiser?.stop() }
         advertiser = null
+        staticKey = pair
         startRelay(pair)
         Log.i(TAG, "identity rotated — previous pairing revoked")
     }
@@ -707,6 +755,8 @@ class BridgeService : LifecycleService() {
         private const val TAG = "SimTether.Bridge"
         private const val MAX_PENDING = 200
         private const val STATUS_PUSH_MS = 60_000L
+        private const val SERVER_WATCHDOG_MS = 60_000L
+        private const val SERVER_RESTART_COOLDOWN_MS = 5 * 60_000L
         private const val PARKED_FILE = "parked_events.jsonl"
         const val EXTRA_EVENT_TYPE = "com.simtether.bridge.EVENT_TYPE"
         const val EXTRA_EVENT_PAYLOAD = "com.simtether.bridge.EVENT_PAYLOAD"

@@ -34,6 +34,7 @@ class BridgeWsServerTest {
     private var server: BridgeWsServer? = null
     private val readyLatch = CountDownLatch(1)
     private val commands = java.util.concurrent.CopyOnWriteArrayList<Protocol.Envelope>()
+    private val media = java.util.concurrent.CopyOnWriteArrayList<ByteArray>()
 
     // TOFU pin, mirroring BridgeService.acceptClientKey.
     private val pinnedClient = AtomicReference<ByteArray?>(null)
@@ -53,6 +54,7 @@ class BridgeWsServerTest {
             onClientReady = { readyLatch.countDown() },
             onClientDisconnected = {},
             onCommand = { commands.add(it) },
+            onMedia = { media.add(it) },
         )
         server!!.start()
         return port
@@ -137,6 +139,36 @@ class BridgeWsServerTest {
         assertNotNull(frame)
         assertEquals("hb",
             Protocol.decode(session.decrypt(frame).decodeToString()).type)
+    }
+
+    /**
+     * Call audio rides tagged binary frames inside the session — the
+     * tag keeps raw PCM out of the JSON envelope parser so a media
+     * frame can never be misread as a command, and a JSON frame can
+     * never be misread as media.
+     */
+    @Test
+    fun `tagged media frames bypass the envelope parser both ways`() {
+        val port = startServer()
+        val c = connect(port)
+        val session = authenticate(c)
+        assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+
+        // client → bridge: tagged frame lands on onMedia, not onCommand.
+        val pcm = ByteArray(640) { it.toByte() }
+        c.send(session.encrypt(byteArrayOf(Protocol.MEDIA_TAG) + pcm))
+        assertTrue("media never arrived", waitFor { media.isNotEmpty() })
+        assertTrue(media.first().contentEquals(pcm))
+        assertTrue("media frame reached the envelope parser",
+            commands.isEmpty())
+
+        // bridge → client: sendMedia encrypts tag + payload.
+        server!!.sendMedia(pcm)
+        val frame = c.frames.poll(5, TimeUnit.SECONDS)
+        assertNotNull(frame)
+        val plain = session.decrypt(frame)
+        assertEquals(Protocol.MEDIA_TAG, plain[0])
+        assertTrue(plain.copyOfRange(1, plain.size).contentEquals(pcm))
     }
 
     @Test

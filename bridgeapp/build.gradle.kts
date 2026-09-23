@@ -33,6 +33,9 @@ android {
     //            unrooted apps (live GSM call audio). Feature-gated by
     //            BuildConfig.DIST_ROOTED — the extra code paths require
     //            root at runtime, not just this build flag.
+    // versionCode MUST stay in defaultConfig — a per-flavor override
+    // breaks the Play→GitHub cross-upgrade (a lower rooted versionCode
+    // on an upgrade is an install error, not a downgrade warning).
     flavorDimensions += "dist"
     productFlavors {
         create("store") {

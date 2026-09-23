@@ -54,9 +54,20 @@ import java.util.concurrent.ConcurrentHashMap
 class RelayServer(
     port: Int,
     private val accessTokens: Set<String>,
+    /**
+     * Honor Fly-Client-IP / X-Forwarded-For for per-IP accounting.
+     * Behind a trusted edge (the hosted Fly deployment) every socket's
+     * remoteSocketAddress IS the proxy — without this, all users share
+     * a handful of edge IPs and the per-IP caps throttle legit traffic
+     * (or never engage). Off by default: on a direct-facing self-host
+     * the headers are attacker-controlled, so the socket address wins.
+     */
+    private val trustProxyHeaders: Boolean =
+        System.getenv("TRUST_PROXY_HEADERS") == "1",
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
 
-    constructor(port: Int, accessToken: String) : this(port, setOf(accessToken))
+    constructor(port: Int, accessToken: String) : this(
+        port, setOf(accessToken), System.getenv("TRUST_PROXY_HEADERS") == "1")
 
     private class Room {
         @Volatile var bridge: WebSocket? = null
@@ -82,6 +93,12 @@ class RelayServer(
     private val connsPerIp = ConcurrentHashMap<String, Int>()
     /** /register handshake timestamps per source IP, sliding window. */
     private val regPerIp = ConcurrentHashMap<String, ArrayDeque<Long>>()
+    /**
+     * Resolved client IP per conn — behind a trusted edge the socket
+     * address is the proxy's, so the handshake captures the real IP
+     * from forwarded headers (headers only exist at handshake time).
+     */
+    private val clientIps = ConcurrentHashMap<WebSocket, String>()
     /**
      * Per-socket forwarded-byte meter: (windowStartMs → bytes). A
      * leaked token can mint its own rooms (own keypair → own fp → own
@@ -134,7 +151,7 @@ class RelayServer(
         // leak is a bandwidth bill, not a breach. Limit how much of
         // one a single source can run up. (Legit use = 1 register +
         // 1 connect per phone pair, plus reconnect churn.)
-        val ip = conn.remoteSocketAddress?.address?.hostAddress ?: "?"
+        val ip = handshakeIpOf(conn, request)
         if (totalConns.get() >= MAX_TOTAL_CONNS ||
             (connsPerIp[ip] ?: 0) >= MAX_CONNS_PER_IP) {
             System.err.println("rejected ${conn.remoteSocketAddress}: conn cap")
@@ -184,6 +201,13 @@ class RelayServer(
                     throw InvalidDataException(403, "bad ticket")
             }
         }
+        // Handshake passed — remember the resolved IP so onOpen's
+        // connsPerIp increment and onClose's decrement key the same
+        // value the caps above just checked. Recorded only here at
+        // the end: rejected conns never open, and their map entries
+        // would leak (a scanner hammering bad tokens must not grow
+        // this map).
+        clientIps[conn] = ip
         return super.onWebsocketHandshakeReceivedAsServer(conn, draft, request)
     }
 
@@ -205,7 +229,31 @@ class RelayServer(
     }
 
     private fun ipOf(conn: WebSocket): String =
-        conn.remoteSocketAddress?.address?.hostAddress ?: "?"
+        clientIps[conn] ?: conn.remoteSocketAddress?.address?.hostAddress ?: "?"
+
+    /** Test hook — the per-IP counters are the observable proof that
+     *  forwarded-IP resolution keyed the right bucket. */
+    internal fun connsPerIpCount(ip: String): Int = connsPerIp[ip] ?: 0
+
+    /**
+     * The IP the caps key on. Behind a trusted edge (the hosted Fly
+     * deployment) every socket's remoteSocketAddress IS the proxy —
+     * all users would share a handful of edge IPs and the per-IP caps
+     * would throttle legit traffic. When trustProxyHeaders is on, the
+     * edge-injected client-IP header wins; on a direct-facing self-
+     * host the headers are attacker-controlled so the socket address
+     * stays authoritative. X-Forwarded-For is the fallback — first
+     * hop only, the rest of the chain is proxy bookkeeping.
+     */
+    private fun handshakeIpOf(conn: WebSocket, request: ClientHandshake): String {
+        if (trustProxyHeaders) {
+            val real = request.getFieldValue("Fly-Client-IP")
+                .ifBlank { request.getFieldValue("X-Forwarded-For") }
+                .substringBefore(',').trim()
+            if (real.isNotEmpty()) return real
+        }
+        return conn.remoteSocketAddress?.address?.hostAddress ?: "?"
+    }
 
     private fun queryParam(query: String, name: String): String? =
         query.split('&').firstNotNullOfOrNull {
@@ -388,6 +436,7 @@ class RelayServer(
         byteMeters.remove(conn)
         totalConns.decrementAndGet()
         connsPerIp.computeIfPresent(ipOf(conn)) { _, n -> if (n > 1) n - 1 else null }
+        clientIps.remove(conn)
         val peer = conn.getAttachment<WebSocket>()
         conn.setAttachment<WebSocket?>(null)
         val r = roles.remove(conn)

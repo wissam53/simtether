@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+    <!-- Android 17's LAN permission — declared early so the upgrade
+         doesn't silently break the WS server/mDNS advert; ignored on
+         older versions. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <!-- SMS relay — the bridge's core function (restricted perms live
          only in this app; the client app carries none of them) -->

@@ -37,7 +37,12 @@ class RelayServerTest {
     private lateinit var server: RelayServer
     private var port = 0
 
-    private class Sock(uri: URI) : WebSocketClient(uri) {
+    private class Sock(
+        uri: URI,
+        draft: org.java_websocket.drafts.Draft =
+            org.java_websocket.drafts.Draft_6455(),
+        headers: Map<String, String> = emptyMap(),
+    ) : WebSocketClient(uri, draft, headers) {
         val opened = CountDownLatch(1)
         val closed = CountDownLatch(1)
         @Volatile var closeCode = -1
@@ -336,5 +341,50 @@ class RelayServerTest {
         repeat(10) { client.send(ByteBuffer.wrap(chunk)) }
         waitFor { client.closed.count == 0L }
         assertEquals(1008, client.closeCode)
+    }
+
+    // ---- Forwarded-IP accounting -----------------------------------
+
+    /**
+     * Behind a trusted edge every socket's remote address is the
+     * proxy's — without honoring the injected client-IP header the
+     * per-IP caps would key all users to a handful of edge IPs.
+     */
+    @Test
+    fun `forwarded client IP keys the per-IP counters when trusted`() {
+        val p = ServerSocket(0).use { it.localPort }
+        val trusted = RelayServer(p, setOf("secret"), trustProxyHeaders = true)
+            .apply { connectionLostTimeout = 60 }
+        trusted.start()
+        try {
+            val s1 = Sock(URI("ws://127.0.0.1:$p/register/r1?token=secret"),
+                headers = mapOf("Fly-Client-IP" to "203.0.113.7"))
+            s1.connectBlocking()
+            assertTrue(s1.opened.await(3, TimeUnit.SECONDS))
+            waitFor { trusted.connsPerIpCount("203.0.113.7") == 1 }
+            assertEquals(0, trusted.connsPerIpCount("127.0.0.1"))
+
+            // XFF fallback — first hop only, the rest is proxy chain.
+            val s2 = Sock(URI("ws://127.0.0.1:$p/register/r2?token=secret"),
+                headers = mapOf("X-Forwarded-For" to "198.51.100.9, 10.0.0.1"))
+            s2.connectBlocking()
+            assertTrue(s2.opened.await(3, TimeUnit.SECONDS))
+            waitFor { trusted.connsPerIpCount("198.51.100.9") == 1 }
+            assertEquals(0, trusted.connsPerIpCount("10.0.0.1"))
+        } finally {
+            trusted.stop(1000)
+        }
+    }
+
+    /** On a direct-facing self-host the headers are attacker-
+     *  controlled — the socket address must stay authoritative. */
+    @Test
+    fun `forwarded headers are ignored when the proxy is not trusted`() {
+        val s = Sock(URI("ws://127.0.0.1:$port/register/r1?token=secret"),
+            headers = mapOf("Fly-Client-IP" to "203.0.113.7"))
+        s.connectBlocking()
+        assertTrue(s.opened.await(3, TimeUnit.SECONDS))
+        waitFor { server.connsPerIpCount("127.0.0.1") == 1 }
+        assertEquals(0, server.connsPerIpCount("203.0.113.7"))
     }
 }

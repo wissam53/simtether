@@ -3,6 +3,13 @@
 app = "simtether-relay"
 primary_region = "fra"   # Frankfurt — closest low-latency region to Turkey
 
+[env]
+# Fly's edge terminates TLS and injects Fly-Client-IP — the relay
+# keys per-IP caps on it (TRUST_PROXY_HEADERS=1). Without this every
+# user shares a handful of edge IPs and the caps throttle legit
+# traffic. Only ever set behind a trusted edge.
+TRUST_PROXY_HEADERS = "1"
+
 [build]
   dockerfile = "Dockerfile"
 
