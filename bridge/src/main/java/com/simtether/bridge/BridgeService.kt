@@ -424,6 +424,17 @@ class BridgeService : LifecycleService() {
         java.security.MessageDigest.isEqual(Base64.getDecoder().decode(pin), pub)
     }
 
+    /**
+     * Short fingerprint of the pinned client key, or null pre-pair.
+     * Shown in the bridge UI so a user can verify WHICH device holds
+     * the link — a rogue pairing is visible here, not hidden.
+     */
+    fun pinnedClientFp(): String? =
+        com.simtether.shared.SecureStore
+            .getString(this, "bridge_keys", "client_pub")
+            ?.let { runCatching {
+                Identity.fingerprint(Base64.getDecoder().decode(it)) }.getOrNull() }
+
     private fun persistTokens(current: ByteArray, pending: ByteArray?) {
         val enc = Base64.getEncoder()
         com.simtether.shared.SecureStore

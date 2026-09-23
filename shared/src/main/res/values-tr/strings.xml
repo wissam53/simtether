@@ -81,6 +81,8 @@
     <string name="bridge_scan_hint">Bunu ana telefonunuzla tarayın</string>
     <string name="cd_pairing_qr">Eşleme QR kodu</string>
     <string name="bridge_show_qr">Eşleme QR kodunu göster</string>
+    <string name="bridge_client_pinned">Eşleşen istemci: %1$s</string>
+    <string name="bridge_client_none">Henüz eşleşen istemci yok</string>
     <string name="bridge_waiting_lan">LAN adresi bekleniyor — hotspot açık mı?</string>
     <string name="bridge_starting">Köprü servisi başlatılıyor…</string>
     <string name="dialer_held">✓ Telefon uygulaması rolü alındı — arama kontrolü aktif</string>

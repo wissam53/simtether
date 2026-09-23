@@ -89,9 +89,12 @@
        adds audio streaming to your main phone; everything else is identical.</p>
 
     <div class="note warn">
-      The rooted build is experimental and unsigned by the Play release key —
-      install it only from the official GitHub Releases page, and verify the
-      SHA-256 shown there before installing.
+      The rooted build is experimental — install it only from the official
+      GitHub Releases page. To verify any build is genuinely ours, compare the
+      signing certificate against the fingerprint published in
+      <a href="https://github.com/">SECURITY.md</a>:
+      <code>apksigner verify --print-certs file.apk</code>. A fingerprint that
+      doesn't match is not our build.
     </div>
 
     <h3>Troubleshooting</h3>

@@ -78,6 +78,7 @@ fun BridgeScreen() {
 
     var batteryExempt by remember { mutableStateOf(false) }
     var dndGranted by remember { mutableStateOf(false) }
+    var clientFp by remember { mutableStateOf<String?>(null) }
     val prefs = remember { context.getSharedPreferences("app", android.content.Context.MODE_PRIVATE) }
     var oemVisited by remember { mutableStateOf(prefs.getBoolean("oem_fix_done", false)) }
     val oemLabel = oemAutostartLabel(context)
@@ -90,6 +91,7 @@ fun BridgeScreen() {
             val svc = BridgeServiceHolder.service
             serviceUp = svc != null
             svc?.pairingPayload()?.let { payload = it }
+            clientFp = svc?.pinnedClientFp()
             batteryExempt = context.getSystemService(PowerManager::class.java)
                 ?.isIgnoringBatteryOptimizations(context.packageName) == true
             dndGranted = context.getSystemService(NotificationManager::class.java)
@@ -225,6 +227,18 @@ fun BridgeScreen() {
                 else stringResource(R.string.bridge_starting)
             )
         }
+
+        // The pinned client's key fingerprint — the "who holds the
+        // link" line. If this isn't your phone's identity, someone
+        // else won the pairing race; re-pair to revoke it.
+        val fp = clientFp
+        Text(
+            if (fp != null) stringResource(R.string.bridge_client_pinned, fp)
+            else stringResource(R.string.bridge_client_none),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
 
         if (dialerHeld) {
             Text(

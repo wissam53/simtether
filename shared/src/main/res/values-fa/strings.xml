@@ -81,6 +81,8 @@
     <string name="bridge_scan_hint">این را با گوشی اصلی خود اسکن کنید</string>
     <string name="cd_pairing_qr">QR جفت‌سازی</string>
     <string name="bridge_show_qr">نمایش QR جفت‌سازی</string>
+    <string name="bridge_client_pinned">کلاینت جفت‌شده: %1$s</string>
+    <string name="bridge_client_none">هنوز کلاینتی جفت نشده است</string>
     <string name="bridge_waiting_lan">در انتظار آدرس LAN — هات‌اسپات روشن است؟</string>
     <string name="bridge_starting">در حال راه‌اندازی سرویس پل…</string>
     <string name="dialer_held">✓ نقش اپ تلفن فعال — کنترل تماس فعال است</string>

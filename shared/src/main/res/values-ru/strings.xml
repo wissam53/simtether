@@ -81,6 +81,8 @@
     <string name="bridge_scan_hint">Отсканируйте на основном телефоне</string>
     <string name="cd_pairing_qr">QR-код сопряжения</string>
     <string name="bridge_show_qr">Показать QR сопряжения</string>
+    <string name="bridge_client_pinned">Сопряжённый клиент: %1$s</string>
+    <string name="bridge_client_none">Клиент ещё не сопряжён</string>
     <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
     <string name="bridge_starting">Запуск службы моста…</string>
     <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>
