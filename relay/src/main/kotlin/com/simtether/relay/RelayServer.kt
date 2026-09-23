@@ -43,8 +43,9 @@ import java.util.concurrent.ConcurrentHashMap
  *                 TLS termination (wss://) so neither token nor
  *                 ticket is on the wire in the clear.
  *
- * Rooms are named by a 32-bit key fingerprint — enumerable, which is
- * why ownership is proven cryptographically rather than by the name.
+ * Rooms are named by the bridge's full static pubkey (b64url) — a
+ * 32-bit fingerprint would be collision-mineable, letting a token
+ * holder register a colliding key and evict a victim's room.
  *
  * Client detach is signalled to the bridge as a text frame
  * "st-peer-gone" — the bridge clears the dead session but keeps its
@@ -112,10 +113,12 @@ class RelayServer(
     ): ServerHandshakeBuilder {
         val desc = request.resourceDescriptor ?: ""
         val query = desc.substringAfter('?', "")
-        val tok = query.split('&').firstNotNullOfOrNull {
-            it.substringBefore('=').takeIf { k -> k == "token" }
-                ?.let { _ -> it.substringAfter('=') }
-        } ?: ""
+        // Header first — query strings land in TLS-terminator access
+        // logs, headers don't. Query fallback keeps pre-header builds
+        // working during rollover.
+        val tok = request.getFieldValue("x-st-token")
+            ?.takeIf { it.isNotBlank() }
+            ?: queryParam(query, "token") ?: ""
         // Constant-time — a timing oracle on the token comparison
         // would let a scanner recover it byte-by-byte.
         val tokBytes = tok.toByteArray(Charsets.UTF_8)
@@ -149,7 +152,7 @@ class RelayServer(
             }
         }
         val seg = desc.substringBefore('?').trim('/').split('/')
-        if (seg.size != 2 || seg[1].isBlank()
+        if (seg.size != 2 || seg[1].isBlank() || seg[1].length > 128
             || (seg[0] != "register" && seg[0] != "connect")) {
             // Strip the query — desc carries the (valid) token.
             System.err.println("rejected ${conn.remoteSocketAddress}: bad path " +
@@ -171,7 +174,8 @@ class RelayServer(
             // require the matching ticket — derived from a secret only
             // the bridge and its paired client hold.
             room.ticket?.let { expected ->
-                val t = queryParam(query, "t")
+                val t = (request.getFieldValue("x-st-ticket")
+                    ?.takeIf { it.isNotBlank() } ?: queryParam(query, "t"))
                     ?.let { runCatching { b64urlDecode(it) }.getOrNull() }
                 if (t == null || !java.security.MessageDigest.isEqual(t, expected))
                     throw InvalidDataException(403, "bad ticket")

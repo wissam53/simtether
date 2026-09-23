@@ -68,10 +68,24 @@ object RemoteStore {
      * even reports host=null, which java-websocket silently turns
      * into a localhost dial), so rewrite it as the intended port.
      */
+    /** Loopback, link-local, RFC1918 and mDNS-style names — the only
+     *  places cleartext ws:// is acceptable for a relay address. */
+    private fun isPrivateHost(host: String): Boolean {
+        val h = host.lowercase()
+        return h == "localhost" || h == "::1" || h.endsWith(".local") ||
+            h.endsWith(".lan") || h.endsWith(".internal") ||
+            h.startsWith("127.") || h.startsWith("10.") ||
+            h.startsWith("192.168.") || h.startsWith("169.254.") ||
+            (h.startsWith("172.") &&
+                (h.substringAfter("172.").substringBefore('.')
+                    .toIntOrNull() ?: -1) in 16..31)
+    }
+
     fun normalizeRelay(addr: String?): String? {
         var s = addr?.trim().orEmpty()
         if (s.isEmpty()) return null
-        if ("://" !in s) s = "ws://$s"
+        val explicitScheme = "://" in s
+        if (!explicitScheme) s = "ws://$s"
         if (!s.startsWith("ws://") && !s.startsWith("wss://")) return null
         val u = runCatching { URI(s) }.getOrNull() ?: return null
         var host = u.host
@@ -94,7 +108,15 @@ object RemoteStore {
             }
         }
         if (host.isEmpty() || port > 65535) return null
+        // Cleartext ws:// to a public host puts the access token and
+        // room ticket on the wire for anyone on the path. A bare
+        // "host:port" upgrades to wss://; an explicitly typed
+        // "ws://public" is refused — don't silently honor a request
+        // for something insecure.
+        val scheme = if (u.scheme == "ws" && !isPrivateHost(host)) {
+            if (explicitScheme) return null else "wss"
+        } else u.scheme
         val h = if (':' in host) "[$host]" else host
-        return "${u.scheme}://$h" + if (port >= 0) ":$port" else ""
+        return "$scheme://$h" + if (port >= 0) ":$port" else ""
     }
 }

@@ -16,3 +16,10 @@
 -keep public class * extends android.telecom.InCallService
 -keep public class * extends android.telecom.ConnectionService
 -keep public class * extends android.content.BroadcastReceiver
+
+# Correspondent numbers flow through Log.d in release builds —
+# strip d/v (keep i/w/e) so device seizure doesn't expose metadata.
+-assumenosideeffects class android.util.Log {
+    public static int d(...);
+    public static int v(...);
+}

@@ -157,7 +157,7 @@ class BridgeService : LifecycleService() {
         relayLink = com.simtether.bridge.net.RelayLink(
             srv,
             addr,
-            Identity.fingerprint(srv.staticPubKey),
+            Identity.roomId(srv.staticPubKey),
             com.simtether.shared.RemoteStore.effectiveRelayToken(this),
             staticPriv = srv.staticPrivKey,
             staticPub = srv.staticPubKey,
@@ -471,7 +471,11 @@ class BridgeService : LifecycleService() {
         when (env.type) {
             "sms.send" -> {
                 val cmd = env.payloadAs<Protocol.SmsSend>()
-                SmsSender.send(applicationContext, cmd.address, cmd.body, cmd.requestDeliveryReport, cmd.ref)
+                if (CallController.isSafeNumber(cmd.address)) {
+                    SmsSender.send(applicationContext, cmd.address, cmd.body, cmd.requestDeliveryReport, cmd.ref)
+                } else {
+                    Log.w(TAG, "sms.send: rejected unsafe address shape")
+                }
             }
             "call.action" -> {
                 val cmd = env.payloadAs<Protocol.CallAction>()

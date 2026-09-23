@@ -86,6 +86,8 @@
     <string name="client_identity_fp">Идентификатор этого телефона: %1$s</string>
     <string name="remote_enabled_since">Включено %1$s — согласие записано на этом устройстве</string>
     <string name="bridge_identity_fp">Идентификатор моста: %1$s</string>
+    <string name="dial_confirm">Позвонить %1$s?</string>
+    <string name="dial_call">Позвонить</string>
     <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
     <string name="bridge_starting">Запуск службы моста…</string>
     <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>

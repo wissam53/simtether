@@ -34,6 +34,9 @@ class ResolvedTarget(
     val viaRelay: Boolean = false,
     // "ws" on the LAN; "wss" when the relay sits behind TLS termination.
     val scheme: String = "ws",
+    // Upgrade headers — relay token/ticket ride here, not the URL:
+    // query strings land in TLS-terminator access logs, headers don't.
+    val headers: Map<String, String> = emptyMap(),
 )
 
 class BridgeWsClient(
@@ -138,7 +141,9 @@ class BridgeWsClient(
             if (target.viaRelay) " (relay)" else "")
         currentViaRelay = target.viaRelay
         val request = Request.Builder()
-            .url("${target.scheme}://${target.host}:${target.port}${target.path}").build()
+            .url("${target.scheme}://${target.host}:${target.port}${target.path}")
+            .apply { target.headers.forEach { (k, v) -> header(k, v) } }
+            .build()
         val client = target.socketFactory?.let {
             http.newBuilder().socketFactory(it).build()
         } ?: http
@@ -155,7 +160,6 @@ class BridgeWsClient(
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                lastInbound = android.os.SystemClock.elapsedRealtime()
                 val s = session ?: run {
                     val hs = pendingHandshake
                         ?: run { Log.w(TAG, "frame before handshake"); return }
@@ -166,6 +170,7 @@ class BridgeWsClient(
                             return
                         }
                     pendingHandshake = null
+                    lastInbound = android.os.SystemClock.elapsedRealtime()
                     emitState(true)
                     // WS frames are ordered — the session is live, flush
                     // anything queued while we were offline.
@@ -179,9 +184,18 @@ class BridgeWsClient(
                 val env = runCatching {
                     Protocol.decode(s.decrypt(bytes.toByteArray()).decodeToString())
                 }.getOrElse {
-                    Log.e(TAG, "decrypt/decode failed", it)
+                    // A failed AEAD tag means the nonce streams desynced —
+                    // per the Noise spec the session is unrecoverable and
+                    // must be terminated. Tear down and reconnect instead
+                    // of sitting half-dead forever (the watchdog can't
+                    // see it — heartbeats were stamping liveness even
+                    // while failing to decrypt).
+                    Log.e(TAG, "decrypt/decode failed — resetting session", it)
+                    session = null
+                    webSocket.cancel()
                     return
                 }
+                lastInbound = android.os.SystemClock.elapsedRealtime()
                 if (env.type == "hb") return  // heartbeat — liveness only
                 Log.d(TAG, "recv ${env.type} seq=${env.seq}")
                 onEvent(env)

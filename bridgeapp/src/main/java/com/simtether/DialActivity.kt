@@ -2,6 +2,7 @@ package com.simtether
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -9,18 +10,30 @@ import android.telecom.TelecomManager
 
 /**
  * Required component for ROLE_DIALER: an activity handling ACTION_DIAL.
- * The bridge doesn't need a dial pad UI — a DIAL intent just places
- * the call via Telecom (which surfaces in our InCallService).
+ * Any zero-permission app can fire that intent, so the call is NEVER
+ * placed automatically — the user confirms on the bridge screen first
+ * (the bridge is unattended, so this is the only thing standing
+ * between a random app and premium-rate calls / MMI forwarding codes).
  */
 class DialActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (checkSelfPermission(Manifest.permission.CALL_PHONE) ==
+        val uri = intent?.data?.takeIf { it.scheme == "tel" }
+        if (uri == null ||
+            checkSelfPermission(Manifest.permission.CALL_PHONE) !=
                 PackageManager.PERMISSION_GRANTED) {
-            intent?.data?.takeIf { it.scheme == "tel" }?.let { uri: Uri ->
-                getSystemService(TelecomManager::class.java).placeCall(uri, Bundle())
-            }
+            finish()
+            return
         }
-        finish()
+        val number = uri.schemeSpecificPart
+        AlertDialog.Builder(this)
+            .setTitle(getString(com.simtether.shared.R.string.dial_confirm, number))
+            .setPositiveButton(com.simtether.shared.R.string.dial_call) { _, _ ->
+                getSystemService(TelecomManager::class.java).placeCall(uri, Bundle())
+                finish()
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> finish() }
+            .setOnCancelListener { finish() }
+            .show()
     }
 }

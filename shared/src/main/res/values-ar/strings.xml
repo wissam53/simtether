@@ -86,6 +86,8 @@
     <string name="client_identity_fp">هوية هذا الهاتف: %1$s</string>
     <string name="remote_enabled_since">فُعّل في %1$s — الموافقة مسجّلة على هذا الجهاز</string>
     <string name="bridge_identity_fp">هوية الجسر: %1$s</string>
+    <string name="dial_confirm">الاتصال بـ %1$s؟</string>
+    <string name="dial_call">اتصال</string>
     <string name="bridge_waiting_lan">بانتظار عنوان LAN — هل نقطة الاتصال مفعّلة؟</string>
     <string name="bridge_starting">جارٍ بدء خدمة الجسر…</string>
     <string name="dialer_held">✓ دور تطبيق الهاتف محفوظ — التحكم بالمكالمات نشط</string>

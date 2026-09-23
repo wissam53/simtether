@@ -98,6 +98,8 @@
     <string name="client_identity_fp">This phone\'s identity: %1$s</string>
     <string name="remote_enabled_since">Enabled %1$s — consent recorded on this device</string>
     <string name="bridge_identity_fp">Bridge identity: %1$s</string>
+    <string name="dial_confirm">Call %1$s?</string>
+    <string name="dial_call">Call</string>
     <string name="bridge_waiting_lan">Waiting for LAN address — is hotspot on?</string>
     <string name="bridge_starting">Bridge service starting…</string>
     <string name="dialer_held">✓ Phone app role held — call control active</string>

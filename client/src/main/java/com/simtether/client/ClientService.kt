@@ -159,7 +159,7 @@ class ClientService : LifecycleService() {
         Log.d(TAG, "cached address unreachable, mDNS for fp=$fp")
         val found = runBlocking {
             BridgeDiscovery(applicationContext).resolve(fp)
-        } ?: return relayTarget(pairing, fp)
+        } ?: return relayTarget(pairing, pubKey)
         val host = found.hostString ?: return null
         val net = networkFor(host) ?: run {
             Log.w(TAG, "resolved $host but no local network owns that subnet")
@@ -179,7 +179,7 @@ class ClientService : LifecycleService() {
      */
     private fun relayTarget(
         pairing: com.simtether.shared.pairing.PairingPayload,
-        fp: String,
+        pubKey: ByteArray,
     ): com.simtether.client.net.ResolvedTarget? {
         if (!com.simtether.shared.RemoteStore.isEnabled(applicationContext)) return null
         // Blank in the pairing = the built-in hosted relay; a non-blank
@@ -193,22 +193,29 @@ class ClientService : LifecycleService() {
         val host = hostport.substringBeforeLast(':', "")
         val port = hostport.substringAfterLast(':', "").toIntOrNull()
         if (host.isBlank() || port == null) return null
-        var query = (pairing.relayToken?.takeIf { it.isNotBlank() }
+        // Full-pubkey room id — a 32-bit fp room is collision-mineable
+        // (~2^32 keygens) which would let a token holder evict a
+        // victim's room.
+        val roomId = Identity.roomId(pubKey)
+        // Token + ticket ride upgrade headers — query strings land in
+        // TLS-terminator access logs (Fly.io edge), headers don't.
+        val headers = mutableMapOf<String, String>()
+        (pairing.relayToken?.takeIf { it.isNotBlank() }
             ?: com.simtether.shared.RemoteStore.effectiveRelayToken(applicationContext))
-            ?.let { "?token=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""
+            ?.let { headers["x-st-token"] = it }
         // Room ticket — derived from the QR-carried relay secret. The
         // relay rejects /connect without it once the bridge has proven
         // ownership, so a token holder can't occupy a stranger's room.
         pairing.relaySecret?.let { s ->
-            val t = com.simtether.shared.RelayProof.ticket(
-                java.util.Base64.getDecoder().decode(s), fp)
-            query += "&t=" + java.util.Base64.getUrlEncoder()
-                .withoutPadding().encodeToString(t)
+            headers["x-st-ticket"] = java.util.Base64.getUrlEncoder()
+                .withoutPadding().encodeToString(
+                    com.simtether.shared.RelayProof.ticket(
+                        java.util.Base64.getDecoder().decode(s), roomId))
         }
         Log.d(TAG, "LAN unreachable — falling back to relay $relay")
         return com.simtether.client.net.ResolvedTarget(
-            host, port, null, "/connect/$fp$query", viaRelay = true,
-            scheme = if (secure) "wss" else "ws")
+            host, port, null, "/connect/$roomId", viaRelay = true,
+            scheme = if (secure) "wss" else "ws", headers = headers)
     }
 
     /** The Network whose interface owns the subnet containing [host]. */

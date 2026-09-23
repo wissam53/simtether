@@ -19,4 +19,14 @@ object Identity {
     }
 
     fun serviceName(staticPubKey: ByteArray): String = "st1-${fingerprint(staticPubKey)}"
+
+    /**
+     * Relay room name — the full static pubkey, b64url (~43 chars).
+     * Not the short fingerprint: a 32-bit room id is collision-
+     * mineable (~2^32 keygens), which would let any relay-token
+     * holder register a colliding key and evict a victim's room.
+     */
+    fun roomId(staticPubKey: ByteArray): String =
+        java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(staticPubKey)
 }

@@ -19,7 +19,7 @@ import java.nio.ByteBuffer
 class RelayLink(
     private val server: BridgeWsServer,
     private val addr: String,          // "host:port" or "wss://host:port"
-    private val fingerprint: String,   // st1-xxxx — the room name
+    private val roomId: String,        // full-pubkey room name (Identity.roomId)
     private val token: String?,
     // Registration is a key-ownership proof now: the relay challenges
     // with an ephemeral DH key and we answer with a MAC only the
@@ -67,21 +67,23 @@ class RelayLink(
 
     private fun loop() {
         while (!stopped) {
-            val q = token
-                ?.let { "?token=" + java.net.URLEncoder.encode(it, "UTF-8") } ?: ""
-            // wss:// when the relay sits behind TLS termination — the
-            // token and room name ride the URL path, so cleartext ws
-            // leaks both to anyone on the path.
+            // wss:// when the relay sits behind TLS termination. The
+            // token rides an upgrade HEADER, not the URL — query strings
+            // land in TLS-terminator access logs (Fly.io edge), headers
+            // don't.
             val scheme = if (addr.startsWith("wss://")) "wss" else "ws"
+            val headers = token?.let { mapOf("x-st-token" to it) } ?: emptyMap()
             // connectBlocking() returns when the handshake OPENS — hold
             // the loop on this latch until the socket actually closes,
             // or the next iteration re-registers and the relay replaces
             // its own still-open predecessor every backoff cycle.
             val closed = java.util.concurrent.CountDownLatch(1)
             val c = object : WebSocketClient(
-                URI("$scheme://${addr.substringAfter("://")}/register/$fingerprint$q")) {
+                URI("$scheme://${addr.substringAfter("://")}/register/$roomId"),
+                org.java_websocket.drafts.Draft_6455(),
+                headers) {
                 override fun onOpen(h: ServerHandshake) {
-                    Log.d(TAG, "registered room $fingerprint on relay $addr")
+                    Log.d(TAG, "registered room on relay $addr")
                     backoffMs = 2_000L
                 }
 
@@ -99,7 +101,7 @@ class RelayLink(
                         val proof = com.simtether.shared.RelayProof.respond(
                             staticPriv, staticPub, c,
                             com.simtether.shared.RelayProof.ticket(
-                                relaySecret, fingerprint))
+                                relaySecret, roomId))
                         if (proof == null) {
                             Log.w(TAG, "malformed relay challenge (${c.size}B)")
                             close()

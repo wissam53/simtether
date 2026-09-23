@@ -86,6 +86,8 @@
     <string name="client_identity_fp">هویت این گوشی: %1$s</string>
     <string name="remote_enabled_since">در %1$s فعال شد — رضایت روی همین دستگاه ثبت شده است</string>
     <string name="bridge_identity_fp">هویت پل: %1$s</string>
+    <string name="dial_confirm">تماس با %1$s؟</string>
+    <string name="dial_call">تماس</string>
     <string name="bridge_waiting_lan">در انتظار آدرس LAN — هات‌اسپات روشن است؟</string>
     <string name="bridge_starting">در حال راه‌اندازی سرویس پل…</string>
     <string name="dialer_held">✓ نقش اپ تلفن فعال — کنترل تماس فعال است</string>

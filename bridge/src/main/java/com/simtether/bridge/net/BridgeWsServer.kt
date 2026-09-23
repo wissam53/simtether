@@ -130,7 +130,14 @@ class BridgeWsServer(
             val env = runCatching {
                 Protocol.decode(s.decrypt(bytes).decodeToString())
             }.getOrElse {
-                Log.e(TAG, "decrypt/decode failed (stale pairing?)", it)
+                // A failed AEAD tag means the nonce streams desynced —
+                // per the Noise spec the session is unrecoverable and
+                // must be terminated. Close the link: onClose clears
+                // client/session and the peer re-handshakes. For the
+                // relay path this also drops the registration socket —
+                // RelayLink re-dials and the room comes back clean.
+                Log.e(TAG, "decrypt/decode failed — resetting session", it)
+                conn.close(1008, "decrypt")
                 return
             }
             Log.d(TAG, "recv ${env.type} seq=${env.seq}")

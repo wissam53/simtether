@@ -27,6 +27,20 @@ object CallController {
     private const val DTMF_TONE_MS = 120L
     private const val DTMF_GAP_MS = 70L
 
+    /**
+     * Wire numbers are whitelisted, not escaped: digits plus one
+     * leading '+'. Anything else ('*', '#', ';', ',') is a carrier
+     * service-code shape — an MMI string like *21*num# enables call
+     * forwarding on the SIM, which survives re-pairing and is
+     * invisible to the client. Reject the whole string rather than
+     * strip characters (stripping can join benign halves into a new
+     * code).
+     */
+    private val SAFE_NUMBER = Regex("^\\+?[0-9]{2,20}$")
+
+    /** True when [addr] is safe to dial or send SMS to from the wire. */
+    fun isSafeNumber(addr: String): Boolean = SAFE_NUMBER.matches(addr.trim())
+
     fun dispatch(context: Context, cmd: Protocol.CallAction) {
         val call = CallRegistry.byId(cmd.callId) ?: return
         when (cmd.action) {
@@ -65,7 +79,9 @@ object CallController {
                 // Telecom requires play/stop pairs — a bare
                 // playDtmfTone latches the tone on and later digits
                 // never transmit (bank IVRs die here).
-                val digits = cmd.digits ?: return
+                val digits = cmd.digits
+                    ?.filter { it in "0123456789*#" }?.take(32)
+                    ?.takeIf { it.isNotEmpty() } ?: return
                 dtmfExec.execute {
                     for (d in digits) {
                         runCatching { call.playDtmfTone(d) }
@@ -83,6 +99,11 @@ object CallController {
 
     /** Outgoing dial: bridge places the GSM call on behalf of the client. */
     fun dial(context: Context, number: String) {
+        val n = number.trim()
+        if (!isSafeNumber(n)) {
+            android.util.Log.w("SimTether.Bridge", "dial: rejected unsafe number shape")
+            return
+        }
         // CALL_PHONE is granted at role entry but the user can revoke
         // it — check rather than let the relay crash mid-command.
         if (context.checkSelfPermission(android.Manifest.permission.CALL_PHONE) !=
@@ -92,6 +113,6 @@ object CallController {
         }
         // As default dialer, placeCall goes straight to GSM (no UI).
         context.getSystemService(TelecomManager::class.java)
-            .placeCall(Uri.parse("tel:$number"), Bundle())
+            .placeCall(Uri.parse("tel:$n"), Bundle())
     }
 }
