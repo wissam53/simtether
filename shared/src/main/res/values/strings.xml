@@ -100,6 +100,7 @@
     <string name="bridge_identity_fp">Bridge identity: %1$s</string>
     <string name="dial_confirm">Call %1$s?</string>
     <string name="dial_call">Call</string>
+    <string name="scan_invalid">Not a valid SimTether pairing code</string>
     <string name="bridge_waiting_lan">Waiting for LAN address — is hotspot on?</string>
     <string name="bridge_starting">Bridge service starting…</string>
     <string name="dialer_held">✓ Phone app role held — call control active</string>
@@ -145,7 +146,7 @@
     <string name="forget_title">Forget this bridge?</string>
     <string name="forget_body">The pairing, forwarded message history, and call log will be erased from this phone. Reconnecting requires scanning a new QR code on the bridge.</string>
     <string name="forget_confirm">Erase &amp; forget</string>
-    <string name="keystore_warning">Device encryption unavailable — keys and stored messages are unprotected</string>
+    <string name="keystore_warning">Device encryption unavailable — pairing will not survive a restart</string>
     <string name="repair_button">Re-pair device</string>
     <string name="repair_title">Revoke current pairing?</string>
     <string name="repair_body">The paired phone loses access immediately and must scan the new QR code. Use this if a phone was lost or a QR image leaked.</string>

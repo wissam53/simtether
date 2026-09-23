@@ -88,6 +88,7 @@
     <string name="bridge_identity_fp">Идентификатор моста: %1$s</string>
     <string name="dial_confirm">Позвонить %1$s?</string>
     <string name="dial_call">Позвонить</string>
+    <string name="scan_invalid">Недействительный код сопряжения SimTether</string>
     <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
     <string name="bridge_starting">Запуск службы моста…</string>
     <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>
@@ -130,7 +131,7 @@
     <string name="forget_title">Забыть этот мост?</string>
     <string name="forget_body">Привязка, история пересланных сообщений и журнал звонков будут стёрты с этого телефона. Для повторного подключения потребуется отсканировать новый QR-код на мосте.</string>
     <string name="forget_confirm">Стереть и забыть</string>
-    <string name="keystore_warning">Шифрование устройства недоступно — ключи и сохранённые сообщения не защищены</string>
+    <string name="keystore_warning">Шифрование устройства недоступно — сопряжение не переживёт перезапуск</string>
     <string name="repair_button">Перепривязать устройство</string>
     <string name="repair_title">Отозвать текущую привязку?</string>
     <string name="repair_body">Сопряжённый телефон сразу потеряет доступ и должен будет отсканировать новый QR-код. Используйте, если телефон утерян или изображение QR утекло.</string>

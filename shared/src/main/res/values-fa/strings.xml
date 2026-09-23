@@ -88,6 +88,7 @@
     <string name="bridge_identity_fp">هویت پل: %1$s</string>
     <string name="dial_confirm">تماس با %1$s؟</string>
     <string name="dial_call">تماس</string>
+    <string name="scan_invalid">کد جفت‌سازی معتبر SimTether نیست</string>
     <string name="bridge_waiting_lan">در انتظار آدرس LAN — هات‌اسپات روشن است؟</string>
     <string name="bridge_starting">در حال راه‌اندازی سرویس پل…</string>
     <string name="dialer_held">✓ نقش اپ تلفن فعال — کنترل تماس فعال است</string>
@@ -130,7 +131,7 @@
     <string name="forget_title">این پل فراموش شود؟</string>
     <string name="forget_body">جفت‌سازی، تاریخچه پیام‌های بازگردانده‌شده و سابقه تماس‌ها از این گوشی پاک می‌شود. اتصال مجدد نیازمند اسکن کد QR جدید روی پل است.</string>
     <string name="forget_confirm">پاک کردن و فراموش</string>
-    <string name="keystore_warning">رمزنگاری دستگاه در دسترس نیست — کلیدها و پیام‌های ذخیره‌شده بدون محافظت‌اند</string>
+    <string name="keystore_warning">رمزنگاری دستگاه در دسترس نیست — جفت‌شدن پس از راه‌اندازی مجدد باقی نمی‌ماند</string>
     <string name="repair_button">جفت‌سازی مجدد دستگاه</string>
     <string name="repair_title">لغو جفت‌سازی فعلی؟</string>
     <string name="repair_body">گوشی جفت‌شده بلافاصله دسترسی را از دست می‌دهد و برای اتصال مجدد باید کد QR جدید را اسکن کند. اگر گوشی گم شده یا تصویر کد لو رفته، از این استفاده کنید.</string>

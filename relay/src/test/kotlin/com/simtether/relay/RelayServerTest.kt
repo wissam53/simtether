@@ -80,8 +80,10 @@ class RelayServerTest {
         val pub = ByteArray(32)
         System.arraycopy(be, 0, pub, 32 - be.size, be.size)
         val le = pub.reversedArray()   // RFC 7748: wire u is little-endian
-        val fp = MessageDigest.getInstance("SHA-256").digest(le)
-            .take(4).joinToString("") { "%02x".format(it) }
+        // Same room-id derivation as production: b64url of the raw
+        // pubkey (Identity.roomId) — NOT the old 8-hex fingerprint.
+        val fp = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(le)
         return BridgeId(kp.private, le, fp,
             ByteArray(32).also { java.security.SecureRandom().nextBytes(it) })
     }

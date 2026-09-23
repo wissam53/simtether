@@ -78,7 +78,11 @@ object RemoteStore {
             h.startsWith("192.168.") || h.startsWith("169.254.") ||
             (h.startsWith("172.") &&
                 (h.substringAfter("172.").substringBefore('.')
-                    .toIntOrNull() ?: -1) in 16..31)
+                    .toIntOrNull() ?: -1) in 16..31) ||
+            // IPv6: fc00::/7 ULA and fe80::/10 link-local.
+            (':' in h && (h.startsWith("fc") || h.startsWith("fd") ||
+                (h.startsWith("fe") &&
+                    h.getOrNull(2)?.lowercaseChar() in '8'..'b')))
     }
 
     fun normalizeRelay(addr: String?): String? {

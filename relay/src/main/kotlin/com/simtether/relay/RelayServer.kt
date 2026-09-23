@@ -116,6 +116,9 @@ class RelayServer(
         // Header first — query strings land in TLS-terminator access
         // logs, headers don't. Query fallback keeps pre-header builds
         // working during rollover.
+        // TODO(rollover): drop the query fallback once pre-header
+        // builds age out — until then a crafted URL still leaks the
+        // token to edge logs.
         val tok = request.getFieldValue("x-st-token")
             ?.takeIf { it.isNotBlank() }
             ?: queryParam(query, "token") ?: ""
@@ -292,7 +295,7 @@ class RelayServer(
         val staticPub = bytes.copyOfRange(0, 32)
         val ticket = bytes.copyOfRange(32, 64)
         val mac = bytes.copyOfRange(64, 96)
-        if (fingerprint(staticPub) != reg.fp) return reject("fp mismatch")
+        if (roomId(staticPub) != reg.fp) return reject("room mismatch")
         val shared = runCatching {
             javax.crypto.KeyAgreement.getInstance("X25519").run {
                 init(reg.ephPriv)
@@ -319,10 +322,10 @@ class RelayServer(
         println("room ${reg.fp}: bridge registered (proof ok)")
     }
 
-    /** Same derivation as the client side: first 4 bytes of SHA-256, hex. */
-    private fun fingerprint(staticPub: ByteArray): String =
-        java.security.MessageDigest.getInstance("SHA-256").digest(staticPub)
-            .take(4).joinToString("") { "%02x".format(it) }
+    /** Same derivation as Identity.roomId on the app side: b64url of
+     *  the raw pubkey — the full key, not a 32-bit fingerprint. */
+    private fun roomId(staticPub: ByteArray): String =
+        java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(staticPub)
 
     private fun x25519PublicKey(raw: ByteArray): java.security.PublicKey {
         // RFC 7748 u-coordinate is little-endian; BigInteger wants BE.

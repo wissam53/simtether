@@ -22,7 +22,7 @@ import javax.crypto.spec.SecretKeySpec
  *
  * X25519 can't sign, so key ownership is proven by an ephemeral-DH
  * shared secret only the real bridge can compute. The relay verifies
- * fingerprint(staticPub) == room and the MAC, then adopts.
+ * roomId(staticPub) == room and the MAC, then adopts.
  *
  * The [ticket] gates /connect on the same room: both ends derive it
  * from a per-identity relaySecret carried in the pairing QR, so a
@@ -57,7 +57,9 @@ object RelayProof {
         val nonce = challenge.copyOfRange(32, 64)
         val shared = runCatching { x25519(staticPriv, ephPub) }.getOrNull()
             ?: return null
-        val fp = Identity.fingerprint(staticPub)
+        // MAC binds the room name the relay sees — the full-pubkey
+        // roomId, not the short fingerprint.
+        val fp = Identity.roomId(staticPub)
         val mac = mac(shared, fp, ephPub, nonce, staticPub, ticket)
         return staticPub + ticket + mac
     }

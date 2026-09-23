@@ -187,6 +187,7 @@ class BridgeWsServer(
             conn.send(reply)
             // Verified — adopt now, replacing the previous client.
             pendingAuth.remove(conn)
+            authFails.remove(conn)   // good auth — reset the flood counter
             client?.takeIf { it != conn }?.close(1000, "replaced")
             client = conn
             session = sess

@@ -88,6 +88,7 @@
     <string name="bridge_identity_fp">Köpriniň kimligi: %1$s</string>
     <string name="dial_confirm">%1$s jaň etmeli?</string>
     <string name="dial_call">Jaň et</string>
+    <string name="scan_invalid">SimTether jübütleme kody nädogry</string>
     <string name="bridge_waiting_lan">LAN salgysy garaşylýar — hotspot açykmy?</string>
     <string name="bridge_starting">Köpri hyzmaty işe girizilýär…</string>
     <string name="dialer_held">✓ Telefon programmasynyň ornyna — jaň dolandyryşy işjeň</string>
@@ -130,7 +131,7 @@
     <string name="forget_title">Bu köpri unutmalymy?</string>
     <string name="forget_body">Jübütleme, gönüdirilen habar taryhy we jaň gündeligi bu telefondan pozular. Täzeden birikmek üçin köprüde täze QR kod skanirlemeli.</string>
     <string name="forget_confirm">Poz we unut</string>
-    <string name="keystore_warning">Enjam şifrlemesi elýeterli däl — açarlar we saklanýan habarlar goralmadyk</string>
+    <string name="keystore_warning">Enjam şifrlemesi elýeterli däl — jübütleme täzeden başlatmady ýaşar</string>
     <string name="repair_button">Enjamy täzeden jübütle</string>
     <string name="repair_title">Häzirki jübütlik ýatyrylsynmy?</string>
     <string name="repair_body">Jübütlenen telefon derrew elýeterliligini ýitirer we täzeden birikmek üçin täze QR kody skanirlemeli. Telefon ýitirilse ýa-da QR şekili syýsa, munu ulanyň.</string>

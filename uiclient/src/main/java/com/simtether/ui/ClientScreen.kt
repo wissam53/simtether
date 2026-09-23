@@ -311,6 +311,11 @@ private fun SettingsScreen(
                     pairing = PairingStore.load(context)
                     onPaired()
                 }
+                .onFailure {
+                    android.widget.Toast.makeText(
+                        context, R.string.scan_invalid,
+                        android.widget.Toast.LENGTH_LONG).show()
+                }
         }
     }
 

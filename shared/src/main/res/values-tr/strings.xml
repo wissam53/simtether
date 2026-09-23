@@ -88,6 +88,7 @@
     <string name="bridge_identity_fp">Köprü kimliği: %1$s</string>
     <string name="dial_confirm">%1$s aransın mı?</string>
     <string name="dial_call">Ara</string>
+    <string name="scan_invalid">Geçerli bir SimTether eşleştirme kodu değil</string>
     <string name="bridge_waiting_lan">LAN adresi bekleniyor — hotspot açık mı?</string>
     <string name="bridge_starting">Köprü servisi başlatılıyor…</string>
     <string name="dialer_held">✓ Telefon uygulaması rolü alındı — arama kontrolü aktif</string>
@@ -130,7 +131,7 @@
     <string name="forget_title">Bu köprü unutulsun mu?</string>
     <string name="forget_body">Eşleşme, iletilen mesaj geçmişi ve arama kaydı bu telefondan silinecek. Yeniden bağlanmak için köprüde yeni bir QR kodu okutmanız gerekir.</string>
     <string name="forget_confirm">Sil ve unut</string>
-    <string name="keystore_warning">Cihaz şifrelemesi kullanılamıyor — anahtarlar ve saklanan mesajlar korumasız</string>
+    <string name="keystore_warning">Cihaz şifrelemesi kullanılamıyor — eşleştirme yeniden başlatmaya dayanmaz</string>
     <string name="repair_button">Cihazı yeniden eşleştir</string>
     <string name="repair_title">Mevcut eşleşme iptal edilsin mi?</string>
     <string name="repair_body">Eşleşen telefon erişimi anında kaybeder ve yeniden bağlanmak için yeni QR kodu okutmalıdır. Telefon kaybolduysa veya QR görüntüsü sızdıysa bunu kullanın.</string>

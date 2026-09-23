@@ -180,18 +180,20 @@ class BridgeService : LifecycleService() {
         val relaySecret = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
         // failClosed — same rule as loadOrCreateIdentity: the static
         // private key never lands in plaintext prefs.
-        com.simtether.shared.SecureStore
+        val persisted = com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "static_priv",
-                enc.encodeToString(pair.first), failClosed = true)
-        com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_pub",
-                enc.encodeToString(pair.second), failClosed = true)
-        com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token",
-                enc.encodeToString(token), failClosed = true)
-        com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "relay_secret",
-                enc.encodeToString(relaySecret), failClosed = true)
+                enc.encodeToString(pair.first), failClosed = true) &&
+            com.simtether.shared.SecureStore
+                .putString(this, "bridge_keys", "static_pub",
+                    enc.encodeToString(pair.second), failClosed = true) &&
+            com.simtether.shared.SecureStore
+                .putString(this, "bridge_keys", "pairing_token",
+                    enc.encodeToString(token), failClosed = true) &&
+            com.simtether.shared.SecureStore
+                .putString(this, "bridge_keys", "relay_secret",
+                    enc.encodeToString(relaySecret), failClosed = true)
+        if (!persisted)
+            Log.e(TAG, "identity NOT persisted — pairing breaks on restart")
         tokenRotator = com.simtether.shared.TokenRotator(token) { cur, pend ->
             persistTokens(cur, pend)
         }
@@ -316,15 +318,19 @@ class BridgeService : LifecycleService() {
         // failClosed — the static private key IS the bridge identity;
         // a plaintext write on a keystore-broken device is worse than
         // an ephemeral identity that dies with the process.
-        com.simtether.shared.SecureStore
+        val persisted = com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "static_priv",
-                enc.encodeToString(pair.first), failClosed = true)
-        com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "static_pub",
-                enc.encodeToString(pair.second), failClosed = true)
-        com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token",
-                enc.encodeToString(token), failClosed = true)
+                enc.encodeToString(pair.first), failClosed = true) &&
+            com.simtether.shared.SecureStore
+                .putString(this, "bridge_keys", "static_pub",
+                    enc.encodeToString(pair.second), failClosed = true) &&
+            com.simtether.shared.SecureStore
+                .putString(this, "bridge_keys", "pairing_token",
+                    enc.encodeToString(token), failClosed = true)
+        if (!persisted)
+            // The service still runs on the in-memory identity, but
+            // pairing dies on every restart — say so loudly.
+            Log.e(TAG, "identity NOT persisted — pairing breaks on restart")
         // Same lifetime as the identity — loadRelaySecret creates it
         // on first read if an upgrade left it absent.
         loadRelaySecret()
@@ -487,6 +493,13 @@ class BridgeService : LifecycleService() {
                     SmsSender.send(applicationContext, cmd.address, cmd.body, cmd.requestDeliveryReport, cmd.ref)
                 } else {
                     Log.w(TAG, "sms.send: rejected unsafe address shape")
+                    // Tell the client — a silent drop leaves the bubble
+                    // looking sent (same failure class as the AEAD fix).
+                    emit("sms.status", Protocol.json.encodeToString(
+                        Protocol.SmsStatus.serializer(),
+                        Protocol.SmsStatus(cmd.ref,
+                            Protocol.SmsStatus.Status.FAILED,
+                            "unsafe address")))
                 }
             }
             "call.action" -> {

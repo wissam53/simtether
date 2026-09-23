@@ -31,7 +31,7 @@ class RelayLinkTest {
     private val clientKey = SecureSession.generateKeyPair()
     private val token = ByteArray(16) { it.toByte() }
     private val relaySecret = ByteArray(32) { (it * 3).toByte() }
-    private val fp = Identity.fingerprint(bridgeKey.second)
+    private val fp = Identity.roomId(bridgeKey.second)
 
     private var relay: RelayServer? = null
     private var server: BridgeWsServer? = null

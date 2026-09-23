@@ -38,8 +38,15 @@ object CallController {
      */
     private val SAFE_NUMBER = Regex("^\\+?[0-9]{2,20}$")
 
-    /** True when [addr] is safe to dial or send SMS to from the wire. */
-    fun isSafeNumber(addr: String): Boolean = SAFE_NUMBER.matches(addr.trim())
+    /**
+     * True when [addr] is safe to dial or send SMS to from the wire.
+     * Formatting characters (spaces, dashes, parens, dots) are stripped
+     * first — contacts carry them and they can't form an MMI code.
+     * '*', '#', ';', ',' are NOT stripped: removing them could join
+     * benign halves into a service code.
+     */
+    fun isSafeNumber(addr: String): Boolean =
+        SAFE_NUMBER.matches(addr.trim().filterNot { it in " -()." })
 
     fun dispatch(context: Context, cmd: Protocol.CallAction) {
         val call = CallRegistry.byId(cmd.callId) ?: return
@@ -99,7 +106,7 @@ object CallController {
 
     /** Outgoing dial: bridge places the GSM call on behalf of the client. */
     fun dial(context: Context, number: String) {
-        val n = number.trim()
+        val n = number.trim().filterNot { it in " -()." }
         if (!isSafeNumber(n)) {
             android.util.Log.w("SimTether.Bridge", "dial: rejected unsafe number shape")
             return
