@@ -176,7 +176,17 @@ class ClientService : LifecycleService() {
         Log.d(TAG, "cached address unreachable, mDNS for fp=$fp")
         val found = runBlocking {
             BridgeDiscovery(applicationContext).resolve(fp)
-        } ?: return relayTarget(pairing, pubKey)
+        } ?: run {
+            // Cold-start race: the bridge may have finished booting its
+            // WS server during the mDNS window — one cheap re-probe of
+            // the cached address before paying a relay dial.
+            if (cachedNet != null && probe(cachedNet, pairing.host, pairing.port)) {
+                return com.simtether.client.net.ResolvedTarget(
+                    pairing.host, pairing.port, cachedNet.socketFactory
+                )
+            }
+            return relayTarget(pairing, pubKey)
+        }
         val host = found.hostString ?: return null
         val net = networkFor(host) ?: run {
             Log.w(TAG, "resolved $host but no local network owns that subnet")
