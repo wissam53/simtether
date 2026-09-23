@@ -84,6 +84,7 @@
     <string name="bridge_client_pinned">Eşleşen istemci: %1$s</string>
     <string name="bridge_client_none">Henüz eşleşen istemci yok</string>
     <string name="client_identity_fp">Bu telefonun kimliği: %1$s</string>
+    <string name="remote_enabled_since">%1$s tarihinde açıldı — onay bu cihazda kayıtlı</string>
     <string name="bridge_waiting_lan">LAN adresi bekleniyor — hotspot açık mı?</string>
     <string name="bridge_starting">Köprü servisi başlatılıyor…</string>
     <string name="dialer_held">✓ Telefon uygulaması rolü alındı — arama kontrolü aktif</string>

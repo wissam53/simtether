@@ -84,6 +84,7 @@
     <string name="bridge_client_pinned">Сопряжённый клиент: %1$s</string>
     <string name="bridge_client_none">Клиент ещё не сопряжён</string>
     <string name="client_identity_fp">Идентификатор этого телефона: %1$s</string>
+    <string name="remote_enabled_since">Включено %1$s — согласие записано на этом устройстве</string>
     <string name="bridge_waiting_lan">Ожидание адреса LAN — точка доступа включена?</string>
     <string name="bridge_starting">Запуск службы моста…</string>
     <string name="dialer_held">✓ Роль приложения телефона получена — управление вызовами активно</string>

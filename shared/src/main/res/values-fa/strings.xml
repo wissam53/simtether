@@ -84,6 +84,7 @@
     <string name="bridge_client_pinned">کلاینت جفت‌شده: %1$s</string>
     <string name="bridge_client_none">هنوز کلاینتی جفت نشده است</string>
     <string name="client_identity_fp">هویت این گوشی: %1$s</string>
+    <string name="remote_enabled_since">در %1$s فعال شد — رضایت روی همین دستگاه ثبت شده است</string>
     <string name="bridge_waiting_lan">در انتظار آدرس LAN — هات‌اسپات روشن است؟</string>
     <string name="bridge_starting">در حال راه‌اندازی سرویس پل…</string>
     <string name="dialer_held">✓ نقش اپ تلفن فعال — کنترل تماس فعال است</string>

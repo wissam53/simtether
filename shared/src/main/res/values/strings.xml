@@ -96,6 +96,7 @@
     <string name="bridge_client_pinned">Paired client: %1$s</string>
     <string name="bridge_client_none">No client paired yet</string>
     <string name="client_identity_fp">This phone\'s identity: %1$s</string>
+    <string name="remote_enabled_since">Enabled %1$s — consent recorded on this device</string>
     <string name="bridge_waiting_lan">Waiting for LAN address — is hotspot on?</string>
     <string name="bridge_starting">Bridge service starting…</string>
     <string name="dialer_held">✓ Phone app role held — call control active</string>

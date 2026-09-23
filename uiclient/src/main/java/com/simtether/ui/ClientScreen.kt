@@ -439,6 +439,20 @@ private fun RemoteAccessCard(pairing: PairingPayload?) {
                 )
             }
             if (enabled) {
+                // Consent receipt — when this was turned on, visible
+                // on-device. "I never enabled that" is checkable here.
+                com.simtether.shared.RemoteStore.enabledAt(context)?.let { at ->
+                    Text(
+                        stringResource(R.string.remote_enabled_since,
+                            java.text.DateFormat.getDateTimeInstance(
+                                java.text.DateFormat.SHORT,
+                                java.text.DateFormat.SHORT)
+                                .format(java.util.Date(at))),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,

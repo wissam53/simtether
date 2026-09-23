@@ -38,7 +38,15 @@ object RemoteStore {
 
     fun setEnabled(context: Context, v: Boolean) {
         SecureStore.putString(context, PREFS, "enabled", if (v) "1" else "0")
+        // Consent audit trail — "remote was never turned on" claims get
+        // answered by this timestamp on the device, not by our word.
+        SecureStore.putString(context, PREFS, "enabled_at",
+            if (v) System.currentTimeMillis().toString() else null)
     }
+
+    /** Epoch ms of the last consent, null if never enabled. */
+    fun enabledAt(context: Context): Long? =
+        SecureStore.getString(context, PREFS, "enabled_at")?.toLongOrNull()
 
     fun relay(context: Context): String? =
         SecureStore.getString(context, PREFS, "relay")
