@@ -169,10 +169,10 @@
     <string name="disclosure_decline">Häzir däl</string>
 
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">Telefonlaryňyzyň arasynda jaň we SMS gönükdiriň — şifrli, öz tordyňyzda, hiç zat ýüklenmeden. Bu enjamy işjeňleşdirmek üçin abuna boluň.</string>
-    <string name="paywall_subscribe">Abuna bol</string>
-    <string name="paywall_subscribe_price">Abuna bol — %1$s / aý</string>
-    <string name="paywall_trial_line">14 gün mugt, soňra %1$s / aý. Islenen wagt ýatyr.</string>
+    <string name="paywall_body">Telefonlaryňyzyň arasynda jaň we SMS gönükdiriň — şifrli, öz tordyňyzda, hiç zat ýüklenmeden. Bir satyn alyş bu enjamy işjeňleşdirýär.</string>
+    <string name="paywall_subscribe">Aç</string>
+    <string name="paywall_subscribe_price">Aç — %1$s</string>
+    <string name="paywall_onetime_line">Bir gezeklik satyn alyş. Abuna ýok, möhlet ýok.</string>
     <string name="paywall_restore">Satyn almagy dikelt</string>
 
     <!-- Remote access -->

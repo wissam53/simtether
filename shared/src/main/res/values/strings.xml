@@ -189,10 +189,10 @@
 
     <!-- Paywall (client role subscription gate) -->
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">Relay calls and SMS between your phones — encrypted, on your own network, nothing uploaded. Subscribe to activate this device.</string>
-    <string name="paywall_subscribe">Subscribe</string>
-    <string name="paywall_subscribe_price">Subscribe — %1$s / month</string>
-    <string name="paywall_trial_line">14 days free, then %1$s / month. Cancel anytime.</string>
+    <string name="paywall_body">Relay calls and SMS between your phones — encrypted, on your own network, nothing uploaded. One purchase activates this device.</string>
+    <string name="paywall_subscribe">Unlock</string>
+    <string name="paywall_subscribe_price">Unlock — %1$s</string>
+    <string name="paywall_onetime_line">One-time purchase. No subscription, no expiry.</string>
     <string name="paywall_restore">Restore purchase</string>
 
     <!-- Remote access (opt-in internet fallback via a splice relay) -->

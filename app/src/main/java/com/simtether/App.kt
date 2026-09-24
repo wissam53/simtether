@@ -13,7 +13,7 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Resolve the subscription entitlement early — the client
+        // Resolve the purchase entitlement early — the client
         // gates on it and Play's cache answers offline.
         com.simtether.billing.Billing.init(this)
         // Generic :ui screens reach the bridge link through this

@@ -18,7 +18,7 @@ data — which is, by design, almost nothing.
   data**. With remote access enabled, our relay handles encrypted
   traffic and unavoidable connection metadata — described below.
 - The only third party involved otherwise is Google Play, if you
-  subscribe — they handle payment, we only see whether you're entitled.
+  purchase — they handle payment, we only see whether you're entitled.
 
 ## What the apps are
 
@@ -37,7 +37,7 @@ over the internet via a relay if you opt in.
 | Contact names (to label senders) | Read on-device for display. Never transmitted to us. |
 | Bridge telemetry (battery, carrier, signal, app version) | Sent to *your paired phone* so the client can show bridge status. Nowhere else. |
 | Pairing data (public key, pairing token) | Exchanged via QR you scan yourself. The token authenticates the encrypted session and rotates every connection — a copied QR stops working after your phone next connects. |
-| Subscription status | Handled by Google Play Billing. We see only "entitled / not entitled" — never card numbers or payment details. |
+| Purchase status | Handled by Google Play Billing. We see only "entitled / not entitled" — never card numbers or payment details. |
 
 ## The encryption, specifically
 
@@ -76,10 +76,13 @@ aren't on the same network. What this means honestly:
   of ours, in which case we see nothing at all.
 
 The hosted relay is a **best-effort service** — we may change,
-suspend, or discontinue it at any time, and remote access through our
-relay carries no availability guarantee. If the hosted relay stops,
-local/hotspot mode and self-hosted relays keep working unchanged; the
-app itself never depends on our infrastructure to function.
+suspend, or discontinue it at any time, or introduce a charge for
+hosted relay access in the future. Remote access through our relay
+carries no availability or pricing guarantee. The app purchase covers
+the app itself — not the hosted relay. If the hosted relay stops or
+becomes paid, local/hotspot mode and self-hosted relays keep working
+unchanged and free; the app itself never depends on our infrastructure
+to function.
 
 Leave remote access off and everything stays on your local network.
 
@@ -130,7 +133,7 @@ Both apps:
 
 All data lives on your devices. Deleting a conversation in the app,
 or uninstalling, removes it. There is nothing to request deletion of
-from us — we hold nothing. (Subscription records are held by Google
+from us — we hold nothing. (Purchase records are held by Google
 Play under their own policy.)
 
 ## Children
@@ -149,6 +152,6 @@ Your message content never reaches us — we are no data controller or
 processor for your SMS or calls. If you enable remote access, our
 relay processes the connection metadata described above (IPs, timing,
 volumes) as a transient transit function — not stored, not shared.
-The other exception is the subscription purchase, where Google Play
-is the merchant of record. For questions or requests, reach us at
+The other exception is the app purchase, where Google Play is the
+merchant of record. For questions or requests, reach us at
 [CONTACT-EMAIL].

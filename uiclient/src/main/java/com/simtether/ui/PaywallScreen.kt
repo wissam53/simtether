@@ -49,15 +49,13 @@ fun PaywallScreen(price: String?, onSubscribe: () -> Unit, onRestore: () -> Unit
                 else stringResource(R.string.paywall_subscribe)
             )
         }
-        if (price != null) {
-            Text(
-                stringResource(R.string.paywall_trial_line, price),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-        }
-        // Existing subscribers on a new/reinstalled device land here —
+        Text(
+            stringResource(R.string.paywall_onetime_line),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        // Existing owners on a new/reinstalled device land here —
         // restore re-queries Play's cached entitlements.
         TextButton(onClick = onRestore, modifier = Modifier.padding(top = 8.dp)) {
             Text(stringResource(R.string.paywall_restore))

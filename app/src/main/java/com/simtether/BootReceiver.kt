@@ -18,10 +18,10 @@ class BootReceiver : BroadcastReceiver() {
         // dead until someone opens the app.
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
-        // Entitlement gate — a lapsed subscription must not resurrect
+        // Entitlement gate — an unpurchased install must not resurrect
         // the link at boot. (Entitled==null = Play cache hasn't
         // answered yet — allow; Billing's callback stops us if the
-        // answer is "not subscribed".)
+        // answer is "not purchased".)
         if (PairingStore.isPaired(context) &&
             com.simtether.billing.Billing.entitled.value != false) {
             Log.d(TAG, "boot: restarting client service")

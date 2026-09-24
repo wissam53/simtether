@@ -169,10 +169,10 @@
     <string name="disclosure_decline">Не сейчас</string>
 
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">Пересылайте звонки и SMS между телефонами — зашифровано, в вашей сети, ничего не загружается. Подпишитесь, чтобы активировать это устройство.</string>
-    <string name="paywall_subscribe">Подписаться</string>
-    <string name="paywall_subscribe_price">Подписаться — %1$s / месяц</string>
-    <string name="paywall_trial_line">14 дней бесплатно, затем %1$s / месяц. Отмена в любой момент.</string>
+    <string name="paywall_body">Пересылайте звонки и SMS между телефонами — зашифровано, в вашей сети, ничего не загружается. Одна покупка активирует это устройство.</string>
+    <string name="paywall_subscribe">Разблокировать</string>
+    <string name="paywall_subscribe_price">Разблокировать — %1$s</string>
+    <string name="paywall_onetime_line">Разовая покупка. Без подписки и срока действия.</string>
     <string name="paywall_restore">Восстановить покупку</string>
 
     <!-- Remote access -->

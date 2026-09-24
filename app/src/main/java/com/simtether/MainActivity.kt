@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
                                 price = price,
                                 onSubscribe = {
                                     com.simtether.billing.Billing
-                                        .subscribe(this@MainActivity)
+                                        .purchase(this@MainActivity)
                                 },
                                 onRestore = {
                                     com.simtether.billing.Billing.refresh()

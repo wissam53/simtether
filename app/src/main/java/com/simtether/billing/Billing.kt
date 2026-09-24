@@ -18,13 +18,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Play Billing subscription gate for the client role.
+ * Play Billing one-time-purchase gate for the client role.
  *
- * Product `simtether_pro` (base plan monthly + 14-day trial offer) is
- * created in Play Console — nothing works until it exists and the app
- * is uploaded to a track. Entitlement lives in Play's on-device cache,
- * so checks work offline; `entitled` stays null until resolved so the
- * UI can show a spinner instead of flashing the paywall.
+ * Product `simtether_pro` (non-consumable INAPP — buy once, no expiry)
+ * is created in Play Console — nothing works until it exists and the
+ * app is uploaded to a track. Entitlement lives in Play's on-device
+ * cache, so checks work offline; `entitled` stays null until resolved
+ * so the UI can show a spinner instead of flashing the paywall.
  *
  * Debug builds bypass the gate — there is no Play product locally.
  */
@@ -113,7 +113,7 @@ object Billing {
     private fun refreshPurchases() {
         client.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.SUBS)
+                .setProductType(BillingClient.ProductType.INAPP)
                 .build()
         ) { result, purchases ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
@@ -160,7 +160,7 @@ object Billing {
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.SUBS)
+                        .setProductType(BillingClient.ProductType.INAPP)
                         .build()
                 )
             ).build()
@@ -174,22 +174,13 @@ object Billing {
                 return@queryProductDetailsAsync
             }
             productDetails = pd
-            // Last phase = the recurring price (earlier phases are the
-            // trial/discount periods).
-            _price.value = pickOffer(pd)?.pricingPhases?.pricingPhaseList
-                ?.lastOrNull()?.formattedPrice
+            _price.value = pd.oneTimePurchaseOfferDetails?.formattedPrice
             maybeLaunch()
         }
     }
 
-    /** Prefer the offer with a free phase (the trial); else the first. */
-    private fun pickOffer(pd: ProductDetails) =
-        pd.subscriptionOfferDetails?.firstOrNull { offer ->
-            offer.pricingPhases.pricingPhaseList.any { it.priceAmountMicros == 0L }
-        } ?: pd.subscriptionOfferDetails?.firstOrNull()
-
-    /** Opens Play's subscription sheet; the trial auto-applies if eligible. */
-    fun subscribe(activity: Activity) {
+    /** Opens Play's purchase sheet for the one-time product. */
+    fun purchase(activity: Activity) {
         pendingLaunch = java.lang.ref.WeakReference(activity)
         when {
             !connected -> connect()
@@ -202,14 +193,11 @@ object Billing {
         val activity = pendingLaunch?.get() ?: return
         val pd = productDetails ?: return
         if (!connected) return
-        val offerToken = pickOffer(pd)?.offerToken
-            ?: run { Log.w(TAG, "no subscription offers"); pendingLaunch = null; return }
         pendingLaunch = null
         val params = BillingFlowParams.newBuilder().setProductDetailsParamsList(
             listOf(
                 BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(pd)
-                    .setOfferToken(offerToken)
                     .build()
             )
         ).build()
