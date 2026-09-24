@@ -23,8 +23,9 @@ android {
         applicationId = "com.simtether"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        // Versioned in gradle.properties — shared with the bridge app.
+        versionCode = (project.property("simtether.versionCode") as String).toInt()
+        versionName = project.property("simtether.versionName") as String
     }
 
     signingConfigs {
