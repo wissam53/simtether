@@ -749,10 +749,33 @@ class BridgeService : LifecycleService() {
             ))
             .setSmallIcon(com.simtether.shared.R.drawable.ic_stat_simtether)
             .setOngoing(true)
+            // Post immediately — the default DEFERRED behavior can hide
+            // the notice for seconds after start, a window where the
+            // bridge runs with no visible signal.
+            .setForegroundServiceBehavior(
+                NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            // Android 14+ lets users swipe-dismiss even ongoing FGS
+            // notifications — deleteIntent fires on dismiss and the
+            // receiver re-posts it. The bridge must never run invisibly.
+            .setDeleteIntent(
+                android.app.PendingIntent.getBroadcast(
+                    this, 0,
+                    android.content.Intent(this, NotifDismissReceiver::class.java)
+                        .setAction(ACTION_NOTIF_DISMISSED),
+                    android.app.PendingIntent.FLAG_IMMUTABLE
+                        or android.app.PendingIntent.FLAG_UPDATE_CURRENT))
             // Channel badge setting is locked at creation — the
             // per-notification flag fixes installs that already have it.
             .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
             .build()
+    }
+
+    /** True when the bridge's status channel still shows — a muted
+     *  channel means the FGS could run with no visible indicator. */
+    fun statusChannelVisible(): Boolean {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val ch = nm.getNotificationChannel(CHANNEL_ID) ?: return true
+        return ch.importance != NotificationManager.IMPORTANCE_NONE
     }
 
     private fun updateNotification(connected: Boolean) {
@@ -766,6 +789,7 @@ class BridgeService : LifecycleService() {
     fun refreshNotification() = updateNotification(clientConnected)
 
     companion object {
+        const val ACTION_NOTIF_DISMISSED = "com.simtether.bridge.NOTIF_DISMISSED"
         private const val CHANNEL_ID = "bridge"
         private const val NOTIF_ID = 1
         private const val TAG = "SimTether.Bridge"

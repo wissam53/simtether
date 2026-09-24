@@ -204,4 +204,5 @@
     <string name="call_rejected_codes_off">Köprüde servis kodları kapalı</string>
     <string name="call_rejected_no_perm">Köprüde arama izni eksik</string>
     <string name="ussd_failed">USSD isteği başarısız</string>
+    <string name="health_notif_visible">Durum bildirimi görünür</string>
 </resources>

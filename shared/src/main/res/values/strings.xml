@@ -224,4 +224,5 @@
     <string name="call_rejected_codes_off">Service codes are off on the bridge</string>
     <string name="call_rejected_no_perm">Bridge is missing the call permission</string>
     <string name="ussd_failed">USSD request failed</string>
+    <string name="health_notif_visible">Status notification visible</string>
 </resources>

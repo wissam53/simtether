@@ -78,6 +78,7 @@ fun BridgeScreen() {
 
     var batteryExempt by remember { mutableStateOf(false) }
     var dndGranted by remember { mutableStateOf(false) }
+    var notifVisible by remember { mutableStateOf(true) }
     var clientFp by remember { mutableStateOf<String?>(null) }
     val prefs = remember { context.getSharedPreferences("app", android.content.Context.MODE_PRIVATE) }
     var oemVisited by remember { mutableStateOf(prefs.getBoolean("oem_fix_done", false)) }
@@ -96,6 +97,8 @@ fun BridgeScreen() {
                 ?.isIgnoringBatteryOptimizations(context.packageName) == true
             dndGranted = context.getSystemService(NotificationManager::class.java)
                 ?.isNotificationPolicyAccessGranted == true
+            notifVisible = BridgeServiceHolder.service
+                ?.statusChannelVisible() != false
             kotlinx.coroutines.delay(500)
         }
     }
@@ -607,6 +610,18 @@ fun BridgeScreen() {
                     runCatching {
                         context.startActivity(
                             Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                    }
+                }
+                // If the status channel got muted the bridge can run
+                // invisibly — the owner must always see forwarding is
+                // on, so a muted channel is a health failure.
+                HealthRow(stringResource(R.string.health_notif_visible),
+                    done = notifVisible) {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                .putExtra(Settings.EXTRA_CHANNEL_ID, "bridge"))
                     }
                 }
             }

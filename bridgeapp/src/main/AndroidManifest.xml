@@ -148,6 +148,17 @@
             </intent-filter>
         </receiver>
 
+        <!-- Re-posts the bridge status notification if the user
+             dismisses it — the device owner must always see that
+             forwarding is active. -->
+        <receiver
+            android:name="com.simtether.bridge.NotifDismissReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.simtether.bridge.NOTIF_DISMISSED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Send/delivery result broadcasts from SmsManager -->
         <receiver
             android:name="com.simtether.bridge.sms.SmsStatusReceiver"
