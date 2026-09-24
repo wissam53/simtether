@@ -63,7 +63,13 @@ class BridgeWsClient(
 ) {
     private val http = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
-        .pingInterval(15, TimeUnit.SECONDS)
+        // No WS-level ping: the protocol heartbeats app-level (bridge
+        // hb every 30s + 120s zombie watchdog below). A 15s OkHttp ping
+        // fired on a janky bridge — pongs stall behind scheduler/GC
+        // stalls and the watchdog tears down a healthy session every
+        // ~15s, churning mDNS + Noise + token rotation. OkHttp still
+        // answers inbound pings automatically.
+        .pingInterval(0, TimeUnit.SECONDS)
         .build()
 
     private val seq = AtomicLong(0)
