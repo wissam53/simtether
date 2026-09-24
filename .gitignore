@@ -15,6 +15,10 @@ nul
 relay.properties
 devicelogs/
 
-# Private strategy docs — never push to the public repo
+# Private docs — strategy and internal test/audit artifacts stay out of
+# the public repo. Local copies are backed up in ../simtether-private/.
 PRODUCT.md
 PLAN.md
+docs/on-device-validation.md
+docs/redmi-root-spike.md
+docs/audit/findings-*.md
