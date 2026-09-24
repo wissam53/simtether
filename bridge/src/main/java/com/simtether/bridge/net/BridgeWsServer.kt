@@ -54,6 +54,9 @@ class BridgeWsServer(
 
     @Volatile private var client: WebSocket? = null
     @Volatile private var session: SecureSession? = null
+    // Guards the (client, session) pair so a frame never matches one
+    // socket with the other session's cipher — see onMessage.
+    private val lock = Any()
 
     // Sockets past the LAN gate but not yet authenticated. Capped so a
     // LAN peer looping connects can't pile up worker threads + X25519
@@ -146,8 +149,19 @@ class BridgeWsServer(
 
     private fun onMessage(conn: WebSocket, message: ByteBuffer, remote: Boolean) {
         val bytes = ByteArray(message.remaining()).also { message.get(it) }
-        val s = session
-        if (conn == client && s != null) {
+        // Read (client, session) as one atomic pair: adoption assigns
+        // them back-to-back, and a frame landing between the two
+        // volatile writes would pair the NEW socket with the OLD
+        // cipher — guaranteed decrypt failure that tears down a
+        // healthy session. Seen once on-device during reconnect churn.
+        var s: SecureSession? = null
+        val authenticated = synchronized(lock) {
+            if (conn == client) {
+                s = session
+                s != null
+            } else false
+        }
+        if (authenticated && s != null) {
             val plain = runCatching { s.decrypt(bytes) }.getOrElse {
                 Log.e(TAG, "decrypt failed — resetting session", it)
                 conn.close(1008, "decrypt")
@@ -213,9 +227,11 @@ class BridgeWsServer(
             // Verified — adopt now, replacing the previous client.
             pendingAuth.remove(conn)
             authFails.remove(conn)   // good auth — reset the flood counter
-            client?.takeIf { it != conn }?.close(1000, "replaced")
-            client = conn
-            session = sess
+            synchronized(lock) {
+                client?.takeIf { it != conn }?.close(1000, "replaced")
+                client = conn
+                session = sess
+            }
             Log.d(TAG, "session established")
             onClientReady()
         }
