@@ -1,0 +1,68 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  locale="en"
+  page="terms"
+  title="Terms of Use — SimTether"
+  description="SimTether terms of use — what the purchase covers, the hosted relay, and acceptable use."
+>
+  <section class="prose">
+    <div class="container">
+      <h2>Terms of Use</h2>
+      <p><strong>Effective date:</strong> [DATE]<br />
+         <strong>Contact:</strong> [CONTACT-EMAIL]</p>
+
+      <h3>What you're buying</h3>
+      <p>The SimTether client app is a <strong>one-time purchase</strong> through
+         Google Play. Buying it unlocks the app permanently — no subscription,
+         no expiry, no per-device fee within your Google account's normal
+         device limits. The bridge app is free and open source.</p>
+      <p>Refunds follow <strong>Google Play's refund policy</strong> — we don't
+         process payments ourselves and can't issue refunds directly; Play
+         handles them. Because there is no free trial, please verify the app
+         works on your phones (pairing, SMS, calls, and that your bridge phone
+         keeps the service alive) inside Play's refund window.</p>
+
+      <h3>The hosted relay</h3>
+      <p>Remote access through our hosted relay is a <strong>best-effort
+         service provided at no charge</strong>. We may change, suspend, or
+         discontinue it at any time, and we may introduce a charge for hosted
+         relay access in the future. The app purchase does not include any
+         commitment that hosted relay access remains free or available.</p>
+      <p>What is guaranteed: <strong>local/hotspot mode and self-hosted relays
+         are always free</strong>, and the app never depends on our
+         infrastructure to function. If the hosted relay stops or becomes
+         paid, nothing else about the app changes.</p>
+
+      <h3>Use it on your own devices</h3>
+      <p>SimTether is for forwarding <strong>your own SIM's</strong> SMS and
+         calls between <strong>phones you own or control</strong>. You must
+         not use it to monitor, intercept, or forward another person's
+         messages or calls without their knowledge. The bridge phone displays
+         a persistent notification whenever the service is active — that
+         visibility is intentional and must not be disabled to conceal the
+         service from the phone's owner. Interception of communications you
+         are not a party to is illegal in most jurisdictions.</p>
+      <p>SimTether forwards data — it does not modify, spoof, or circumvent
+         device or network registration requirements. The SIM must remain in a
+         legally registered device. You are responsible for complying with the
+         telecommunications regulations that apply in your country.</p>
+
+      <h3>No warranty</h3>
+      <p>The apps are provided "as is". They relay your own carrier traffic;
+         SMS delivery, call behaviour, and USSD/service-code support depend
+         on your carrier, SIM, and phone manufacturer — we can't guarantee
+         carrier behaviour. Battery-management systems on some phones (Xiaomi,
+         Oppo, others) can kill background services; the app shows health
+         warnings for this but the device's owner is responsible for the
+         manufacturer's settings. To the extent permitted by law, we are not
+         liable for missed messages, missed calls, or carrier charges.</p>
+
+      <h3>Changes</h3>
+      <p>If these terms change, the effective date above moves and the change
+         lands in the public repository history — nothing happens silently.</p>
+    </div>
+  </section>
+</Layout>

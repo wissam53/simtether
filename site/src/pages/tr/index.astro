@@ -1,0 +1,142 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+---
+
+<Layout
+  locale="tr"
+  page="index"
+  title="SimTether — SIM'iniz ucuz bir telefonda. Hayatınız gerçek telefonunuzda."
+  description="SimTether, kayıtlı SIM'inizin bulunduğu uygun fiyatlı bir köprü telefondan SMS ve GSM arama kontrolünü ana telefonunuza iletir — uçtan uca şifreli, sunucusuz."
+>
+  <header class="hero">
+    <div class="container">
+      <h1>SIM'iniz evde kalır.<br /><em>Siz kalmak zorunda değilsiniz.</em></h1>
+      <p>
+        SimTether, ucuz bir Android telefonu kayıtlı SIM'iniz için bir köprüye
+        dönüştürür — SMS'ler ve GSM arama kontrolü ana telefonunuza uçtan uca
+        şifreli olarak gelir. Hesap yok, reklam yok; mesajlarınız asla üçüncü
+        taraf bir sunucuya uğramaz.
+      </p>
+      <div class="badges">
+        <span class="badge green">uçtan uca şifreli</span>
+        <span class="badge">hesap yok</span>
+        <span class="badge">reklam yok · izleyici yok</span>
+        <span class="badge">sunucumuz olmadan çalışır</span>
+        <span class="badge">açık kaynak</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="how">
+    <div class="container">
+      <h2>Nasıl çalışır</h2>
+      <p class="sub">İki uygulama, bir QR taraması — SIM'iniz çekmecede durabilen bir telefonda yaşar.</p>
+      <div class="cards">
+        <div class="card">
+          <span class="step">adım 01</span>
+          <h3>SIM'inizi köprü telefona takın</h3>
+          <p>
+            Uygun fiyatlı herhangi bir Android telefon iş görür. <strong>SimTether
+            Bridge</strong>'i kurun, ev ağınıza bağlayın ve prize takılı bırakın —
+            SIM'iniz için küçük bir cihaz haline gelir.
+          </p>
+        </div>
+        <div class="card">
+          <span class="step">adım 02</span>
+          <h3>Gerçek telefonunuzdan bir kez tarayın</h3>
+          <p>
+            Ana telefonunuza <strong>SimTether</strong>'i kurun ve köprünün gösterdiği
+            QR kodu tarayın. Bu tek tarama şifreleme anahtarlarını sabitler —
+            eşleşme tamamlanır; siz kaldırana kadar kalıcıdır.
+          </p>
+        </div>
+        <div class="card">
+          <span class="step">adım 03</span>
+          <h3>SMS ve aramalar, neredeyseniz orada</h3>
+          <p>
+            Gelen SMS'ler ve arama olayları yerel ağ üzerinden ana telefonunuza
+            ulaşır. Cevaplayın, reddedin, yanıtlayın, gönderin — operatör işlemlerini
+            köprü yapar.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Verinizin izlediği yol</h2>
+      <p class="sub">İki telefon arasındaki her şey Noise ile şifrelenir. İsteğe bağlı relay yalnızca şifreli metin görür.</p>
+      <div class="flow"><span class="b">köprü telefon (SIM'iniz)</span>        <span class="b">ana telefonunuz</span>
+┌───────────────────────┐        ┌───────────────────────┐
+│  GSM ağı              │        │  SMS kutusu + yanıtlar│
+│  SimTether Bridge     │ ────▶  │  gelen aramalar       │
+│  (ücretsiz uygulama)  │        │  ara / cevapla / DTMF │
+└──────────┬────────────┘        └──────────▲────────────┘
+           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
+           └─────── yerel ağ / hotspot ─────┘
+           └── isteğe bağlı yalnızca-şifreli relay ──┘</div>
+      <div class="note">
+        Yerel mod varsayılandır — trafik ağınızdan asla çıkmaz. Uzaktan erişim iki
+        telefonda da isteğe bağlıdır ve relay bizimki yerine sizinki olabilir.
+        Barındırılan relay'imiz elinden gelenin en iyisi bir hizmettir; uygulama
+        onsuz da sonsuza dek çalışır.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>İki sürüm, dürüstçe etiketlenmiş</h2>
+      <p class="sub">Aynı şifreli hat — root'lu sürüm Android'in vermediği tek şeyi ekler.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>Standart</h3>
+          <p>
+            Tam SMS yönlendirme, arama bildirimleri ve arama kontrolü — cevaplama,
+            reddetme, arama, DTMF. Android 8.0+ her telefonda çalışır, root gerekmez.
+            Google Play'deki sürüm budur.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Root'lu köprü <span class="badge" style="vertical-align:middle">yalnızca GitHub</span></h3>
+          <p>
+            Ayrıca canlı GSM arama sesini yakalayıp ana telefonunuza aktarabilen
+            deneysel bir sürüm. Root'lu bir köprü telefon gerektirir ve yalnızca
+            GitHub Releases üzerinden dağıtılır — Google Play buna izin vermez.
+            <em>Şu anda geliştirme aşamasında.</em>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Kimler için</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>Yurt dışında kayıtlı kalamayan telefonlar.</strong> Bazı
+              ülkelerde yerel kaydı olmayan bir telefon, belirli bir süre sonra
+              hücresel hizmeti kaybeder. Kayıtlı SIM'i — ve kayıtlı telefonu —
+              evde bırakın; istediğiniz telefonu taşıyın.</li>
+          <li><strong>Cebinizde ikinci telefon olmadan ikinci SIM.</strong>
+              Donanım taşımak istemediğiniz bir numaraya gelen doğrulama kodları,
+              operatör mesajları ve aramalar.</li>
+          <li><strong>Gizliliğe önem veren kullanıcılar</strong> — mesaj içeriğini
+              bir bulut hizmetine vermeden SMS yönlendirme isteyenler.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container" style="text-align:center">
+      <h2>Edinin</h2>
+      <p class="sub">Köprü ücretsiz ve açıktır. Ana telefon uygulaması Google Play'de tek seferlik satın alımdır.</p>
+      <a class="btn" href={getRelativeLocaleUrl('tr', 'install')}>Kurulum rehberi</a>
+      <a class="btn secondary" href="https://github.com/">GitHub sürümleri</a>
+    </div>
+  </section>
+</Layout>

@@ -22,3 +22,8 @@ PLAN.md
 docs/on-device-validation.md
 docs/redmi-root-spike.md
 docs/audit/findings-*.md
+
+# Website build tooling
+site/node_modules/
+site/dist/
+site/.astro/

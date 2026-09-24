@@ -1,0 +1,96 @@
+---
+import '../styles/global.css';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+type Locale = 'en' | 'tr';
+type Page = 'index' | 'install' | 'privacy' | 'security' | 'terms';
+
+interface Props {
+  locale: Locale;
+  page: Page;
+  title: string;
+  description: string;
+}
+
+const { locale, page, title, description } = Astro.props;
+
+// Pages that exist in Turkish; others fall back to English.
+const TR_PAGES: Page[] = ['index', 'install'];
+
+const ui = {
+  en: {
+    how: 'How it works',
+    security: 'Security',
+    install: 'Install',
+    privacy: 'Privacy',
+    terms: 'Terms',
+    tagline: 'SimTether — SMS and call control, end-to-end encrypted.',
+  },
+  tr: {
+    how: 'Nasıl çalışır',
+    security: 'Güvenlik',
+    install: 'Kurulum',
+    privacy: 'Gizlilik',
+    terms: 'Koşullar',
+    tagline: 'SimTether — SMS ve arama kontrolü, uçtan uca şifreli.',
+  },
+}[locale];
+
+const pathFor = (l: Locale, p: Page) =>
+  p === 'index' ? getRelativeLocaleUrl(l) : getRelativeLocaleUrl(l, p);
+
+// Internal link: use the current locale when the page exists there, else English.
+const link = (p: Page) =>
+  pathFor(locale === 'tr' && !TR_PAGES.includes(p) ? 'en' : locale, p);
+
+const alt: Locale = locale === 'en' ? 'tr' : 'en';
+const altPage: Page = alt === 'tr' && !TR_PAGES.includes(page) ? 'index' : page;
+const altUrl = pathFor(alt, altPage);
+
+const canonical = new URL(pathFor(locale, page), Astro.site);
+const enUrl = new URL(pathFor('en', page), Astro.site);
+const trUrl = TR_PAGES.includes(page)
+  ? new URL(pathFor('tr', page), Astro.site)
+  : null;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    {trUrl && <link rel="alternate" hreflang="tr" href={trUrl} />}
+    <link rel="alternate" hreflang="x-default" href={enUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <nav>
+      <div class="container">
+        <a class="logo" href={pathFor(locale, 'index')}>sim<span>tether</span></a>
+        <div class="links">
+          <a href={pathFor(locale, 'index') + '#how'}>{ui.how}</a>
+          <a href={link('security')}>{ui.security}</a>
+          <a href={link('install')}>{ui.install}</a>
+          <a href={link('privacy')}>{ui.privacy}</a>
+          <a class="lang" href={altUrl} hreflang={alt}>{alt.toUpperCase()}</a>
+        </div>
+      </div>
+    </nav>
+
+    <slot />
+
+    <footer>
+      <div class="container">
+        <a href={link('privacy')}>{ui.privacy}</a>
+        <a href={link('security')}>{ui.security}</a>
+        <a href={link('install')}>{ui.install}</a>
+        <a href={link('terms')}>{ui.terms}</a>
+        <p style="margin-top:12px">{ui.tagline}</p>
+      </div>
+    </footer>
+  </body>
+</html>

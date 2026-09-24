@@ -44,6 +44,14 @@ nav .links a {
   font-size: 0.95rem;
 }
 nav .links a:hover { color: var(--text); }
+nav .links a.lang {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+nav .links a.lang:hover { border-color: var(--muted); }
 
 .hero {
   padding: 80px 0 60px;
