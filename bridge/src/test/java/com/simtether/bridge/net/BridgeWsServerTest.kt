@@ -229,7 +229,10 @@ class BridgeWsServerTest {
         // Reconnect semantics: the old socket gets closed by adoption.
         assertTrue("first socket not replaced",
             first.closed.await(5, TimeUnit.SECONDS))
-        assertTrue(server!!.isReady())
+        // authenticate() returns when the selector flushes msg2 — the
+        // worker thread can still be mid-adoption (client=/session=),
+        // so a bare isReady() read can race it. Wait instead.
+        assertTrue(waitFor { server!!.isReady() })
     }
 
     @Test
@@ -275,7 +278,7 @@ class BridgeWsServerTest {
 
         val c2 = connect(port)
         authenticate(c2, tok = pending!!)        // pending authenticates too
-        assertTrue(server!!.isReady())
+        assertTrue(waitFor { server!!.isReady() })
         assertTrue(c1.closed.await(5, TimeUnit.SECONDS))
     }
 
