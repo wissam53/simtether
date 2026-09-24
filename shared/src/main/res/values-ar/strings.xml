@@ -190,4 +190,19 @@
     <string name="remote_active_relay">الوسيط: %1$s</string>
     <string name="remote_custom_relay">خادم وسيط مخصص</string>
     <string name="remote_use_default">استخدام الخادم الافتراضي</string>
+
+    <!-- Call audio relay (rooted bridge flavor only) -->
+    <string name="audio_relay">ترحيل صوت المكالمة</string>
+    <string name="audio_relay_hint">بث صوت هذه المكالمة إلى هاتفك المقترن وإعادة صوت الطرف الآخر إلى المكالمة — تجريبي.</string>
+    <string name="audio_relay_no_root">لم يتم اكتشاف الجذر (root) — امنح الإذن في Magisk ثم اضغط على المفتاح لإعادة المحاولة.</string>
+    <string name="call_audio_active">ترحيل الصوت: نشط</string>
+
+    <!-- Carrier service codes / USSD -->
+    <string name="service_codes_title">رموز خدمة المشغل (*#، USSD)</string>
+    <string name="service_codes_hint">السماح للهاتف المقترن بتشغيل رموز * و # على هذه الشريحة (فحص الرصيد، الشحن). يمكن لهذه الرموز تغيير إعدادات الشريحة بصمت — فعّلها فقط عند الحاجة.</string>
+    <string name="call_rejected_unsafe">مرفوض: ليس رقمًا قابلاً للاتصال</string>
+    <string name="call_rejected_codes_off">رموز الخدمة معطلة على الجسر</string>
+    <string name="call_rejected_no_perm">الجسر يفتقد إذن الاتصال</string>
+    <string name="ussd_failed">فشل طلب USSD</string>
+    <string name="health_notif_visible">إشعار الحالة مرئي</string>
 </resources>

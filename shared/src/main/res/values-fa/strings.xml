@@ -190,4 +190,19 @@
     <string name="remote_active_relay">بازگردان: %1$s</string>
     <string name="remote_custom_relay">سرور بازگردان سفارشی</string>
     <string name="remote_use_default">استفاده از سرور پیش‌فرض</string>
+
+    <!-- Call audio relay (rooted bridge flavor only) -->
+    <string name="audio_relay">بازگردان صدای تماس</string>
+    <string name="audio_relay_hint">پخش صدای این تماس به تلفن جفت‌شده و بازگرداندن صدای طرف مقابل به تماس — آزمایشی.</string>
+    <string name="audio_relay_no_root">روت شناسایی نشد — در Magisk دسترسی بدهید و سپس برای تلاش مجدد کلید را بزنید.</string>
+    <string name="call_audio_active">بازگردان صدا: فعال</string>
+
+    <!-- Carrier service codes / USSD -->
+    <string name="service_codes_title">کدهای سرویس اپراتور (*#، USSD)</string>
+    <string name="service_codes_hint">اجازه دهید تلفن جفت‌شده کدهای * و # را روی این سیم‌کارت اجرا کند (استعلام موجودی، شارژ). این کدها می‌توانند بی‌صدا تنظیمات سیم‌کارت را تغییر دهند — فقط در صورت نیاز فعال کنید.</string>
+    <string name="call_rejected_unsafe">رد شد: شماره قابل تماس نیست</string>
+    <string name="call_rejected_codes_off">کدهای سرویس روی پل خاموش است</string>
+    <string name="call_rejected_no_perm">پل مجوز تماس ندارد</string>
+    <string name="ussd_failed">درخواست USSD ناموفق بود</string>
+    <string name="health_notif_visible">اعلان وضعیت قابل مشاهده است</string>
 </resources>

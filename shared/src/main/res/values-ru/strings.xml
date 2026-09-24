@@ -190,4 +190,19 @@
     <string name="remote_active_relay">Ретранслятор: %1$s</string>
     <string name="remote_custom_relay">Свой сервер-ретранслятор</string>
     <string name="remote_use_default">Сервер по умолчанию</string>
+
+    <!-- Call audio relay (rooted bridge flavor only) -->
+    <string name="audio_relay">Ретрансляция звука звонка</string>
+    <string name="audio_relay_hint">Передаёт звук этого звонка на сопряжённый телефон и возвращает голос собеседника в звонок — экспериментально.</string>
+    <string name="audio_relay_no_root">Root не обнаружен — разрешите доступ в Magisk, затем нажмите переключатель для повтора.</string>
+    <string name="call_audio_active">Ретрансляция звука: активна</string>
+
+    <!-- Carrier service codes / USSD -->
+    <string name="service_codes_title">Сервисные коды оператора (*#, USSD)</string>
+    <string name="service_codes_hint">Разрешить сопряжённому телефону выполнять коды * и # на этой SIM (проверка баланса, пополнение). Такие коды могут незаметно менять настройки SIM — включайте только при необходимости.</string>
+    <string name="call_rejected_unsafe">Отклонено: не набираемый номер</string>
+    <string name="call_rejected_codes_off">Сервисные коды отключены на мосту</string>
+    <string name="call_rejected_no_perm">На мосту нет разрешения на звонки</string>
+    <string name="ussd_failed">Запрос USSD не удался</string>
+    <string name="health_notif_visible">Уведомление о состоянии видимо</string>
 </resources>

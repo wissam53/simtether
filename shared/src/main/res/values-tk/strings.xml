@@ -190,4 +190,19 @@
     <string name="remote_active_relay">Geçiriji: %1$s</string>
     <string name="remote_custom_relay">Özbaşdak geçiriji serwer</string>
     <string name="remote_use_default">Deslapky serweri ulanyň</string>
+
+    <!-- Call audio relay (rooted bridge flavor only) -->
+    <string name="audio_relay">Jaň sesini geçirmek</string>
+    <string name="audio_relay_hint">Bu jaňyň sesini jübüt telefonyňyza iberýär we söhbetdeşiň sesini jaňa yzyna gaýtarýar — synag.</string>
+    <string name="audio_relay_no_root">Root tapylmady — Magisk-de rugsat beriň, soňra gaýtadan synanyşmak üçin açara basyň.</string>
+    <string name="call_audio_active">Ses geçirimi: işjeň</string>
+
+    <!-- Carrier service codes / USSD -->
+    <string name="service_codes_title">Operatoryň hyzmat kodlary (*#, USSD)</string>
+    <string name="service_codes_hint">Jübüt telefonyň bu SIM-de * we # kodlaryny işletmegine rugsat berýär (balans barlagy, doldurma). Bu kodlar SIM sazlamalaryny sessiz üýtgedip biler — diňe gerek bolsa açyň.</string>
+    <string name="call_rejected_unsafe">Ret edildi: jaň edip bolmaýan belgi</string>
+    <string name="call_rejected_codes_off">Köprüde hyzmat kodlary öçürilen</string>
+    <string name="call_rejected_no_perm">Köprüde jaň etmek rugsady ýok</string>
+    <string name="ussd_failed">USSD haýyşy şowsuz</string>
+    <string name="health_notif_visible">Ýagdaý bildirişi görünýär</string>
 </resources>
