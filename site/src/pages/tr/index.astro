@@ -10,7 +10,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
 └──────────┬────────────┘        └──────────▲────────────┘
            │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
            └─────── yerel ağ / hotspot ─────┘
-           └── isteğe bağlı yalnızca-şifreli relay ──┘`;
+           └── isteğe bağlı, yalnızca şifreli relay ──┘`;
 ---
 
 <Layout
@@ -49,7 +49,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
           <p>
             Uygun fiyatlı herhangi bir Android telefon iş görür. <strong>SimTether
             Bridge</strong>'i kurun, ev ağınıza bağlayın ve prize takılı bırakın —
-            SIM'iniz için küçük bir cihaz haline gelir.
+            SIM'iniz için küçük bir köprü cihazına dönüşür.
           </p>
         </div>
         <div class="card">
@@ -58,16 +58,16 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
           <p>
             Ana telefonunuza <strong>SimTether</strong>'i kurun ve köprünün gösterdiği
             QR kodu tarayın. Bu tek tarama şifreleme anahtarlarını sabitler —
-            eşleşme tamamlanır; siz kaldırana kadar kalıcıdır.
+            eşleştirme tamamlanır ve siz iptal edene kadar geçerli kalır.
           </p>
         </div>
         <div class="card">
           <span class="step">adım 03</span>
-          <h3>SMS ve aramalar, neredeyseniz orada</h3>
+          <h3>SMS ve aramalar, nerede olursanız olun</h3>
           <p>
             Gelen SMS'ler ve arama olayları yerel ağ üzerinden ana telefonunuza
-            ulaşır. Cevaplayın, reddedin, yanıtlayın, gönderin — operatör işlemlerini
-            köprü yapar.
+            ulaşır. Yanıtlayın, reddedin, arama yapın, DTMF gönderin — operatör
+            tarafındaki işlemleri köprü yürütür.
           </p>
         </div>
       </div>
@@ -97,8 +97,8 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
           <h3>Standart</h3>
           <p>
             Tam SMS yönlendirme, arama bildirimleri ve arama kontrolü — cevaplama,
-            reddetme, arama, DTMF. Android 8.0+ her telefonda çalışır, root gerekmez.
-            Google Play'deki sürüm budur.
+            reddetme, arama ve DTMF. Android 8.0+ sürümlerinde root gerekmeden
+            çalışır. Google Play'deki sürüm budur.
           </p>
         </div>
         <div class="card">
@@ -107,7 +107,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
             Ayrıca canlı GSM arama sesini yakalayıp ana telefonunuza aktarabilen
             deneysel bir sürüm. Root'lu bir köprü telefon gerektirir ve yalnızca
             GitHub Releases üzerinden dağıtılır — Google Play buna izin vermez.
-            <em>Şu anda geliştirme aşamasında.</em>
+            <em>Şu anda geliştirme aşamasındadır.</em>
           </p>
         </div>
       </div>
@@ -119,15 +119,15 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
       <h2>Kimler için</h2>
       <div class="prose">
         <ul>
-          <li><strong>Yurt dışında kayıtlı kalamayan telefonlar.</strong> Bazı
-              ülkelerde yerel kaydı olmayan bir telefon, belirli bir süre sonra
-              hücresel hizmeti kaybeder. Kayıtlı SIM'i — ve kayıtlı telefonu —
-              evde bırakın; istediğiniz telefonu taşıyın.</li>
-          <li><strong>Cebinizde ikinci telefon olmadan ikinci SIM.</strong>
-              Donanım taşımak istemediğiniz bir numaraya gelen doğrulama kodları,
-              operatör mesajları ve aramalar.</li>
-          <li><strong>Gizliliğe önem veren kullanıcılar</strong> — mesaj içeriğini
-              bir bulut hizmetine vermeden SMS yönlendirme isteyenler.</li>
+          <li><strong>Yurt dışında yerel kaydı yapılamayan telefonlar.</strong> Bazı
+              ülkelerde yerel olarak kayıtlı olmayan bir telefon, belirli bir süre
+              sonra hücresel hizmetini kaybeder. Kayıtlı SIM'i — ve kayıtlı
+              telefonu — evde bırakın; istediğiniz telefonu yanınızda taşıyın.</li>
+          <li><strong>Cebinizde ikinci bir telefon taşımadan ikinci SIM.</strong>
+              Taşımak istemediğiniz bir numaraya gelen doğrulama kodları, operatör
+              mesajları ve aramalar.</li>
+          <li><strong>Gizliliğe önem veren ve SMS yönlendirmesi için mesaj
+              içeriğini bir bulut hizmetine vermek istemeyen kullanıcılar.</strong></li>
         </ul>
       </div>
     </div>
@@ -136,7 +136,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
   <section>
     <div class="container" style="text-align:center">
       <h2>Edinin</h2>
-      <p class="sub">Köprü ücretsiz ve açıktır. Ana telefon uygulaması Google Play'de tek seferlik satın alımdır.</p>
+      <p class="sub">Köprü ücretsiz ve açık kaynaklıdır. Ana telefon uygulaması Google Play'de tek seferlik satın alınır.</p>
       <a class="btn" href={getRelativeLocaleUrl('tr', 'install')}>Kurulum rehberi</a>
       <a class="btn secondary" href="https://github.com/">GitHub sürümleri</a>
     </div>

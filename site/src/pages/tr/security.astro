@@ -12,37 +12,40 @@ import Layout from '../../layouts/Layout.astro';
     <div class="container">
       <h2>Güvenlik, sade dille</h2>
       <p>SimTether hassas mesajları — doğrulama kodları, operatör uyarıları —
-         iki telefon arasında taşır. Bu trafiği neyin koruduğunu, doğrulanabilecek
-         kadar sade anlatıyoruz.</p>
+         iki telefon arasında taşır. Bu trafiği neyin koruduğunu,
+         doğrulanabilecek kadar sade bir dille anlatıyoruz.</p>
 
       <h3>Kısa özet</h3>
       <ul>
         <li>Telefonlarınız arasındaki her şey <strong>uçtan uca şifrelidir</strong> —
-            "sunucumuza kadar şifreli" değil, bir telefonunuzdan diğerine şifreli.</li>
-        <li>Eşleşme bir kez olur, fiziksel olarak taradığınız bir QR kodla. Ondan
-            sonra telefonlar kriptografik anahtarla doğrulanır — yazılacak bir şey
-            yok, oltalanacak bir şey yok.</li>
+            "sunucumuza kadar şifreli" değil, bir telefonunuzdan diğerine
+            şifreli.</li>
+        <li>Eşleştirme bir kez olur ve fiziksel olarak taradığınız bir QR koduyla
+            yapılır. Bundan sonra telefonlar kriptografik anahtarla doğrulanır —
+            yazılacak bir şey yok, oltalanacak bir şey yok.</li>
         <li>İsteğe bağlı internet relay'i <strong>yalnızca şifreli metin</strong>
-            iletir. İki soketin konuştuğunu görebilir; ne söylediklerini göremez.</li>
+            iletir. İki soketin iletişim kurduğunu görebilir; ne söylediklerini
+            göremez.</li>
         <li><strong>Hesap yok, analitik yok, çökme raporlama yok.</strong>
-            Uygulamanın ağ kodu tam olarak bir şeyle konuşur: diğer telefonunuz.</li>
+            Uygulamanın ağ kodu tam olarak tek bir şeyle konuşur: diğer
+            telefonunuz.</li>
         <li>Köprü telefon, <strong>servis aktifken kalıcı bir bildirim</strong>
             gösterir — birinin cihazında görünmeden çalışamaz.</li>
       </ul>
 
-      <h3>Eşleşme: bir tarama, sonra anahtarlar</h3>
-      <p>Köprünün QR'ını taradığınızda telefonunuz köprünün açık anahtarını ve
-         tek kullanımlık bir eşleşme tokenini öğrenir. O andan itibaren:</p>
+      <h3>Eşleştirme: bir tarama, sonra anahtarlar</h3>
+      <p>Köprünün QR kodunu taradığınızda telefonunuz köprünün açık anahtarını ve
+         tek kullanımlık bir eşleştirme tokenini öğrenir. O andan itibaren:</p>
       <ul>
-        <li>Telefonunuz <strong>kalıcı bir kimlik anahtarı</strong> tutar. Köprü
+        <li>Telefonunuz <strong>kalıcı bir kimlik anahtarı</strong> tutar. Köprü,
             gördüğü ilk istemci anahtarını sabitler — fotoğrafı çekilmiş bir QR
-            veya sızmış bir token, telefonunuzun ilk bağlantısından sonra işe
-            yaramaz.</li>
-        <li>Eşleşme tokeni <strong>her bağlantıda yenilenir</strong>. Kopyalanmış
-            bir token, gerçek telefonunuz yeniden bağlanır bağlanmaz çalışmayı
-            bırakır.</li>
-        <li>Köprüde yeniden eşleşme kimliğini döndürür ve her şeyi iptal eder —
-            kaybolan bir telefon erişimi anında kaybeder.</li>
+            kodu veya sızmış bir token, telefonunuzun ilk bağlantısından sonra
+            işe yaramaz.</li>
+        <li>Eşleştirme tokeni <strong>her bağlantıda yenilenir</strong>.
+            Kopyalanmış bir token, gerçek telefonunuz yeniden bağlanır bağlanmaz
+            çalışmayı bırakır.</li>
+        <li>Köprüde yeniden eşleştirme kimliğini yeniler ve her şeyi iptal eder —
+            kaybolan bir telefon erişimini anında kaybeder.</li>
       </ul>
 
       <h3>Şifrelemenin kendisi</h3>
@@ -51,26 +54,28 @@ import Layout from '../../layouts/Layout.astro';
         <tr><td>El sıkışma</td><td>Noise IK — X25519 ile karşılıklı kimlik doğrulama (Curve25519 anahtar değişimi)</td></tr>
         <tr><td>Aktarım</td><td>ChaCha20-Poly1305 — her çerçeve şifreli ve doğrulanmış</td></tr>
         <tr><td>Anahtar saklama</td><td>İki telefonda da Android Keystore destekli AES/GCM; Keystore yoksa uygulama sizi uyarır</td></tr>
-        <tr><td>Relay bağlantısı</td><td>TLS (<code>wss://</code>) — relay tokeni ve oda biletleri asla düz metin gitmez</td></tr>
+        <tr><td>Relay bağlantısı</td><td>TLS (<code>wss://</code>) — relay tokeni ve oda biletleri asla düz metin olarak gönderilmez</td></tr>
       </table>
 
-      <h3>Relay, dürüstçe</h3>
-      <p>Uzaktan erişim <strong>varsayılan kapalıdır</strong>. Açarsanız
-         telefonlarınız şu özellikte küçük bir birleştirme sunucusunda buluşur:</p>
+      <h3>Relay, açıkça</h3>
+      <p>Uzaktan erişim <strong>varsayılan olarak kapalıdır</strong>. Açarsanız
+         telefonlarınız, şu özelliklere sahip küçük bir birleştirme sunucusunda
+         buluşur:</p>
       <ul>
         <li>iki soket arasında bayt iletir — tasarım gereği uygulama verisini
             asla ayrıştırmaz;</li>
-        <li>oda sahipliğini kriptografik olarak doğrular — bir odayı sahiplenmek
-            token bilmek değil köprünün özel anahtarını kanıtlamayı gerektirir;</li>
+        <li>oda sahipliğini kriptografik olarak doğrular — bir odayı sahiplenmek,
+            yalnızca tokeni bilmek değil, köprünün özel anahtarını kanıtlamayı
+            gerektirir;</li>
         <li>yalnızca metaveri görür: IP adresleri, zamanlama ve bayt sayıları.</li>
       </ul>
       <p>Ayrıca <strong>kendi relay'inizi</strong> de çalıştırabilirsiniz — tek
-         küçük bir jar dosyası — ve iki telefonu da ona yönlendirebilirsiniz; bu
+         bir küçük jar dosyası — ve iki telefonu da ona yönlendirebilirsiniz; bu
          durumda biz hiçbir şey görmeyiz.</p>
 
       <div class="note">
-        Detayları mı istiyorsunuz? Protokol, kripto ve relay açık kaynak —
-        güven modeli vaat edilmiş değil, doğrulanabilirdir.
+        Detayları mı istiyorsunuz? Protokol, kripto ve relay açık kaynaklıdır —
+        güven modeli vaat edilmek yerine doğrulanabilir.
       </div>
     </div>
   </section>

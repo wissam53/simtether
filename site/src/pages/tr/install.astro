@@ -14,37 +14,39 @@ import Layout from '../../layouts/Layout.astro';
       <p>On dakika, iki telefon, bir QR taraması. Gerekenler:</p>
       <ul>
         <li><strong>SIM'inizin takılı olduğu bir Android telefon</strong> — köprü bu
-            olacak. Android 8.0+ herhangi bir telefon iş görür; prize takılı kalacak.</li>
+            olacak. Android 8.0+ herhangi bir telefon iş görür; prize takılı
+            kalması gerekir.</li>
         <li><strong>Ana telefonunuz</strong> — şimdilik Android.</li>
-        <li>Kurulum için iki telefonun <strong>aynı ağda</strong> olması — ev
-            WiFi'nız veya köprü telefonun hotspot'u.</li>
+        <li>Kurulum sırasında iki telefonun <strong>aynı ağda</strong> olması — ev
+            WiFi'ınız veya köprü telefonun hotspot'u.</li>
       </ul>
 
       <h3>Adım 1 — köprü telefon</h3>
       <ol>
         <li>SIM'li telefona <strong>SimTether Bridge</strong>'i kurun — Google
-            Play'de ücretsiz, ya da
-            <a href="https://github.com/">GitHub Releases</a>'tan APK'yı yandan
-            yükleyin (<code>simtether-bridge.apk</code>). Burada yandan yükleme
-            normal ve güvenlidir; Android, tarayıcınızdan kuruluma bir kez izin
-            vermenizi isteyecektir.</li>
-        <li>Açın ve istediği izinleri verin — SMS ve arama erişimine ihtiyacı var,
-            işin tamamı bu.</li>
-        <li>Güce ve WiFi'a bağlayın. Köprü bir QR kod gösterir.</li>
+            Play'de ücretsizdir veya
+            <a href="https://github.com/">GitHub Releases</a>'dan APK'yı yandan
+            yükleyebilirsiniz (<code>simtether-bridge.apk</code>). Burada yandan
+            yükleme normaldir ve güvenlidir; Android, tarayıcınızdan kuruluma bir
+            kez izin vermenizi isteyecektir.</li>
+        <li>Uygulamayı açın ve istediği izinleri verin — SMS ve arama erişimine
+            ihtiyacı vardır; yapması gereken temel işlem budur.</li>
+        <li>Güce ve WiFi'a bağlayın. Köprü bir QR kodu gösterir.</li>
       </ol>
 
       <h3>Adım 2 — ana telefonunuz</h3>
       <ol>
         <li><strong>SimTether</strong>'i Google Play'den kurun.</li>
-        <li>Açın, <strong>Eşle</strong>'ye dokunun ve köprüdeki QR'ı tarayın.
-            Eşleşmenin tamamı bu — anahtarlar o taramada değişilir ve sabitlenir.</li>
+        <li>Uygulamayı açın, <strong>Eşleştir</strong>'e dokunun ve köprüdeki QR
+            kodunu tarayın. Eşleştirme bu kadar — anahtarlar bu tarama sırasında
+            değiştirilir ve sabitlenir.</li>
         <li>Bitti. SMS ve arama olayları artık ana telefonunuza gelir.</li>
       </ol>
 
       <div class="note">
         Köprü en iyi kendi halinde çalışır: prize takılı, kararlı WiFi'da ve
-        uygulama için pil optimizasyonu kapalı (uygulama soracaktır). Ona bir
-        router gibi davranın — bir kez kurun, varlığını unutun.
+        uygulama için pil optimizasyonu kapalı (uygulama bunu sizden isteyecektir).
+        Ona bir router gibi davranın — bir kez kurun, sonra unutun.
       </div>
 
       <h3>İsteğe bağlı — uzaktan erişim</h3>
@@ -52,22 +54,22 @@ import Layout from '../../layouts/Layout.astro';
          çalışmaya devam etmesini istiyorsanız:</p>
       <ol>
         <li>Köprü uygulamasında: <strong>Ayarlar → Uzaktan erişim</strong> → açın.
-            Köprü, TLS üzerinden bir relay'e kayıt olur.</li>
+            Köprü, TLS üzerinden bir relay'e kaydolur.</li>
         <li>Aynı düğmeyi ana telefonunuzda da açın.</li>
         <li>Trafik uçtan uca şifreli kalır — relay yalnızca şifreli metin iletir.
             İleri düzey kullanıcılar iki telefonu da kendi barındırdıkları bir
             relay'e yönlendirebilir.</li>
       </ol>
       <div class="note">
-        Barındırılan relay elinden gelenin en iyisi bir hizmettir — sonlandırılabilir
-        veya ileride ücretli olabilir. Yerel/hotspot modu ve kendi relay'iniz her
-        koşulda ücretsizdir ve etkilenmez. Uygulama, çalışmak için asla
-        altyapımıza bağımlı değildir.
+        Barındırılan relay en iyi çaba esaslı bir hizmettir — sonlandırılabilir
+        veya ileride ücretli hale gelebilir. Yerel/hotspot modu ve kendi
+        relay'iniz her durumda ücretsizdir ve bundan etkilenmez. Uygulama
+        çalışmak için hiçbir zaman altyapımıza bağımlı değildir.
       </div>
 
       <h3>İleri düzey — kendi relay'inizi çalıştırın</h3>
       <p>Barındırılan relay'i hiç kullanmak istemiyorsanız, relay herhangi bir VPS,
-         ev sunucusu veya Docker hostunda çalıştırabileceğiniz küçük tek bir jar
+         ev sunucusu veya Docker hostunda çalıştırabileceğiniz küçük, tek bir jar
          dosyasıdır. Yalnızca şifreli metin iletir.</p>
       <ol>
         <li>Derleyin: <code>./gradlew :relay:fatJar</code> — veya GitHub
@@ -75,14 +77,15 @@ import Layout from '../../layouts/Layout.astro';
         <li>Çalıştırın: <code>ACCESS_TOKEN=tokenunuz java -jar simtether-relay.jar</code>
             (44711 portunda dinler). Önüne bir TLS sonlandırıcı koyun — Caddy,
             nginx veya herhangi bir ters proxy — böylece uygulamalar ona
-            <code>wss://</code> olarak ulaşır.</li>
+            <code>wss://</code> üzerinden ulaşır.</li>
         <li>Köprü uygulamasında: <strong>Ayarlar → Uzaktan erişim</strong> →
             <code>wss://sunucunuz:port</code> adresinizi ve aynı tokeni girin.
-            QR'ın relay'inizi istemciye taşıması için tekrar eşleşin.</li>
+            QR kodunun relay adresinizi istemciye aktarması için yeniden
+            eşleştirin.</li>
       </ol>
       <div class="note">
-        Tam olarak bir örnek çalıştırın — odalar bellekte yaşar ve sunucular arası
-        arama yoktur. Tüm seçenekler (ortam değişkenleri, limitler) depodaki
+        Tam olarak bir örnek çalıştırın — odalar bellekte tutulur ve sunucular
+        arası arama yoktur. Tüm seçenekler (ortam değişkenleri, limitler) depodaki
         <code>relay/README.md</code> dosyasındadır.
       </div>
 
@@ -97,7 +100,7 @@ import Layout from '../../layouts/Layout.astro';
 
       <p>Root, köprünün GSM arama sesini yakalamasını sağlar — Android'in normal
          uygulamalardan esirgediği tek şey. Köprü telefonunuz root'luysa, root'lu
-         sürüm ana telefonunuza ses aktarımı ekler; geri kalan her şey aynıdır.</p>
+         sürüm ana telefonunuza ses aktarımını ekler; geri kalan her şey aynıdır.</p>
 
       <div class="note warn">
         Root'lu sürüm deneyseldir — yalnızca resmi GitHub Releases sayfasından
@@ -111,9 +114,9 @@ import Layout from '../../layouts/Layout.astro';
       <h3>Sorun giderme</h3>
       <table>
         <tr><th>Belirti</th><th>Genellikle anlamı</th></tr>
-        <tr><td>"Eşleşme reddedildi"</td><td>QR'ın süresi doldu veya köprü yeniden eşleştirildi — köprüde yeni bir QR gösterin ve tekrar tarayın.</td></tr>
-        <tr><td>İstemci köprüyü bulamıyor</td><td>Telefonlar aynı ağda değil veya köprü telefonun pil tasarrufu servisi öldürdü — uygulama için optimizasyonu kapatın.</td></tr>
-        <tr><td>Uzaktan erişim hiç bağlanmıyor</td><td>Köprü ayarlarındaki relay adresini ve uzaktan erişimin <em>iki</em> telefonda da açık olduğunu kontrol edin.</td></tr>
+        <tr><td>"Eşleştirme reddedildi"</td><td>QR kodunun süresi doldu veya köprü yeniden eşleştirildi — köprüde yeni bir QR kodu gösterin ve tekrar tarayın.</td></tr>
+        <tr><td>İstemci köprüyü bulamıyor</td><td>Telefonlar aynı ağda değil veya köprü telefonun pil tasarrufu servisi sonlandırdı — uygulama için pil optimizasyonunu kapatın.</td></tr>
+        <tr><td>Uzaktan erişim hiç bağlanmıyor</td><td>Köprü ayarlarındaki relay adresini ve uzaktan erişimin iki telefonda da açık olduğunu kontrol edin.</td></tr>
         <tr><td>Keystore uyarı bandı</td><td>Bu cihazın Android Keystore'u bozuk — saklanan sırlar düz dosyalara düşer. Gerçek çözüm fabrika imajı / farklı bir telefondur.</td></tr>
       </table>
     </div>
