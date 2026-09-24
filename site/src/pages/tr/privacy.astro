@@ -1,0 +1,169 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+  locale="tr"
+  page="privacy"
+  title="Gizlilik Politikası — SimTether"
+  description="SimTether gizlilik politikası — hesap yok, analitik yok, uçtan uca şifreli SMS ve arama yönlendirme."
+>
+  <section class="prose">
+    <div class="container">
+      <h2>Gizlilik Politikası</h2>
+      <p><strong>Yürürlük tarihi:</strong> [DATE]<br />
+         <strong>İletişim:</strong> [CONTACT-EMAIL]</p>
+
+      <div class="note">
+        Bu sayfa İngilizce aslının çevirisidir; çelişki halinde
+        <a href="/en/privacy/">İngilizce sürüm</a> geçerlidir.
+      </div>
+
+      <p>Bu belge hem Play Store gizlilik politikamız hem de teknik gizlilik
+         duruşumuzdur. Uygulamanın verilerinizle ne yaptığını açıklar — ki bu,
+         tasarım gereği, neredeyse hiçbir şeydir.</p>
+
+      <h3>Kısa özet</h3>
+      <ul>
+        <li>SimTether'da <strong>hesap ve analitik yoktur</strong>.</li>
+        <li>SMS ve arama verileriniz <strong>kendi iki telefonunuz arasında</strong>,
+            uçtan uca şifreli olarak gider — varsayılan olarak kendi WiFi/hotspot'unuz
+            üzerinden veya (uzaktan erişimi açarsanız) yalnızca şifreli metin gören
+            bir relay üzerinden.</li>
+        <li>Biz, geliştiriciler, <strong>mesaj içeriğinizi veya arama verilerinizi
+            asla almayız</strong>. Uzaktan erişim açıksa relay'imiz şifreli trafiği
+            ve kaçınılmaz bağlantı metaverisini işler — aşağıda açıklanmıştır.</li>
+        <li>Bunun dışındaki tek üçüncü taraf Google Play'dir — uygulamayı alırsanız
+            ödemeyi onlar yönetir; biz yalnızca hak sahibi olup olmadığınızı görürüz.</li>
+      </ul>
+
+      <h3>Uygulamalar nedir</h3>
+      <p>SimTether iki uygulamadır. <strong>SimTether Bridge</strong>, SIM'inizin
+         takılı olduğu uygun fiyatlı bir Android telefonda çalışır.
+         <strong>SimTether</strong> ana telefonunuzda çalışır ve köprüden SMS,
+         arama olayları ve arama kontrolü alır — yerel ağ üzerinden uçtan uca
+         şifreli veya katılırsanız relay üzerinden internetten.</p>
+
+      <h3>Uygulama hangi verileri işler — ve nereye gider</h3>
+      <table>
+        <tr><th>Veri</th><th>Nereye gider</th></tr>
+        <tr><td>SMS içeriği</td><td>Köprü → ana telefonunuz, uçtan uca şifreli, yerel ağınız üzerinden — veya uzaktan erişim açıksa relay üzerinden şifreli metin olarak. İki cihazda da şifreli saklanır.</td></tr>
+        <tr><td>Arama olayları</td><td>Numara, durum, zaman damgaları — aynı şifreli yol, köprü → telefonunuz.</td></tr>
+        <tr><td>Kişi adları</td><td>Gönderenleri etiketlemek için cihazda okunur. Bize asla iletilmez.</td></tr>
+        <tr><td>Köprü telemetrisi</td><td>Pil, operatör, sinyal — istemcinin köprü durumunu gösterebilmesi için eşleşmiş telefonunuza gönderilir. Başka yere gitmez.</td></tr>
+        <tr><td>Eşleşme verisi</td><td>Taradığınız QR ile değişilen açık anahtar ve token. Token şifreli oturumu doğrular ve her bağlantıda yenilenir.</td></tr>
+        <tr><td>Satın alma</td><td>Google Play Billing tarafından yönetilir. Biz yalnızca "hak sahibi / değil" görürüz — ödeme detaylarını asla.</td></tr>
+      </table>
+
+      <h3>Şifreleme, özellikle</h3>
+      <ul>
+        <li>Eşleşme tek bir QR taramasıdır; köprünün açık anahtarı o andan itibaren
+            sabitlenir — sonraki bağlantılar IP ile değil anahtarla doğrulanır.</li>
+        <li>Oturumlar <strong>Noise IK</strong> kullanır (X25519 anahtar değişimi,
+            ChaCha20-Poly1305 aktarım). WebSocket çerçeveleri şifreli metindir.</li>
+        <li>Uygulama OS seviyesinde düz HTTP'ye izin verir çünkü yük şifrelemesi
+            uygulama içinde yapılır — soketin kendisi yalnızca Noise şifreli metni
+            taşır.</li>
+      </ul>
+
+      <h3>Bilerek YAPMADIĞIMIZ şeyler</h3>
+      <ul>
+        <li>Analitik SDK yok, çökme raporlama hizmeti yok, reklam ağı yok, izleyici yok.</li>
+        <li>Sunucu tarafında mesaj depolama yok. İsteğe bağlı relay şifreli
+            çerçeveleri bellekte iletir ve hiçbir şey saklamaz.</li>
+        <li>Hesap sistemi yok. Giriş yapılacak bir şey yok ve sızacak bir şey yok.</li>
+      </ul>
+
+      <h3>İsteğe bağlı uzaktan erişim (varsayılan kapalı)</h3>
+      <p>Uzaktan erişimi açarsanız köprü telefonunuz relay sunucumuza kayıt olur ve
+         ana telefonunuz, telefonlar aynı ağda olmadığında onun üzerinden bağlanır.
+         Bunun dürüst anlamı:</p>
+      <ul>
+        <li><strong>Mesaj içeriği uçtan uca şifreli kalır.</strong> Relay Noise
+            şifreli metnini iletir ve okuyamaz.</li>
+        <li><strong>Relay bağlantı metaverisini görür:</strong> telefonlarınızın IP
+            adresleri, bağlantı zamanları, veri hacimleri ve opak bir oda
+            tanımlayıcısı — soketleri birleştirmek için gereken minimum.</li>
+        <li>Uzaktan erişim, köprü uygulamasının ayarlarından <strong>siz açmadıkça
+            kapalıdır</strong> ve köprü önce bir onay ekranı gösterir.</li>
+        <li>İki telefonu da bizimki yerine <strong>kendi relay sunucunuza</strong>
+            yönlendirebilirsiniz; bu durumda biz hiçbir şey görmeyiz.</li>
+      </ul>
+      <p>Barındırılan relay <strong>elinden gelenin en iyisi bir hizmettir</strong> —
+         istediğimiz zaman değiştirebilir, askıya alabilir veya sonlandırabiliriz
+         ya da ileride barındırılan relay erişimi için ücret talep edebiliriz.
+         Relay'imiz üzerinden uzaktan erişim hiçbir kullanılabilirlik veya fiyat
+         garantisi taşımaz; uygulama satın alımı uygulamanın kendisini kapsar,
+         barındırılan relay'i değil. Barındırılan relay durursa veya ücretli
+         olursa, yerel/hotspot modu ve kendi relay'iniz değişmeden ve ücretsiz
+         çalışmaya devam eder — uygulamanın kendisi çalışmak için asla
+         altyapımıza bağımlı değildir.</p>
+
+      <h3>İsteğe bağlı arama sesi (root'lu köprü sürümü, varsayılan kapalı)</h3>
+      <p>Standart sürüm arama <em>kontrolünü</em> iletir — çalma, cevaplama,
+         reddetme, DTMF — ama sesi değil. İsteğe bağlı root'lu köprü sürümü
+         ayrıca köprü telefonda canlı GSM arama sesini yakalayıp ana telefonunuza
+         aktarabilir:</p>
+      <ul>
+        <li>Ses, köprü → telefonunuza <strong>aynı uçtan uca şifreli kanal</strong>
+            üzerinden gider — yerel ağda Noise şifreli metni ve uzaktan erişim
+            açıksa relay üzerinden şifreli metin. Ses yolunda üçüncü taraf bir
+            telefon sağlayıcısı yoktur.</li>
+        <li>Arama sesini kaydetmeyiz, saklamayız veya hiçbir zaman elimizde
+            bulundurmayız.</li>
+        <li>Root'lu bir köprü telefon gerektirir, yalnızca GitHub Releases ile
+            dağıtılır ve köprüde siz açmadıkça kapalıdır.</li>
+        <li>Köprünün kalıcı ön plan bildirimi servis çalışırken görünür kalır —
+            ses aktarımı aktifken de dahil.</li>
+      </ul>
+
+      <h3>İzinler, dürüstçe</h3>
+      <p>İki uygulama izinleri role göre böler. <strong>Köprü</strong> uygulaması
+         hassas seti ister:</p>
+      <table>
+        <tr><th>İzin</th><th>Kullanımı</th></tr>
+        <tr><td>RECEIVE_SMS / SEND_SMS / READ_SMS</td><td>Gelen SMS'leri almak ve SIM'inizden yanıt göndermek.</td></tr>
+        <tr><td>READ_PHONE_STATE / ANSWER_PHONE_CALLS / CALL_PHONE</td><td>GSM aramalarını görmek ve kontrol etmek.</td></tr>
+      </table>
+      <p><strong>İstemci</strong> uygulaması (ana telefon) bunların hiçbirine
+         ihtiyaç duymaz:</p>
+      <table>
+        <tr><th>İzin</th><th>Kullanımı</th></tr>
+        <tr><td>MANAGE_OWN_CALLS</td><td>Gelen aramaları arama arayüzünde göstermek.</td></tr>
+        <tr><td>CAMERA</td><td>Eşleşme QR'ını taramak.</td></tr>
+        <tr><td>ACCESS_FINE/COARSE_LOCATION</td><td>Köprüyü yerel WiFi'da bulmak — Android, eski sürümlerde ağ keşfi için konum ister. Asla izlenmez veya iletilmez.</td></tr>
+        <tr><td>RECORD_AUDIO</td><td>İsteğe bağlı — sesinizi aramaya iletmek için, yalnızca root'lu köprü sürümüyle ve yalnızca arama aktifken.</td></tr>
+      </table>
+      <p>İki uygulama da:</p>
+      <table>
+        <tr><th>İzin</th><th>Kullanımı</th></tr>
+        <tr><td>READ_CONTACTS</td><td>Çıplak numaralar yerine isim göstermek.</td></tr>
+        <tr><td>FOREGROUND_SERVICE_*</td><td>Şifreli bağlantıyı canlı tutmak.</td></tr>
+        <tr><td>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</td><td>Android'in bağlantıyı öldürmemesi için — tek sistem sorusu, sizin seçiminiz.</td></tr>
+        <tr><td>POST_NOTIFICATIONS</td><td>SMS/arama bildirimleri.</td></tr>
+      </table>
+
+      <h3>Veri saklama ve silme</h3>
+      <p>Tüm veriler cihazlarınızda yaşar. Uygulamada bir konuşmayı silmek veya
+         uygulamayı kaldırmak veriyi kaldırır. Bizden silinmesini isteyeceğiniz
+         bir şey yok — elimizde hiçbir şey tutmayız. (Satın alma kayıtları
+         Google Play tarafından kendi politikalarıyla tutulur.)</p>
+
+      <h3>Çocuklar</h3>
+      <p>Uygulama 13 yaş altı çocuklara yönelik değildir ve hiç kimseden veri
+         toplamaz.</p>
+
+      <h3>Değişiklikler</h3>
+      <p>Bu politika değişirse yukarıdaki yürürlük tarihi güncellenir ve değişiklik
+         herkese açık depo geçmişine işlenir — hiçbir şey sessizce olmaz.</p>
+
+      <h3>Hukuki duruş (KVKK/GDPR)</h3>
+      <p>Mesaj içeriğiniz bize asla ulaşmaz — SMS ve aramalarınız için veri
+         sorumlusu veya işleyeni değiliz. Uzaktan erişimi açarsanız relay'imiz
+         yukarıda açıklanan bağlantı metaverisini (IP'ler, zamanlama, hacimler)
+         geçici bir aktarım işlevi olarak işler — saklanmaz, paylaşılmaz. Diğer
+         istisna, Google Play'in kayıt satıcısı olduğu uygulama satın alımıdır.
+         Sorular veya talepler için bize [CONTACT-EMAIL] adresinden ulaşın.</p>
+    </div>
+  </section>
+</Layout>
