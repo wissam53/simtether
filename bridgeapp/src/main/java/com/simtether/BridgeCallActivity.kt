@@ -39,6 +39,8 @@ class BridgeCallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Call content + party number — out of screenshots/recents.
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
             .isAppearanceLightStatusBars = false
         if (Build.VERSION.SDK_INT >= 27) {

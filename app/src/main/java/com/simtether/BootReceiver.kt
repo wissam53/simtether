@@ -18,9 +18,19 @@ class BootReceiver : BroadcastReceiver() {
         // dead until someone opens the app.
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
-        if (PairingStore.isPaired(context)) {
+        // Entitlement gate — a lapsed subscription must not resurrect
+        // the link at boot. (Entitled==null = Play cache hasn't
+        // answered yet — allow; Billing's callback stops us if the
+        // answer is "not subscribed".)
+        if (PairingStore.isPaired(context) &&
+            com.simtether.billing.Billing.entitled.value != false) {
             Log.d(TAG, "boot: restarting client service")
-            context.startForegroundService(Intent(context, ClientService::class.java))
+            // Background-start limits can reject this on 12+ — crash
+            // of a receiver is worse than a missed restart (START_STICKY
+            // + the app's own launch path are the recovery).
+            runCatching {
+                context.startForegroundService(Intent(context, ClientService::class.java))
+            }.onFailure { Log.w(TAG, "boot start refused", it) }
         }
     }
 

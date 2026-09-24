@@ -37,6 +37,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // SMS threads + call state on screen — keep them out of
+        // screenshots and the recents preview (bridge does the same).
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         handleNavIntent(intent)
         disclosed = getSharedPreferences("app", MODE_PRIVATE)
             .getBoolean("disclosed", false)
@@ -159,5 +162,14 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* results surfaced in UI later */ }
+    ) {
+        // A client that started before NEARBY_WIFI_DEVICES was granted
+        // is stuck on the 6h/24h-capped dataSync FGS type — bounce it
+        // into connectedDevice now that the grant holds.
+        if (com.simtether.client.ClientServiceHolder.service
+                ?.fgsDegraded() == true) {
+            stopService(Intent(this, ClientService::class.java))
+            startForegroundService(Intent(this, ClientService::class.java))
+        }
+    }
 }

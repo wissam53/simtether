@@ -18,14 +18,16 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission.RECEIVE_MMS" />
-    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
+    <!-- RECEIVE_MMS / RECEIVE_WAP_PUSH deliberately NOT declared: no
+         MMS path exists, and the bridge isn't a default SMS handler —
+         Play's SMS permission declaration goes through the
+         companion-device exception, not ROLE_SMS. -->
 
     <!-- Call control -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
+    <!-- READ_PHONE_NUMBERS removed — declared but never read. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 

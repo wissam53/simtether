@@ -60,6 +60,7 @@
     <string name="call_holding">На удержании</string>
     <string name="call_ended">Вызов завершён</string>
     <string name="call_via_bridge">через мост</string>
+    <string name="phone_account_label">Звонки через мост</string>
     <string name="call_decline">Отклонить</string>
     <string name="call_answer">Ответить</string>
     <string name="call_resume">Продолжить</string>
@@ -149,6 +150,7 @@
     <string name="notif_bridge_active">Мост SimTether активен</string>
     <string name="notif_client_connected">Подключено к основному телефону</string>
     <string name="notif_waiting_client">Ожидание основного телефона…</string>
+    <string name="notif_audio_active">Идёт ретрансляция звука звонка</string>
     <string name="notif_answer_here">основной телефон не в сети — ответьте здесь</string>
     <string name="notif_missed_call">Пропущенный вызов</string>
     <string name="notif_new_message">Новое сообщение</string>
@@ -201,6 +203,8 @@
     <string name="service_codes_title">Сервисные коды оператора (*#, USSD)</string>
     <string name="service_codes_hint">Разрешить сопряжённому телефону выполнять коды * и # на этой SIM (проверка баланса, пополнение). Такие коды могут незаметно менять настройки SIM — включайте только при необходимости.</string>
     <string name="call_rejected_unsafe">Отклонено: не набираемый номер</string>
+    <string name="call_rejected_offline">Мост не в сети — попробуйте ещё раз</string>
+    <string name="call_failed">Мосту не удалось начать звонок</string>
     <string name="call_rejected_codes_off">Сервисные коды отключены на мосту</string>
     <string name="call_rejected_no_perm">На мосту нет разрешения на звонки</string>
     <string name="ussd_failed">Запрос USSD не удался</string>

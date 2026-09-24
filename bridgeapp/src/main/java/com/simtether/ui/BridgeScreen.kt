@@ -39,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,9 +85,20 @@ fun BridgeScreen() {
     var oemVisited by remember { mutableStateOf(prefs.getBoolean("oem_fix_done", false)) }
     val oemLabel = oemAutostartLabel(context)
 
-    // Poll service state + LAN address (hotspot may take a moment, and
-    // the address can change when the network topology does).
-    LaunchedEffect(Unit) {
+    // Poll service state + LAN address only while visible — an
+    // unattended appliance screen would otherwise run binder calls
+    // every 500ms forever.
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    var resumed by remember { mutableStateOf(true) }
+    DisposableEffect(lifecycleOwner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            resumed = e == androidx.lifecycle.Lifecycle.Event.ON_RESUME
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+    LaunchedEffect(resumed) {
+        if (!resumed) return@LaunchedEffect
         while (true) {
             enabled = BridgeService.isEnabled(context)
             val svc = BridgeServiceHolder.service
@@ -106,9 +118,15 @@ fun BridgeScreen() {
     // Default dialer role → unlocks InCallService call control.
     var dialerHeld by remember { mutableStateOf(false) }
     fun checkDialerRole() {
-        if (Build.VERSION.SDK_INT >= 29) {
-            val rm = context.getSystemService(RoleManager::class.java)
-            dialerHeld = rm?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+        dialerHeld = if (Build.VERSION.SDK_INT >= 29) {
+            context.getSystemService(RoleManager::class.java)
+                ?.isRoleHeld(RoleManager.ROLE_DIALER) == true
+        } else {
+            // RoleManager is API 29+ — on 26–28 the default dialer is
+            // TelecomManager's defaultDialerPackage instead.
+            @Suppress("DEPRECATION")
+            context.getSystemService(android.telecom.TelecomManager::class.java)
+                ?.defaultDialerPackage == context.packageName
         }
     }
 
@@ -143,7 +161,8 @@ fun BridgeScreen() {
     }
     var missingPerms by remember { mutableStateOf(checkMissingPerms()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(resumed) {
+        if (!resumed) return@LaunchedEffect
         while (true) {
             checkDialerRole()
             companionLinked = CompanionLink.isAssociated(context)
@@ -269,6 +288,19 @@ fun BridgeScreen() {
                         if (rm.isRoleAvailable(RoleManager.ROLE_DIALER)) {
                             dialerRoleLauncher.launch(
                                 rm.createRequestRoleIntent(RoleManager.ROLE_DIALER))
+                        }
+                    } else {
+                        // Pre-29: no RoleManager — the legacy
+                        // ACTION_CHANGE_DEFAULT_DIALER dialog is the
+                        // only sanctioned request path.
+                        runCatching {
+                            dialerRoleLauncher.launch(Intent(
+                                android.telecom.TelecomManager
+                                    .ACTION_CHANGE_DEFAULT_DIALER)
+                                .putExtra(
+                                    android.telecom.TelecomManager
+                                        .EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME,
+                                    context.packageName))
                         }
                     }
                 },

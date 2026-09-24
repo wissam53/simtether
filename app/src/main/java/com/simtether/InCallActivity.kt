@@ -39,6 +39,9 @@ class InCallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Call content + remote-party number — out of screenshots and
+        // the recents preview.
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         // Dark surface — light status bar icons.
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
             .isAppearanceLightStatusBars = false

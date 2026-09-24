@@ -60,6 +60,7 @@
     <string name="call_holding">در انتظار</string>
     <string name="call_ended">تماس پایان یافت</string>
     <string name="call_via_bridge">از طریق پل</string>
+    <string name="phone_account_label">تماس‌های پل</string>
     <string name="call_decline">رد</string>
     <string name="call_answer">پاسخ</string>
     <string name="call_resume">ادامه</string>
@@ -149,6 +150,7 @@
     <string name="notif_bridge_active">پل SimTether فعال است</string>
     <string name="notif_client_connected">به گوشی اصلی شما متصل است</string>
     <string name="notif_waiting_client">در انتظار گوشی اصلی شما…</string>
+    <string name="notif_audio_active">در حال انتقال صدای تماس</string>
     <string name="notif_answer_here">گوشی اصلی آفلاین است — اینجا پاسخ دهید</string>
     <string name="notif_missed_call">تماس از دست‌رفته</string>
     <string name="notif_new_message">پیام جدید</string>
@@ -201,6 +203,8 @@
     <string name="service_codes_title">کدهای سرویس اپراتور (*#، USSD)</string>
     <string name="service_codes_hint">اجازه دهید تلفن جفت‌شده کدهای * و # را روی این سیم‌کارت اجرا کند (استعلام موجودی، شارژ). این کدها می‌توانند بی‌صدا تنظیمات سیم‌کارت را تغییر دهند — فقط در صورت نیاز فعال کنید.</string>
     <string name="call_rejected_unsafe">رد شد: شماره قابل تماس نیست</string>
+    <string name="call_rejected_offline">پل آفلاین است — دوباره تلاش کنید</string>
+    <string name="call_failed">پل نتوانست تماس را برقرار کند</string>
     <string name="call_rejected_codes_off">کدهای سرویس روی پل خاموش است</string>
     <string name="call_rejected_no_perm">پل مجوز تماس ندارد</string>
     <string name="ussd_failed">درخواست USSD ناموفق بود</string>

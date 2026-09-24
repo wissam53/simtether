@@ -60,6 +60,7 @@
     <string name="call_holding">معلّقة</string>
     <string name="call_ended">انتهت المكالمة</string>
     <string name="call_via_bridge">عبر الجسر</string>
+    <string name="phone_account_label">مكالمات الجسر</string>
     <string name="call_decline">رفض</string>
     <string name="call_answer">رد</string>
     <string name="call_resume">استئناف</string>
@@ -149,6 +150,7 @@
     <string name="notif_bridge_active">جسر SimTether نشط</string>
     <string name="notif_client_connected">متصل بهاتفك الرئيسي</string>
     <string name="notif_waiting_client">بانتظار هاتفك الرئيسي…</string>
+    <string name="notif_audio_active">يتم ترحيل صوت المكالمة</string>
     <string name="notif_answer_here">الهاتف الرئيسي غير متصل — رد هنا</string>
     <string name="notif_missed_call">مكالمة فائتة</string>
     <string name="notif_new_message">رسالة جديدة</string>
@@ -201,6 +203,8 @@
     <string name="service_codes_title">رموز خدمة المشغل (*#، USSD)</string>
     <string name="service_codes_hint">السماح للهاتف المقترن بتشغيل رموز * و # على هذه الشريحة (فحص الرصيد، الشحن). يمكن لهذه الرموز تغيير إعدادات الشريحة بصمت — فعّلها فقط عند الحاجة.</string>
     <string name="call_rejected_unsafe">مرفوض: ليس رقمًا قابلاً للاتصال</string>
+    <string name="call_rejected_offline">الجسر غير متصل — حاول مجددًا</string>
+    <string name="call_failed">تعذّر على الجسر بدء المكالمة</string>
     <string name="call_rejected_codes_off">رموز الخدمة معطلة على الجسر</string>
     <string name="call_rejected_no_perm">الجسر يفتقد إذن الاتصال</string>
     <string name="ussd_failed">فشل طلب USSD</string>

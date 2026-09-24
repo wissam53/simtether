@@ -71,6 +71,7 @@
     <string name="call_holding">On hold</string>
     <string name="call_ended">Call ended</string>
     <string name="call_via_bridge">via bridge</string>
+    <string name="phone_account_label">Bridge calls</string>
     <string name="call_decline">Decline</string>
     <string name="call_answer">Answer</string>
     <string name="call_resume">Resume</string>
@@ -165,6 +166,7 @@
     <string name="notif_bridge_active">SimTether bridge active</string>
     <string name="notif_client_connected">Connected to your main phone</string>
     <string name="notif_waiting_client">Waiting for your main phone…</string>
+    <string name="notif_audio_active">Relaying call audio</string>
     <string name="notif_answer_here">main phone offline — answer here</string>
     <string name="notif_missed_call">Missed call</string>
     <string name="notif_new_message">New message</string>
@@ -221,6 +223,8 @@
     <string name="service_codes_title">Carrier service codes (*#, USSD)</string>
     <string name="service_codes_hint">Let the paired phone run * and # codes on this SIM (balance checks, top-ups). These codes can silently change SIM settings — enable only if you need them.</string>
     <string name="call_rejected_unsafe">Rejected: not a dialable number</string>
+    <string name="call_rejected_offline">Bridge offline — try again</string>
+    <string name="call_failed">The bridge couldn\'t place the call</string>
     <string name="call_rejected_codes_off">Service codes are off on the bridge</string>
     <string name="call_rejected_no_perm">Bridge is missing the call permission</string>
     <string name="ussd_failed">USSD request failed</string>

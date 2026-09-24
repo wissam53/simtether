@@ -60,6 +60,7 @@
     <string name="call_holding">Beklemede</string>
     <string name="call_ended">Arama bitti</string>
     <string name="call_via_bridge">köprü üzerinden</string>
+    <string name="phone_account_label">Köprü aramaları</string>
     <string name="call_decline">Reddet</string>
     <string name="call_answer">Cevapla</string>
     <string name="call_resume">Sürdür</string>
@@ -149,6 +150,7 @@
     <string name="notif_bridge_active">SimTether köprüsü aktif</string>
     <string name="notif_client_connected">Ana telefonunuza bağlı</string>
     <string name="notif_waiting_client">Ana telefonunuz bekleniyor…</string>
+    <string name="notif_audio_active">Arama sesi aktarılıyor</string>
     <string name="notif_answer_here">ana telefon çevrimdışı — buradan cevaplayın</string>
     <string name="notif_missed_call">Cevapsız arama</string>
     <string name="notif_new_message">Yeni mesaj</string>
@@ -201,6 +203,8 @@
     <string name="service_codes_title">Operatör servis kodları (*#, USSD)</string>
     <string name="service_codes_hint">Eşlenen telefonun bu SIM üzerinde * ve # kodları çalıştırmasına izin ver (bakiye sorgulama, TL yükleme). Bu kodlar SIM ayarlarını sessizce değiştirebilir — yalnızca gerekiyorsa açın.</string>
     <string name="call_rejected_unsafe">Reddedildi: aranabilir bir numara değil</string>
+    <string name="call_rejected_offline">Köprü çevrimdışı — tekrar deneyin</string>
+    <string name="call_failed">Köprü aramayı başlatamadı</string>
     <string name="call_rejected_codes_off">Köprüde servis kodları kapalı</string>
     <string name="call_rejected_no_perm">Köprüde arama izni eksik</string>
     <string name="ussd_failed">USSD isteği başarısız</string>

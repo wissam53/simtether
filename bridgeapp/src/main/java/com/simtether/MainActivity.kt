@@ -135,5 +135,14 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* results surfaced in UI later */ }
+    ) {
+        // A bridge that started before NEARBY_WIFI_DEVICES/CDM was
+        // granted is stuck on the 6h/24h-capped dataSync FGS type —
+        // bounce it into connectedDevice now that the grant holds.
+        if (com.simtether.bridge.sms.BridgeServiceHolder.service
+                ?.fgsDegraded() == true) {
+            stopService(Intent(this, BridgeService::class.java))
+            startForegroundService(Intent(this, BridgeService::class.java))
+        }
+    }
 }

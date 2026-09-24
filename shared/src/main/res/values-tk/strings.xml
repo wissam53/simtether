@@ -60,6 +60,7 @@
     <string name="call_holding">Saklanyşta</string>
     <string name="call_ended">Jaň tamamlandy</string>
     <string name="call_via_bridge">köpri arkaly</string>
+    <string name="phone_account_label">Köpri jaňlary</string>
     <string name="call_decline">Ret et</string>
     <string name="call_answer">Jogap ber</string>
     <string name="call_resume">Dowam et</string>
@@ -149,6 +150,7 @@
     <string name="notif_bridge_active">SimTether köprisi işjeň</string>
     <string name="notif_client_connected">Esasy telefonyňyza birikdi</string>
     <string name="notif_waiting_client">Esasy telefonyňyz garaşylýar…</string>
+    <string name="notif_audio_active">Jaň sesi geçirilýär</string>
     <string name="notif_answer_here">esasy telefon awtonom — şu ýerde jogap beriň</string>
     <string name="notif_missed_call">Jogapsyz jaň</string>
     <string name="notif_new_message">Täze habar</string>
@@ -201,6 +203,8 @@
     <string name="service_codes_title">Operatoryň hyzmat kodlary (*#, USSD)</string>
     <string name="service_codes_hint">Jübüt telefonyň bu SIM-de * we # kodlaryny işletmegine rugsat berýär (balans barlagy, doldurma). Bu kodlar SIM sazlamalaryny sessiz üýtgedip biler — diňe gerek bolsa açyň.</string>
     <string name="call_rejected_unsafe">Ret edildi: jaň edip bolmaýan belgi</string>
+    <string name="call_rejected_offline">Köpri elýeterli däl — täzeden synanyşyň</string>
+    <string name="call_failed">Köpri jaňy başlady bilmedi</string>
     <string name="call_rejected_codes_off">Köprüde hyzmat kodlary öçürilen</string>
     <string name="call_rejected_no_perm">Köprüde jaň etmek rugsady ýok</string>
     <string name="ussd_failed">USSD haýyşy şowsuz</string>

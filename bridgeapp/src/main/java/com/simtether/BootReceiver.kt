@@ -19,7 +19,11 @@ class BootReceiver : BroadcastReceiver() {
             intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         if (BridgeService.isEnabled(context)) {
             Log.d(TAG, "boot: restarting bridge service")
-            context.startForegroundService(Intent(context, BridgeService::class.java))
+            // Android 12+ background-start limits can throw here —
+            // a crashing receiver is worse than a missed restart.
+            runCatching {
+                context.startForegroundService(Intent(context, BridgeService::class.java))
+            }.onFailure { Log.w(TAG, "boot start refused", it) }
         }
     }
 
