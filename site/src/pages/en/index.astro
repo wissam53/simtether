@@ -1,6 +1,16 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getRelativeLocaleUrl } from 'astro:i18n';
+
+const diagram = `<span class="b">bridge phone (your SIM)</span>          <span class="b">your main phone</span>
+┌───────────────────────┐        ┌───────────────────────┐
+│  GSM network          │        │  SMS inbox + replies  │
+│  SimTether Bridge     │ ────▶  │  incoming calls       │
+│  (free app)           │        │  dial / answer / DTMF │
+└──────────┬────────────┘        └──────────▲────────────┘
+           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
+           └─────────── LAN / hotspot ──────┘
+           └─────── optional ciphertext-only relay ─────┘`;
 ---
 
 <Layout
@@ -66,15 +76,7 @@ import { getRelativeLocaleUrl } from 'astro:i18n';
     <div class="container">
       <h2>The path your data takes</h2>
       <p class="sub">Everything between the two phones is Noise-encrypted. The optional relay only ever sees ciphertext.</p>
-      <div class="flow"><span class="b">bridge phone (your SIM)</span>          <span class="b">your main phone</span>
-┌───────────────────────┐        ┌───────────────────────┐
-│  GSM network          │        │  SMS inbox + replies  │
-│  SimTether Bridge     │ ────▶  │  incoming calls       │
-│  (free app)           │        │  dial / answer / DTMF │
-└──────────┬────────────┘        └──────────▲────────────┘
-           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
-           └─────────── LAN / hotspot ──────┘
-           └─────── optional ciphertext-only relay ─────┘</div>
+      <div class="flow" set:html={diagram} />
       <div class="note">
         Local mode is the default — traffic never leaves your network. Remote access is
         opt-in on both phones, and the relay can be yours instead of ours. Our hosted

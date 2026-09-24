@@ -1,6 +1,16 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getRelativeLocaleUrl } from 'astro:i18n';
+
+const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span class="b">ana telefonunuz</span>
+┌───────────────────────┐        ┌───────────────────────┐
+│  GSM ağı              │        │  SMS kutusu + yanıtlar│
+│  SimTether Bridge     │ ────▶  │  gelen aramalar       │
+│  (ücretsiz uygulama)  │        │  ara / cevapla / DTMF │
+└──────────┬────────────┘        └──────────▲────────────┘
+           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
+           └─────── yerel ağ / hotspot ─────┘
+           └── isteğe bağlı yalnızca-şifreli relay ──┘`;
 ---
 
 <Layout
@@ -68,15 +78,7 @@ import { getRelativeLocaleUrl } from 'astro:i18n';
     <div class="container">
       <h2>Verinizin izlediği yol</h2>
       <p class="sub">İki telefon arasındaki her şey Noise ile şifrelenir. İsteğe bağlı relay yalnızca şifreli metin görür.</p>
-      <div class="flow"><span class="b">köprü telefon (SIM'iniz)</span>        <span class="b">ana telefonunuz</span>
-┌───────────────────────┐        ┌───────────────────────┐
-│  GSM ağı              │        │  SMS kutusu + yanıtlar│
-│  SimTether Bridge     │ ────▶  │  gelen aramalar       │
-│  (ücretsiz uygulama)  │        │  ara / cevapla / DTMF │
-└──────────┬────────────┘        └──────────▲────────────┘
-           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
-           └─────── yerel ağ / hotspot ─────┘
-           └── isteğe bağlı yalnızca-şifreli relay ──┘</div>
+      <div class="flow" set:html={diagram} />
       <div class="note">
         Yerel mod varsayılandır — trafik ağınızdan asla çıkmaz. Uzaktan erişim iki
         telefonda da isteğe bağlıdır ve relay bizimki yerine sizinki olabilir.
