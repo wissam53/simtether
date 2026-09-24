@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +52,9 @@ class MainActivity : ComponentActivity() {
                         .getInsetsController(window, window.decorView)
                         .isAppearanceLightStatusBars = !dark
                 }
-                Surface(modifier = Modifier.fillMaxSize()) {
+                // edge-to-edge is enforced — pad the whole tree for
+                // status/nav bars so nothing lands under them.
+                Surface(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
                     if (!disclosed) {
                         DisclosureScreen(
                             bodyRes = R.string.disclosure_bridge_body,
