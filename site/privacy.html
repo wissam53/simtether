@@ -41,7 +41,7 @@
           data</strong>. With remote access enabled, our relay handles encrypted
           traffic and unavoidable connection metadata — described below.</li>
       <li>The only third party involved otherwise is Google Play, if you
-          subscribe — they handle payment, we only see whether you're entitled.</li>
+          buy the app — they handle payment, we only see whether you're entitled.</li>
     </ul>
 
     <h3>What the apps are</h3>
@@ -59,7 +59,7 @@
       <tr><td>Contact names</td><td>Read on-device to label senders. Never transmitted to us.</td></tr>
       <tr><td>Bridge telemetry</td><td>Battery, carrier, signal — sent to your paired phone so the client can show bridge status. Nowhere else.</td></tr>
       <tr><td>Pairing data</td><td>Public key and token exchanged via the QR you scan. The token authenticates the encrypted session and rotates every connection.</td></tr>
-      <tr><td>Subscription</td><td>Handled by Google Play Billing. We see only "entitled / not entitled" — never payment details.</td></tr>
+      <tr><td>Purchase</td><td>Handled by Google Play Billing. We see only "entitled / not entitled" — never payment details.</td></tr>
     </table>
 
     <h3>The encryption, specifically</h3>
@@ -97,11 +97,13 @@
           instead of ours, in which case we see nothing at all.</li>
     </ul>
     <p>The hosted relay is a <strong>best-effort service</strong> — we may
-       change, suspend, or discontinue it at any time, and remote access
-       through our relay carries no availability guarantee. If the hosted
-       relay stops, local/hotspot mode and self-hosted relays keep working
-       unchanged; the app itself never depends on our infrastructure to
-       function.</p>
+       change, suspend, or discontinue it at any time, or introduce a
+       charge for hosted relay access in the future. Remote access through
+       our relay carries no availability or pricing guarantee; the app
+       purchase covers the app itself, not the hosted relay. If the hosted
+       relay stops or becomes paid, local/hotspot mode and self-hosted
+       relays keep working unchanged and free — the app itself never
+       depends on our infrastructure to function.</p>
 
     <h3>Permissions, honestly</h3>
     <p>The two apps split permissions by role. The <strong>bridge</strong> app asks
@@ -116,6 +118,8 @@
       <tr><th>Permission</th><th>Used for</th></tr>
       <tr><td>MANAGE_OWN_CALLS</td><td>Render incoming calls in the call UI.</td></tr>
       <tr><td>CAMERA</td><td>Scanning the pairing QR.</td></tr>
+      <tr><td>ACCESS_FINE/COARSE_LOCATION</td><td>Finding the bridge on local WiFi — Android requires location for network discovery on older versions. Never tracked or transmitted.</td></tr>
+      <tr><td>RECORD_AUDIO</td><td>Optional — your voice into a call, only with the rooted bridge build and only while a call is active.</td></tr>
     </table>
     <p>Both apps:</p>
     <table>
@@ -129,7 +133,7 @@
     <h3>Data retention &amp; deletion</h3>
     <p>All data lives on your devices. Deleting a conversation in the app, or
        uninstalling, removes it. There is nothing to request deletion of from
-       us — we hold nothing. (Subscription records are held by Google Play under
+       us — we hold nothing. (Purchase records are held by Google Play under
        their own policy.)</p>
 
     <h3>Children</h3>
@@ -145,7 +149,7 @@
        processor for your SMS or calls. If you enable remote access, our relay
        processes the connection metadata described above (IPs, timing, volumes)
        as a transient transit function — not stored, not shared. The other
-       exception is the subscription purchase, where Google Play is the merchant
+       exception is the app purchase, where Google Play is the merchant
        of record. For questions or requests, reach us at [CONTACT-EMAIL].</p>
   </div>
 </section>
@@ -155,6 +159,7 @@
     <a href="privacy.html">Privacy</a>
     <a href="security.html">Security</a>
     <a href="install.html">Install</a>
+    <a href="terms.html">Terms</a>
     <p style="margin-top:12px">SimTether — SMS and call control, end-to-end encrypted.</p>
   </div>
 </footer>
