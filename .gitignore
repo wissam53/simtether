@@ -14,3 +14,7 @@ cxx/
 nul
 relay.properties
 devicelogs/
+
+# Private strategy docs — never push to the public repo
+PRODUCT.md
+PLAN.md
