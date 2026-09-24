@@ -40,7 +40,7 @@ nav .logo span { color: var(--accent); }
 nav .links a {
   color: var(--muted);
   text-decoration: none;
-  margin-left: 20px;
+  margin-inline-start: 20px;
   font-size: 0.95rem;
 }
 nav .links a:hover { color: var(--text); }
@@ -122,6 +122,9 @@ section > .container > p.sub {
   white-space: pre;
   color: var(--muted);
   line-height: 1.5;
+  /* ASCII art always reads left-to-right, even inside RTL pages */
+  direction: ltr;
+  text-align: left;
 }
 .flow .b { color: var(--text); }
 .flow .a { color: var(--accent); }
@@ -132,7 +135,7 @@ table {
   font-size: 0.95rem;
 }
 th, td {
-  text-align: left;
+  text-align: start;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
@@ -158,10 +161,11 @@ td:first-child { font-family: var(--mono); font-size: 0.85rem; white-space: nowr
 .btn:hover { filter: brightness(1.1); }
 
 .note {
-  border-left: 3px solid var(--accent);
+  border-inline-start: 3px solid var(--accent);
   background: var(--panel);
   padding: 14px 18px;
-  border-radius: 0 8px 8px 0;
+  border-start-end-radius: 8px;
+  border-end-end-radius: 8px;
   color: var(--muted);
   font-size: 0.95rem;
   margin: 20px 0;
@@ -171,7 +175,7 @@ td:first-child { font-family: var(--mono); font-size: 0.85rem; white-space: nowr
 .prose h2 { margin-top: 40px; font-size: 1.35rem; }
 .prose h3 { margin-top: 28px; font-size: 1.1rem; }
 .prose p, .prose li { color: var(--muted); margin: 12px 0; }
-.prose ul, .prose ol { padding-left: 24px; }
+.prose ul, .prose ol { padding-inline-start: 24px; }
 .prose li { margin: 6px 0; }
 .prose code {
   font-family: var(--mono);

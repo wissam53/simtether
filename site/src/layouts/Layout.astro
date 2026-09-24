@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import { getRelativeLocaleUrl } from 'astro:i18n';
 
-type Locale = 'en' | 'tr';
+type Locale = 'en' | 'tr' | 'ar';
 type Page = 'index' | 'install' | 'privacy' | 'security' | 'terms';
 
 interface Props {
@@ -14,8 +14,14 @@ interface Props {
 
 const { locale, page, title, description } = Astro.props;
 
-// Pages that exist in Turkish; others fall back to English.
-const TR_PAGES: Page[] = ['index', 'install', 'privacy', 'security', 'terms'];
+const LOCALES: Locale[] = ['en', 'tr', 'ar'];
+const RTL: Locale[] = ['ar'];
+
+// Pages that exist per non-English locale; missing pages fall back to English.
+const LOCALE_PAGES: Partial<Record<Locale, Page[]>> = {
+  tr: ['index', 'install', 'privacy', 'security', 'terms'],
+  ar: ['index', 'install', 'privacy', 'security', 'terms'],
+};
 
 const ui = {
   en: {
@@ -34,37 +40,44 @@ const ui = {
     terms: 'Koşullar',
     tagline: 'SimTether — SMS ve arama kontrolü, uçtan uca şifreli.',
   },
+  ar: {
+    how: 'كيف يعمل',
+    security: 'الأمان',
+    install: 'التثبيت',
+    privacy: 'الخصوصية',
+    terms: 'الشروط',
+    tagline: 'SimTether — رسائل SMS وتحكم المكالمات، مشفّرة من الطرف إلى الطرف.',
+  },
 }[locale];
 
 const pathFor = (l: Locale, p: Page) =>
   p === 'index' ? getRelativeLocaleUrl(l) : getRelativeLocaleUrl(l, p);
 
-// Internal link: use the current locale when the page exists there, else English.
-const link = (p: Page) =>
-  pathFor(locale === 'tr' && !TR_PAGES.includes(p) ? 'en' : locale, p);
+const hasPage = (l: Locale, p: Page) =>
+  l === 'en' || (LOCALE_PAGES[l]?.includes(p) ?? false);
 
-const alt: Locale = locale === 'en' ? 'tr' : 'en';
-const altPage: Page = alt === 'tr' && !TR_PAGES.includes(page) ? 'index' : page;
-const altUrl = pathFor(alt, altPage);
+// Internal link: current locale when the page exists there, else English.
+const link = (p: Page) => pathFor(hasPage(locale, p) ? locale : 'en', p);
+
+// Language switcher: same page when available, else that locale's index.
+const switchLink = (l: Locale) => pathFor(l, hasPage(l, page) ? page : 'index');
 
 const canonical = new URL(pathFor(locale, page), Astro.site);
-const enUrl = new URL(pathFor('en', page), Astro.site);
-const trUrl = TR_PAGES.includes(page)
-  ? new URL(pathFor('tr', page), Astro.site)
-  : null;
+const dir = RTL.includes(locale) ? 'rtl' : 'ltr';
 ---
 
 <!doctype html>
-<html lang={locale}>
+<html lang={locale} dir={dir}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="alternate" hreflang="en" href={enUrl} />
-    {trUrl && <link rel="alternate" hreflang="tr" href={trUrl} />}
-    <link rel="alternate" hreflang="x-default" href={enUrl} />
+    {LOCALES.filter((l) => hasPage(l, page)).map((l) => (
+      <link rel="alternate" hreflang={l} href={new URL(pathFor(l, page), Astro.site)} />
+    ))}
+    <link rel="alternate" hreflang="x-default" href={new URL(pathFor('en', page), Astro.site)} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
@@ -76,7 +89,9 @@ const trUrl = TR_PAGES.includes(page)
           <a href={link('security')}>{ui.security}</a>
           <a href={link('install')}>{ui.install}</a>
           <a href={link('privacy')}>{ui.privacy}</a>
-          <a class="lang" href={altUrl} hreflang={alt}>{alt.toUpperCase()}</a>
+          {LOCALES.filter((l) => l !== locale).map((l) => (
+            <a class="lang" href={switchLink(l)} hreflang={l}>{l.toUpperCase()}</a>
+          ))}
         </div>
       </div>
     </nav>

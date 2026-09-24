@@ -1,0 +1,144 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+
+// Arabic script can't align inside monospace box art — diagram stays in English.
+const diagram = `<span class="b">bridge phone (your SIM)</span>          <span class="b">your main phone</span>
+┌───────────────────────┐        ┌───────────────────────┐
+│  GSM network          │        │  SMS inbox + replies  │
+│  SimTether Bridge     │ ────▶  │  incoming calls       │
+│  (free app)           │        │  dial / answer / DTMF │
+└──────────┬────────────┘        └──────────▲────────────┘
+           │   <span class="a">Noise IK · X25519 · ChaCha20-Poly1305</span>   │
+           └─────────── LAN / hotspot ──────┘
+           └─────── optional ciphertext-only relay ─────┘`;
+---
+
+<Layout
+  locale="ar"
+  page="index"
+  title="SimTether — شريحتك في هاتف رخيص. حياتك على هاتفك الحقيقي."
+  description="يوجّه SimTether رسائل SMS وتحكم مكالمات GSM من شريحة مسجّلة في هاتف جسر منخفض التكلفة إلى هاتفك الرئيسي — مشفّر من الطرف إلى الطرف، بدون خوادم."
+>
+  <header class="hero">
+    <div class="container">
+      <h1>شريحتك تبقى في البيت.<br /><em>لا حاجة أن تبقى أنت.</em></h1>
+      <p>
+        يحوّل SimTether هاتف أندرويد رخيصاً إلى جسر لشريحتك المسجّلة —
+        تصلك رسائل SMS وتحكم مكالمات GSM على هاتفك الرئيسي، مشفّرة من
+        الطرف إلى الطرف. لا حساب، لا إعلانات، ورسائلك لا تمرّ أبداً
+        بخادم طرف ثالث.
+      </p>
+      <div class="badges">
+        <span class="badge green">تشفير من الطرف إلى الطرف</span>
+        <span class="badge">بدون حسابات</span>
+        <span class="badge">لا إعلانات · لا متعقّبون</span>
+        <span class="badge">يعمل بدون خوادمنا</span>
+        <span class="badge">مفتوح المصدر</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="how">
+    <div class="container">
+      <h2>كيف يعمل</h2>
+      <p class="sub">تطبيقان، مسحة QR واحدة، وتعيش شريحتك في هاتف يمكن أن يبقى في الدرج.</p>
+      <div class="cards">
+        <div class="card">
+          <span class="step">الخطوة 01</span>
+          <h3>ضع شريحتك في هاتف الجسر</h3>
+          <p>
+            أي هاتف أندرويد رخيص يكفي. ثبّت <strong>SimTether Bridge</strong>،
+            وصِله بشبكة بيتك، واتركه موصولاً بالشاحن — يصبح جهازاً صغيراً
+            لشريحتك.
+          </p>
+        </div>
+        <div class="card">
+          <span class="step">الخطوة 02</span>
+          <h3>امسح مرة واحدة من هاتفك الحقيقي</h3>
+          <p>
+            ثبّت <strong>SimTether</strong> على هاتفك الرئيسي وامسح رمز QR
+            الذي يعرضه الجسر. تلك المسحة الواحدة تثبّت مفاتيح التشفير —
+            الاقتران يكتمل ويستمر حتى تلغيه.
+          </p>
+        </div>
+        <div class="card">
+          <span class="step">الخطوة 03</span>
+          <h3>الرسائل والمكالمات حيثما كنت</h3>
+          <p>
+            تصل رسائل SMS الواردة وأحداث المكالمات إلى هاتفك الرئيسي عبر
+            الشبكة المحلية. ردّ، ارفض، جاوب، أرسل — الجسر يقوم بعمل شركة
+            الاتصالات.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>المسار الذي تسلكه بياناتك</h2>
+      <p class="sub">كل شيء بين الهاتفين مشفّر بـ Noise. الريلاي الاختياري لا يرى سوى نص مشفّر.</p>
+      <div class="flow" set:html={diagram} />
+      <div class="note">
+        الوضع المحلي هو الافتراضي — لا يغادر الترافيك شبكتك أبداً. الوصول
+        عن بُعد اختياري على الهاتفين، ويمكن أن يكون الريلاي لك بدلاً منا.
+        الريلاي المستضاف لدينا خدمة بأفضل جهد؛ التطبيق يعمل بدونه، للأبد.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>إصداران، بوسم صادق</h2>
+      <p class="sub">نفس خط الأنابيب المشفّر — إصدار الروت يضيف الشيء الوحيد الذي يحجبه أندرويد.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>القياسي</h3>
+          <p>
+            توجيه SMS كامل، إشعارات المكالمات، وتحكم المكالمات — ردّ، رفض،
+            اتصال، DTMF. يعمل على أي هاتف أندرويد 8.0+، بدون روت.
+            هذا هو الإصدار على Google Play.
+          </p>
+        </div>
+        <div class="card">
+          <h3>جسر بروت <span class="badge" style="vertical-align:middle">GitHub فقط</span></h3>
+          <p>
+            إصدار تجريبي يمكنه أيضاً التقاط صوت مكالمات GSM الحي وبثه إلى
+            هاتفك الرئيسي. يتطلب هاتف جسر بروت ويوزَّع عبر GitHub Releases
+            فقط — Google Play لا يسمح بذلك.
+            <em>قيد التطوير حالياً.</em>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>لمن هو</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>هواتف لا تستطيع البقاء مسجّلة في الخارج.</strong> في بعض
+              الدول، يفقد الهاتف غير المسجّل محلياً الخدمة الخلوية بعد فترة
+              سماح. اترك الشريحة المسجّلة — وهاتفها المسجّل — في البيت؛
+              واحمل أي هاتف تريد.</li>
+          <li><strong>شريحة ثانية بدون هاتف ثانٍ في جيبك.</strong>
+              رموز التحقق، رسائل شركة الاتصالات، والمكالمات على رقم لا تريد
+              حمل جهاز له.</li>
+          <li><strong>المستخدمون المهتمون بالخصوصية</strong> الذين يريدون
+              توجيه SMS دون تسليم محتوى رسائلهم لخدمة سحابية.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container" style="text-align:center">
+      <h2>احصل عليه</h2>
+      <p class="sub">الجسر مجاني ومفتوح. تطبيق الهاتف الرئيسي شراء لمرة واحدة على Google Play.</p>
+      <a class="btn" href={getRelativeLocaleUrl('ar', 'install')}>دليل التثبيت</a>
+      <a class="btn secondary" href="https://github.com/">إصدارات GitHub</a>
+    </div>
+  </section>
+</Layout>
