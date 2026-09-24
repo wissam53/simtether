@@ -71,7 +71,7 @@ reconnect/flood handling. On-device (S23 Ultra client + Redmi Note 8
 bridge): pairing, mDNS discovery, LAN session, call RINGING→control→
 state transitions, SMS send pipeline + carrier-failure reporting, and
 relay registration all verified live. Call audio is the rooted-flavor
-research track — see `PLAN.md` and `docs/redmi-root-spike.md`.
+research track — experimental, GitHub Releases only.
 
 ## Privacy
 

@@ -3,8 +3,8 @@ package com.simtether.rooted
 import android.os.Build
 
 /**
- * Per-device mixer pokes for GSM uplink injection — the table the
- * redmi-root-spike results populate (docs/redmi-root-spike.md, Test A).
+ * Per-device mixer pokes for GSM uplink injection — populated from
+ * on-device tinymix probing on a rooted device.
  *
  * Qualcomm devices typically expose an `Incall_Music`-family mixer
  * control that feeds playback PCM into the call uplink. Names vary by
@@ -33,9 +33,9 @@ object DeviceAudioProfiles {
     )
 
     private val BY_DEVICE = mapOf(
-        // Redmi Note 8 — designated spike device (docs/redmi-root-spike.md).
-        // Entries get filled with the real control names from Test A's
-        // tinymix dump; generic Qualcomm candidates cover the usual case.
+        // Redmi Note 8 — the spike device. Entries get filled with the
+        // real control names from the tinymix dump; generic Qualcomm
+        // candidates cover the usual case.
         "ginkgo" to GENERIC_QUALCOMM,
     )
 
