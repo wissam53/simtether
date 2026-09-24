@@ -15,4 +15,11 @@ class IdDedup(private val maxSize: Int = 512) {
         while (ids.size > maxSize) ids.remove(ids.first())
         return fresh
     }
+
+    /** Un-mark an id — used when processing failed so a legitimate
+     *  redelivery isn't swallowed as a dup. */
+    @Synchronized
+    fun remove(id: String) {
+        ids.remove(id)
+    }
 }

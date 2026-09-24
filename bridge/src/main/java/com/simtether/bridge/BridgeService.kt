@@ -72,6 +72,10 @@ class BridgeService : LifecycleService() {
         super.onCreate()
         BridgeServiceHolder.service = this
         com.simtether.shared.ContactLookup.init(applicationContext)
+        // Echo/status writes run before any receiver or screen opens —
+        // init here or they work in-memory but never hit disk.
+        com.simtether.shared.ConversationStore.init(applicationContext)
+        com.simtether.shared.CallLogStore.init(applicationContext)
         startForegroundWithNotification()
         val (staticKey, token) = loadOrCreateIdentity()
         this.staticKey = staticKey
@@ -193,7 +197,10 @@ class BridgeService : LifecycleService() {
                 com.simtether.bridge.audio.AudioRelayProvider.relay?.stop()
                 lifecycleScope.launch { updateNotification(connected = false) }
             },
-            onCommand = { env -> lifecycleScope.launch(Dispatchers.IO) { handleCommand(env) } },
+            // emitExec, not Dispatchers.IO: the pool loses ordering —
+            // rapid call.action sequences (ANSWER then DTMF) could
+            // interleave. The single thread keeps command order.
+            onCommand = { env -> emitExec.execute { handleCommand(env) } },
             onMedia = { pcm ->
                 com.simtether.bridge.audio.AudioRelayProvider.relay?.inject(pcm)
             },
@@ -299,15 +306,25 @@ class BridgeService : LifecycleService() {
      * Battery cost is acceptable — the bridge is expected to stay plugged in.
      */
     private fun acquireLocks() {
+        // Separate runCatchings — a wifi-lock failure must not strand
+        // the wake lock (and vice versa).
         runCatching {
             wakeLock = getSystemService(PowerManager::class.java)
                 .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "simtether:bridge")
                 .also { it.acquire() }
+        }.onFailure { Log.w(TAG, "wake lock acquire failed", it) }
+        runCatching {
+            // WIFI_MODE_FULL_LOW_LATENCY is API 29+ — on 26–28 it
+            // throws IllegalArgumentException; HIGH_PERF is the
+            // low-latency equivalent there.
+            val mode = if (Build.VERSION.SDK_INT >= 29)
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            else WifiManager.WIFI_MODE_FULL_HIGH_PERF
             wifiLock = getSystemService(WifiManager::class.java)
-                .createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "simtether:bridge")
+                .createWifiLock(mode, "simtether:bridge")
                 .also { it.setReferenceCounted(false); it.acquire() }
-            Log.d(TAG, "wake+wifi locks acquired")
-        }.onFailure { Log.w(TAG, "lock acquire failed", it) }
+        }.onFailure { Log.w(TAG, "wifi lock acquire failed", it) }
+        Log.d(TAG, "locks: wake=${wakeLock != null} wifi=${wifiLock != null}")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -329,7 +346,9 @@ class BridgeService : LifecycleService() {
         advertiser = null
         relayLink?.stop()
         relayLink = null
-        server?.stop()
+        // stop() throws checked exceptions — an uncaught throw out of
+        // onDestroy crashes the process on the teardown path.
+        runCatching { server?.stop() }
         server = null
         emitExec.shutdown()
         super.onDestroy()
@@ -542,11 +561,14 @@ class BridgeService : LifecycleService() {
 
     private fun persistTokens(current: ByteArray, pending: ByteArray?) {
         val enc = Base64.getEncoder()
+        // failClosed like loadOrCreateIdentity — a rotated token must
+        // never land in plaintext prefs on a keystore-broken device.
         com.simtether.shared.SecureStore
-            .putString(this, "bridge_keys", "pairing_token", enc.encodeToString(current))
+            .putString(this, "bridge_keys", "pairing_token",
+                enc.encodeToString(current), failClosed = true)
         com.simtether.shared.SecureStore
             .putString(this, "bridge_keys", "pairing_token_pending",
-                pending?.let { enc.encodeToString(it) })
+                pending?.let { enc.encodeToString(it) }, failClosed = true)
     }
 
     /**
@@ -569,7 +591,18 @@ class BridgeService : LifecycleService() {
         // One bad command must never kill the service — the whole
         // relay (WS server + mDNS advert) lives in this process.
         runCatching { dispatchCommand(env) }
-            .onFailure { Log.e(TAG, "command ${env.type} failed", it) }
+            .onFailure {
+                // Class name only — deserialization exceptions embed a
+                // raw excerpt of the payload (possible PII in logcat).
+                Log.e(TAG, "command ${env.type} failed (${it.javaClass.simpleName})")
+                // A silently dropped dial/ussd leaves the client's call
+                // UI stuck in "dialing" — report on the channels it
+                // already listens to.
+                when (env.type) {
+                    "dial" -> CallController.onDialRejected?.invoke("failed")
+                    "ussd" -> CallController.onUssdResult?.invoke("", null, "failed")
+                }
+            }
     }
 
     private fun dispatchCommand(env: Protocol.Envelope) {
@@ -621,6 +654,10 @@ class BridgeService : LifecycleService() {
                     com.simtether.bridge.telecom.CallRegistry.all()
                         .any { it.second.state == android.telecom.Call.STATE_ACTIVE })
             }
+            // Forward-compat: a command type we don't know must be
+            // logged, not silently dropped — that's how a missed rename
+            // would surface.
+            else -> Log.w(TAG, "unknown command ${env.type} — ignored")
         }
     }
 
@@ -662,6 +699,7 @@ class BridgeService : LifecycleService() {
                 emit("call.audio", Protocol.json.encodeToString(
                     Protocol.CallAudio.serializer(),
                     Protocol.CallAudio(active = false)), reliable = false)
+                updateNotification(clientConnected)
                 Log.i(TAG, "call audio relay stopped")
             }
             return
@@ -674,6 +712,9 @@ class BridgeService : LifecycleService() {
             Protocol.CallAudio.serializer(),
             Protocol.CallAudio(active = up, downlink = true, uplink = up)),
             reliable = false)
+        // Owner-visible signal: the status notification switches to
+        // "relaying call audio" while the mic path is live.
+        updateNotification(clientConnected)
         Log.i(TAG, "call audio relay ${if (up) "started" else "unavailable"}")
     }
 
@@ -699,21 +740,41 @@ class BridgeService : LifecycleService() {
      * start is the last resort on 29–33, and on 34+ a total refusal
      * means the system stops us — logged, not crashed.
      */
+    /** FGS type the service actually started with — the activity uses
+     *  it to detect a stuck-degraded start (see fgsDegraded). */
+    @Volatile var fgsType = 0
+        private set
+
     private fun startForegroundSafely(notif: Notification) {
         if (Build.VERSION.SDK_INT >= 34) {
             for (type in listOf(foregroundType(),
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE).distinct()) {
                 try {
                     startForeground(NOTIF_ID, notif, type)
+                    fgsType = type
                     return
-                } catch (e: IllegalStateException) {
+                } catch (e: Exception) {
+                    // SecurityException too — a type prereq can be
+                    // revoked between foregroundType() and this call.
                     Log.w(TAG, "startForeground type=$type refused: ${e.message}")
                 }
             }
         }
         runCatching { startForeground(NOTIF_ID, notif) }
-            .onFailure { Log.e(TAG, "startForeground refused entirely", it) }
+            .onFailure {
+                Log.e(TAG, "startForeground refused entirely", it)
+                // Started via startForegroundService but never got a
+                // notification up — the system force-crashes us in ~5s
+                // anyway; stop cleanly instead.
+                stopSelf()
+            }
     }
+
+    /** True when a fresh permission grant (NEARBY_WIFI_DEVICES / CDM)
+     *  would upgrade us off the 6h/24h-capped dataSync type — the
+     *  activity restarts the service in that case. */
+    fun fgsDegraded() = fgsType == ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC &&
+        foregroundType() == ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
 
     /**
      * dataSync FGS is capped at 6h/24h on Android 15 — fatal for a
@@ -737,14 +798,20 @@ class BridgeService : LifecycleService() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
     }
 
-    private fun buildNotification(connected: Boolean): Notification {
+    private fun buildNotification(
+        connected: Boolean,
+        audio: Boolean = audioActive,
+    ): Notification {
         // Re-wrap per build — a language change applies on the next
         // post without restarting the service.
         val ctx = com.simtether.shared.LocaleHelper.wrap(this)
         return NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setContentTitle(ctx.getString(com.simtether.shared.R.string.notif_bridge_active))
+            // Audio capture is a stronger step than call signaling —
+            // the owner-visible notice must say so while it runs.
             .setContentText(ctx.getString(
-                if (connected) com.simtether.shared.R.string.notif_client_connected
+                if (audio) com.simtether.shared.R.string.notif_audio_active
+                else if (connected) com.simtether.shared.R.string.notif_client_connected
                 else com.simtether.shared.R.string.notif_waiting_client
             ))
             .setSmallIcon(com.simtether.shared.R.drawable.ic_stat_simtether)
@@ -783,7 +850,8 @@ class BridgeService : LifecycleService() {
         nm.notify(NOTIF_ID, buildNotification(connected))
     }
 
-    private var clientConnected = false
+    // Written on the WS worker thread, read on main — volatile.
+    @Volatile private var clientConnected = false
 
     /** Re-post in the current language — called after a locale change. */
     fun refreshNotification() = updateNotification(clientConnected)

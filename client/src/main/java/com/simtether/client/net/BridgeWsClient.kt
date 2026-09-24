@@ -80,6 +80,10 @@ class BridgeWsClient(
     @Volatile private var session: SecureSession? = null
     @Volatile private var pendingHandshake: SecureSession.ClientHandshake? = null
     @Volatile private var ws: WebSocket? = null
+    // A resolve/connect attempt is in flight — connect() must be
+    // idempotent: several callers (service start, net callback, kick)
+    // used to each spawn a socket, and the bridge took the LAST one.
+    @Volatile private var connecting = false
     @Volatile private var closed = false
     private var backoffMs = 1_000L
     private var lastState: Boolean? = null
@@ -129,12 +133,17 @@ class BridgeWsClient(
 
     fun connect() {
         startWatchdog()
+        // Idempotent — a live socket or an in-flight attempt means
+        // another connect() has nothing to do.
+        if (ws != null || connecting) return
+        connecting = true
         // Resolution (cached-IP probe, then mDNS) can block — run off
         // the main thread.
         Thread({
-            if (closed) return@Thread
+            if (closed) { connecting = false; return@Thread }
             val target = targetProvider()
             if (target == null) {
+                connecting = false
                 Log.d(TAG, "no reachable bridge yet, retrying")
                 scheduleReconnect()
                 return@Thread
@@ -156,12 +165,12 @@ class BridgeWsClient(
         val client = target.socketFactory?.let {
             http.newBuilder().socketFactory(it).build()
         } ?: http
-        client.newWebSocket(request, object : WebSocketListener() {
+        val socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
+                if (stale(webSocket)) return
                 val hs = SecureSession.clientHandshake(
                     bridgeStaticPub, pairingTokenProvider(), clientStaticPriv)
                 pendingHandshake = hs
-                ws = webSocket
                 // First frame: IK msg1 — e/es/s/ss + pairing token, all
                 // AEAD-bound. No session until the bridge's msg2 lands.
                 webSocket.send(hs.outgoing.toByteString())
@@ -169,6 +178,7 @@ class BridgeWsClient(
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+                if (stale(webSocket)) return
                 val s = session ?: run {
                     val hs = pendingHandshake
                         ?: run { Log.w(TAG, "frame before handshake"); return }
@@ -228,11 +238,13 @@ class BridgeWsClient(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                if (stale(webSocket)) return
                 Log.w(TAG, "ws failure: ${t.message} (code=${response?.code})")
                 scheduleReconnect()
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                if (stale(webSocket)) return
                 Log.d(TAG, "ws closed code=$code reason=$reason")
                 if (code == 4003 || code == 4004) {
                     // 4003: pairing token rejected — the bridge rotated
@@ -248,34 +260,59 @@ class BridgeWsClient(
                 scheduleReconnect()
             }
         })
+        // Assigned at creation, not in onOpen — a callback from a
+        // replaced socket must find ws already pointing at the new one
+        // (the stale() guard), and senders must not hit the dead
+        // socket in the gap.
+        ws = socket
     }
 
-    fun sendCommand(type: String, payload: String, queueIfOffline: Boolean = false) {
+    /** True when [webSocket] is no longer our live socket — every
+     *  callback checks this so a dying socket's late events can't
+     *  touch the new connection's state. */
+    private fun stale(webSocket: WebSocket) = closed || webSocket !== ws
+
+    /**
+     * False when the command could not be sent or queued — callers on
+     * the call path surface that as a rejection instead of leaving the
+     * UI stuck in "dialing".
+     */
+    fun sendCommand(type: String, payload: String, queueIfOffline: Boolean = false): Boolean {
+        // Snapshot the pair — session and ws are set/cleared together
+        // in scheduleReconnect, but a mid-reconnect read must never
+        // mix the new socket with the old cipher.
         val s = session
-        if (s == null || ws == null) {
+        val sock = ws
+        if (s == null || sock == null) {
             if (queueIfOffline) {
                 while (outbox.size >= MAX_OUTBOX) outbox.poll() // drop oldest
                 outbox.add(type to payload)
                 Log.d(TAG, "queued $type (offline), depth=${outbox.size}")
+                return true
             }
-            return
+            Log.d(TAG, "dropped $type — no live session")
+            return false
         }
         val env = Protocol.Envelope(UUID.randomUUID().toString(), type, seq.incrementAndGet(), payload)
-        ws?.send(s.encrypt(Protocol.encode(env).toByteArray()).toByteString())
+        sock.send(s.encrypt(Protocol.encode(env).toByteArray()).toByteString())
+        return true
     }
 
     /** Mic frame → bridge uplink injection. Drops silently when the
      *  session is down — audio is ephemeral, never queued. */
     fun sendMedia(pcm: ByteArray) {
         val s = session ?: return
-        ws?.send(s.encrypt(byteArrayOf(Protocol.MEDIA_TAG) + pcm).toByteString())
+        val sock = ws ?: return
+        sock.send(s.encrypt(byteArrayOf(Protocol.MEDIA_TAG) + pcm).toByteString())
     }
 
     private fun scheduleReconnect() {
         if (closed) return
         emitState(false)
+        session?.destroy()
         session = null
         pendingHandshake = null
+        connecting = false
         ws = null
         val delay = backoffMs + java.util.concurrent.ThreadLocalRandom.current()
             .nextLong(0, backoffMs / 2 + 1)

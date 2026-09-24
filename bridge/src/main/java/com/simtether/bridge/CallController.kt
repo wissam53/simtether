@@ -55,7 +55,10 @@ object CallController {
         SAFE_NUMBER.matches(addr.trim().filterNot { it in " -()." })
 
     fun dispatch(context: Context, cmd: Protocol.CallAction) {
-        val call = CallRegistry.byId(cmd.callId) ?: return
+        val call = CallRegistry.byId(cmd.callId) ?: run {
+            Log.w("SimTether.Bridge", "call.action for unknown call ${cmd.callId}")
+            return
+        }
         when (cmd.action) {
             Protocol.CallAction.Action.ANSWER ->
                 call.answer(VideoProfile.STATE_AUDIO_ONLY)
@@ -84,9 +87,14 @@ object CallController {
 
             Protocol.CallAction.Action.HOLD ->
                 if (call.details.can(Call.Details.CAPABILITY_HOLD)) call.hold()
+                // Can't hold → the client already flipped its UI
+                // optimistically; push the true state back so the two
+                // sides don't diverge.
+                else BridgeInCallService.resync(cmd.callId)
 
             Protocol.CallAction.Action.UNHOLD ->
                 if (call.details.can(Call.Details.CAPABILITY_HOLD)) call.unhold()
+                else BridgeInCallService.resync(cmd.callId)
 
             Protocol.CallAction.Action.DTMF -> {
                 // Telecom requires play/stop pairs — a bare
@@ -132,9 +140,57 @@ object CallController {
         // As default dialer, placeCall goes straight to GSM (no UI).
         // fromParts, not Uri.parse: '#' is the URI fragment delimiter —
         // parse("tel:*123#") silently truncates to *123.
-        context.getSystemService(TelecomManager::class.java)
-            .placeCall(Uri.fromParts("tel", n, null), Bundle())
+        val tm = context.getSystemService(TelecomManager::class.java)
+        val extras = Bundle()
+        // Dual-SIM: pin the outgoing PhoneAccount to the bridge's SIM.
+        // Unpinned, an "ask every time" calling preference pops the
+        // system account picker on this unattended phone and the call
+        // silently stalls.
+        val accounts = runCatching { tm.callCapablePhoneAccounts }.getOrNull().orEmpty()
+        val subId = com.simtether.bridge.sms.SmsSender.activeSubId(context)
+        val handle = handleForSubId(context, accounts, subId)
+        if (handle != null) {
+            extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+        } else if (accounts.size > 1 && selectedOutgoingAccount(tm) == null) {
+            Log.w("SimTether.Bridge", "dial: no resolvable PhoneAccount — " +
+                "a picker would stall on the unattended screen")
+            reportRejected(context, "failed")
+            return
+        }
+        runCatching {
+            tm.placeCall(Uri.fromParts("tel", n, null), extras)
+        }.onFailure {
+            Log.e("SimTether.Bridge", "dial: placeCall threw", it)
+            reportRejected(context, "failed")
+        }
     }
+
+    /** The PhoneAccountHandle bound to [subId]'s SIM — no public
+     *  handle→subId API exists, but AOSP encodes the ICCID in the SIM
+     *  account's handle id. OEMs that diverge just return null and the
+     *  call goes out on the user's default account. */
+    private fun handleForSubId(
+        context: Context,
+        accounts: List<android.telecom.PhoneAccountHandle>,
+        subId: Int?,
+    ): android.telecom.PhoneAccountHandle? {
+        if (subId == null) return null
+        val iccId = runCatching {
+            context.getSystemService(android.telephony.SubscriptionManager::class.java)
+                ?.getActiveSubscriptionInfo(subId)?.iccId
+        }.getOrNull() ?: return null
+        return accounts.firstOrNull { it.id == iccId }
+    }
+
+    /** The user's standing calling preference, if one is set — the
+     *  picker only appears when it's absent AND multiple accounts. */
+    private fun selectedOutgoingAccount(
+        tm: TelecomManager,
+    ): android.telecom.PhoneAccountHandle? = runCatching {
+        if (android.os.Build.VERSION.SDK_INT >= 29)
+            tm.getDefaultOutgoingPhoneAccount("tel")
+        else @Suppress("DEPRECATION") tm.userSelectedOutgoingPhoneAccount
+    }.getOrNull()
 
     // ── Carrier service codes (USSD/MMI) ─────────────────────────
 
@@ -216,7 +272,9 @@ object CallController {
     }
 
     private fun reportUssd(context: Context, code: String, response: String?, error: String?) {
-        Log.d("SimTether.Bridge", "ussd $code -> resp=${response != null} err=$error")
+        // Never log the code itself — MMI strings can embed phone
+        // numbers (*21*num# forwarding targets).
+        Log.d("SimTether.Bridge", "ussd len=${code.length} -> resp=${response != null} err=$error")
         // Local pad shows the text itself; the wire event carries the
         // machine code so the client can localize.
         val notice = response ?: when {
@@ -239,6 +297,7 @@ object CallController {
             context.getString(
                 when (reason) {
                     "no_permission" -> com.simtether.shared.R.string.call_rejected_no_perm
+                    "failed" -> com.simtether.shared.R.string.call_failed
                     else -> com.simtether.shared.R.string.call_rejected_unsafe
                 }))
         onDialRejected?.invoke(reason)

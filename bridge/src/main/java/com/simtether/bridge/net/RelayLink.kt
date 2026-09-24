@@ -139,16 +139,23 @@ class RelayLink(
             c.connectionLostTimeout = 60
             proofDone = false
             socket = c
-            runCatching { c.connectBlocking() }
+            // connectBlocking returns false (or throws) on a refused
+            // dial — onClose may never fire in that case, so awaiting
+            // the latch unconditionally would hang the retry loop.
+            val opened = runCatching { c.connectBlocking() }.getOrDefault(false)
             if (stopped) break
-            try {
-                // Park until the registration socket dies — a healthy
-                // link sits here indefinitely, a failed dial has already
-                // counted the latch down via onClose.
-                closed.await()
-            } catch (_: InterruptedException) {
-                // stop() interrupted the wait — exit, don't crash.
-                break
+            if (opened) {
+                try {
+                    // Park until the registration socket dies — a healthy
+                    // link sits here indefinitely, a failed dial has
+                    // already counted the latch down via onClose.
+                    closed.await()
+                } catch (_: InterruptedException) {
+                    // stop() interrupted the wait — exit, don't crash.
+                    break
+                }
+            } else {
+                Log.d(TAG, "relay dial failed — backing off")
             }
             socket = null
             if (stopped) break

@@ -26,7 +26,9 @@ object CallRouter {
 
     fun ensurePhoneAccount(context: Context) {
         val tm = context.getSystemService(TelecomManager::class.java)
-        val account = PhoneAccount.builder(phoneAccountHandle(context), "Bridge calls")
+        val account = PhoneAccount.builder(
+            phoneAccountHandle(context),
+            context.getString(com.simtether.shared.R.string.phone_account_label))
             .setCapabilities(PhoneAccount.CAPABILITY_SELF_MANAGED)
             .build()
         tm.registerPhoneAccount(account)

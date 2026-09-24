@@ -159,11 +159,19 @@ class RelayServer(
         }
         if (desc.substringBefore('?').trim('/').substringBefore('/') == "register") {
             val now = System.currentTimeMillis()
-            val window = regPerIp.getOrPut(ip) { ArrayDeque() }
-            synchronized(window) {
-                while (window.isNotEmpty() && now - window.first() > REG_WINDOW_MS)
-                    window.removeFirst()
-                if (window.isEmpty()) regPerIp.remove(ip, window) // no unbounded per-IP growth
+            // One lock for the whole window op — the old per-deque lock
+            // raced the remove/reattach: detaching an empty window and
+            // then addLast()ing to it silently dropped the hit.
+            synchronized(regPerIp) {
+                val stale = regPerIp[ip]
+                if (stale != null) {
+                    while (stale.isNotEmpty() && now - stale.first() > REG_WINDOW_MS)
+                        stale.removeFirst()
+                    // Fully-expired window → drop the map entry so a
+                    // one-shot registrant doesn't leak a map slot.
+                    if (stale.isEmpty()) regPerIp.remove(ip)
+                }
+                val window = regPerIp.getOrPut(ip) { ArrayDeque() }
                 if (window.size >= MAX_REG_PER_WINDOW) {
                     System.err.println("rejected ${conn.remoteSocketAddress}: reg rate")
                     throw InvalidDataException(429, "reg rate")
@@ -189,7 +197,9 @@ class RelayServer(
             // A live client slot is not evictable — previously any
             // token holder could /connect a victim's room and kick the
             // real client. Stale ghosts are reaped by the ping timeout.
-            if (room.client?.isOpen == true) throw InvalidDataException(409, "room occupied")
+            synchronized(room) {
+                if (room.client?.isOpen == true) throw InvalidDataException(409, "room occupied")
+            }
             // Rooms registered with a ticket (all current bridges)
             // require the matching ticket — derived from a secret only
             // the bridge and its paired client hold.
@@ -298,10 +308,15 @@ class RelayServer(
                     conn.close(4004, "no bridge")
                     return
                 }
-                room.client?.close(1000, "replaced")
-                room.client = conn
-                conn.setAttachment(b)
-                b.setAttachment(conn)
+                // Atomic slot adoption — the handshake-time occupied
+                // check and this swap must not interleave with another
+                // connector's check-and-take.
+                synchronized(room) {
+                    room.client?.close(1000, "replaced")
+                    room.client = conn
+                    conn.setAttachment(b)
+                    b.setAttachment(conn)
+                }
                 roles[conn] = fp to role
                 println("room $fp: client spliced")
             }

@@ -158,6 +158,21 @@ class BridgeInCallService : InCallService() {
         fun setRoute(route: Int) {
             instance?.setAudioRoute(route)
         }
+
+        /**
+         * Push the call's TRUE state to the client — used when an
+         * action couldn't run (e.g. HOLD on a call without
+         * CAPABILITY_HOLD): the client's optimistic UI would otherwise
+         * stay desynced. Bypasses the lastEvents dedupe by clearing
+         * the cached event first.
+         */
+        fun resync(callId: String) {
+            val svc = instance ?: return
+            CallRegistry.byId(callId)?.let { call ->
+                svc.lastEvents.remove(callId)
+                svc.emit(callId, call)
+            }
+        }
     }
 
     override fun attachBaseContext(newBase: android.content.Context) {

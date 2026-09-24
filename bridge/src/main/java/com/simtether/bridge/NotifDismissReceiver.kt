@@ -24,7 +24,12 @@ class NotifDismissReceiver : BroadcastReceiver() {
             Log.w("SimTether.Bridge",
                 "status notification dismissed with dead service — restarting")
             runCatching {
-                context.startService(Intent(context, BridgeService::class.java))
+                // startForegroundService, not startService — a plain
+                // start leaves the service background (killed fast)
+                // AND violates the notice contract. Notification
+                // interaction is a documented background-start
+                // exemption, so this is allowed even on 12+.
+                context.startForegroundService(Intent(context, BridgeService::class.java))
             }.onFailure { Log.e("SimTether.Bridge", "restart after dismiss failed", it) }
         }
     }

@@ -8,6 +8,18 @@ import kotlinx.coroutines.flow.StateFlow
 object ClientServiceHolder {
     var service: ClientService? = null
 
+    /** Application context for resource lookups when the service is
+     *  down (e.g. the offline rejection reason). Process-scoped —
+     *  set/cleared by ClientService. */
+    var appContext: android.content.Context? = null
+
+    /**
+     * Product gate — the :app host installs the billing entitlement
+     * check here (App.onCreate). Default allows: tests and non-Play
+     * hosts have no paywall.
+     */
+    var mayRun: () -> Boolean = { true }
+
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected
     fun setConnected(v: Boolean) {
@@ -91,7 +103,13 @@ object ClientServiceHolder {
             Protocol.DialRequest.serializer(),
             Protocol.DialRequest(number),
         )
-        service?.sendCommand("dial", payload)
+        if (service?.sendCommand("dial", payload) != true) {
+            // Never reached the wire — tear the local outgoing
+            // Connection down with a reason or it hangs in "dialing"
+            // forever (dial.rejected only exists when the bridge saw it).
+            com.simtether.client.telecom.BridgeConnectionService
+                .rejectPendingOutgoing(offlineText())
+        }
     }
 
     /** Carrier service-code request — gated by the bridge's
@@ -101,8 +119,14 @@ object ClientServiceHolder {
             Protocol.UssdRequest.serializer(),
             Protocol.UssdRequest(code),
         )
-        service?.sendCommand("ussd", payload)
+        if (service?.sendCommand("ussd", payload) != true) {
+            com.simtether.shared.CallStateBus.publishPadNotice(offlineText())
+        }
     }
+
+    private fun offlineText(): String =
+        appContext?.getString(com.simtether.shared.R.string.call_rejected_offline)
+            ?: "bridge offline"
 
     fun sendBridgeCommand(action: Protocol.BridgeCommand.Action, arg: String? = null) {
         val payload = Protocol.json.encodeToString(

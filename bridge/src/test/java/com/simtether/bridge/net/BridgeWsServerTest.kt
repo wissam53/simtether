@@ -62,7 +62,10 @@ class BridgeWsServerTest {
 
     @After
     fun tearDown() {
-        server?.stop(1000)
+        // Java-WebSocket's stop() races its own selectorthread exit —
+        // a ClosedSelectorException on teardown is library noise, not
+        // a failure of the code under test.
+        runCatching { server?.stop(1000) }
         server = null
     }
 

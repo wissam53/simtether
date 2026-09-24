@@ -40,6 +40,7 @@ class ClientService : LifecycleService() {
     // a stale session would hold the mic open, so every exit path
     // closes it.
     private var audioSession: com.simtether.client.audio.ClientAudioSession? = null
+    @Volatile private var shuttingDown = false
 
     // Single-threaded: preserves event ordering while keeping store
     // writes, contact lookups, and Telecom binder calls off the UI
@@ -60,10 +61,21 @@ class ClientService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         ClientServiceHolder.service = this
+        ClientServiceHolder.appContext = applicationContext
         ConversationStore.init(applicationContext)
         CallLogStore.init(applicationContext)
         com.simtether.shared.ContactLookup.init(applicationContext)
         startForegroundWithNotification()
+
+        // Product gate — the :app host installs the entitlement check
+        // here; a UI-only paywall is bypassable by re-invoking the
+        // service directly.
+        if (!ClientServiceHolder.mayRun()) {
+            Log.i(TAG, "mayRun gate refused service start")
+            stopSelf()
+            return
+        }
+
         registerNetCallback()
         connectToBridge()
     }
@@ -213,13 +225,21 @@ class ClientService : LifecycleService() {
         // value is either the QR-carried address or a custom override.
         val relay = com.simtether.shared.RemoteStore.normalizeRelay(pairing.relay)
             ?: com.simtether.shared.RemoteStore.DEFAULT_RELAY
-        // Address may carry a scheme — "wss://host:port" when the relay
-        // sits behind TLS termination; bare "host:port" means ws.
-        val secure = relay.startsWith("wss://")
-        val hostport = relay.substringAfter("://")
-        val host = hostport.substringBeforeLast(':', "")
-        val port = hostport.substringAfterLast(':', "").toIntOrNull()
-        if (host.isBlank() || port == null) return null
+        // java.net.URI, not manual splitting — normalizeRelay emits
+        // "wss://host" (no port) and "ws://[::1]:port" (IPv6), both of
+        // which a ':'-split parses wrong.
+        val u = runCatching { java.net.URI.create(relay) }.getOrNull() ?: return null
+        val secure = u.scheme == "wss"
+        val host = u.host?.removeSurrounding("[", "]") ?: return null
+        val port = if (u.port > 0) u.port else if (secure) 443 else 80
+        // No ticket → the relay 403s /connect on a proven room, forever.
+        // Pairings from before tickets existed (or a stripped QR) must
+        // not dial the hosted relay in a loop.
+        if (pairing.relaySecret.isNullOrBlank()) {
+            Log.d(TAG, "remote enabled but pairing has no room ticket — " +
+                "skipping relay (re-pair to get one)")
+            return null
+        }
         // Full-pubkey room id — a 32-bit fp room is collision-mineable
         // (~2^32 keygens) which would let a token holder evict a
         // victim's room.
@@ -293,6 +313,9 @@ class ClientService : LifecycleService() {
 
     override fun onDestroy() {
         ClientServiceHolder.service = null
+        // Blocks a late call.audio event from reopening the session
+        // after we tear it down here on the main thread.
+        shuttingDown = true
         stopAudio()
         ClientServiceHolder.setConnected(false)
         netCallback?.let {
@@ -331,9 +354,18 @@ class ClientService : LifecycleService() {
                 return
             }
         }
-        runCatching { route(env) }
-            .onFailure { Log.e(TAG, "route ${env.type} failed", it) }
-        if (env.type != "hb") sendAck(env.id)
+        val ok = runCatching { route(env) }
+            .onFailure {
+                // Class name only — decode exceptions embed a payload
+                // excerpt (possible PII in release logcat).
+                Log.e(TAG, "route ${env.type} failed (${it.javaClass.simpleName})")
+            }.isSuccess
+        if (env.type != "hb") {
+            if (ok) sendAck(env.id)
+            // Failed routes stay un-acked so the bridge redelivers; drop
+            // the dedup mark or the redelivery itself gets swallowed.
+            else seenIds.remove(env.id)
+        }
     }
 
     private fun sendAck(forId: String) {
@@ -410,6 +442,9 @@ class ClientService : LifecycleService() {
                 com.simtether.shared.CallStateBus.publishPadNotice(
                     e.response ?: dialRejectText(e.error ?: "failed"))
             }
+            // Forward-compat: an event type we don't know must log, not
+            // silently die — this is how a missed rename would surface.
+            else -> Log.w(TAG, "unknown event ${env.type} — ignored")
         }
     }
 
@@ -422,6 +457,10 @@ class ClientService : LifecycleService() {
                 com.simtether.shared.R.string.call_rejected_no_perm
             reason == "unsafe" ->
                 com.simtether.shared.R.string.call_rejected_unsafe
+            reason == "offline" ->
+                com.simtether.shared.R.string.call_rejected_offline
+            reason == "failed" ->
+                com.simtether.shared.R.string.call_failed
             else -> com.simtether.shared.R.string.ussd_failed
         })
 
@@ -431,6 +470,9 @@ class ClientService : LifecycleService() {
      * bridge will inject and RECORD_AUDIO is granted).
      */
     private fun startAudio(uplink: Boolean) {
+        // Teardown is already running — a late call.audio event on the
+        // event thread must not reopen the mic.
+        if (shuttingDown) return
         audioSession?.stop()
         audioSession = com.simtether.client.audio.ClientAudioSession(
             applicationContext, uplink,
@@ -453,9 +495,10 @@ class ClientService : LifecycleService() {
         }
     }
 
-    /** Client→bridge command entry point. */
-    fun sendCommand(type: String, payload: String, queueIfOffline: Boolean = false) =
-        ws?.sendCommand(type, payload, queueIfOffline)
+    /** Client→bridge command entry point — false when the command
+     *  could not be sent or queued (callers must surface it). */
+    fun sendCommand(type: String, payload: String, queueIfOffline: Boolean = false): Boolean =
+        ws?.sendCommand(type, payload, queueIfOffline) ?: false
 
     private fun startForegroundWithNotification() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -479,21 +522,39 @@ class ClientService : LifecycleService() {
      * start is the last resort on 29–33, and on 34+ a total refusal
      * means the system stops us — logged, not crashed.
      */
+    /** FGS type the service actually started with (see fgsDegraded). */
+    @Volatile var fgsType = 0
+        private set
+
     private fun startForegroundSafely(notif: Notification) {
         if (Build.VERSION.SDK_INT >= 34) {
             for (type in listOf(foregroundType(),
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE).distinct()) {
                 try {
                     startForeground(NOTIF_ID, notif, type)
+                    fgsType = type
                     return
-                } catch (e: IllegalStateException) {
+                } catch (e: Exception) {
+                    // SecurityException too — type prereqs can be
+                    // revoked between foregroundType() and this call.
                     Log.w(TAG, "startForeground type=$type refused: ${e.message}")
                 }
             }
         }
         runCatching { startForeground(NOTIF_ID, notif) }
-            .onFailure { Log.e(TAG, "startForeground refused entirely", it) }
+            .onFailure {
+                Log.e(TAG, "startForeground refused entirely", it)
+                // A startForegroundService start that never goes
+                // foreground is force-crashed by the system — stop
+                // cleanly instead.
+                stopSelf()
+            }
     }
+
+    /** True when a fresh grant would upgrade us off the 6h/24h-capped
+     *  dataSync type — the activity restarts the service in that case. */
+    fun fgsDegraded() = fgsType == ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC &&
+        foregroundType() == ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
 
     /**
      * dataSync FGS is capped at 6h/24h on Android 15 — fatal for a

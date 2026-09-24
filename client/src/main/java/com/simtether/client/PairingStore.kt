@@ -18,11 +18,17 @@ object PairingStore {
         SecureStore.putString(context, PREFS, "host", p.host)
         SecureStore.putInt(context, PREFS, "port", p.port)
         SecureStore.putString(context, PREFS, "pubkey", p.bridgeStaticPubKey)
-        SecureStore.putString(context, PREFS, "token", p.pairingToken)
+        // Credentials fail closed — a token/secret that can't be
+        // Keystore-wrapped must not land in plaintext prefs instead
+        // (the UI surfaces degraded storage via SecureStore.degraded).
+        SecureStore.putString(context, PREFS, "token", p.pairingToken,
+            failClosed = true)
         SecureStore.putString(context, PREFS, "name", p.deviceName)
         SecureStore.putString(context, PREFS, "relay", p.relay)
-        SecureStore.putString(context, PREFS, "relay_token", p.relayToken)
-        SecureStore.putString(context, PREFS, "relay_secret", p.relaySecret)
+        SecureStore.putString(context, PREFS, "relay_token", p.relayToken,
+            failClosed = true)
+        SecureStore.putString(context, PREFS, "relay_secret", p.relaySecret,
+            failClosed = true)
     }
 
     fun load(context: Context): PairingPayload? {
@@ -43,7 +49,8 @@ object PairingStore {
     /** Manual relay entry — overrides whatever the QR carried. */
     fun updateRelay(context: Context, relay: String?, token: String?) {
         SecureStore.putString(context, PREFS, "relay", relay?.trim() ?: "")
-        SecureStore.putString(context, PREFS, "relay_token", token?.trim() ?: "")
+        SecureStore.putString(context, PREFS, "relay_token", token?.trim() ?: "",
+            failClosed = true)
     }
 
     /**
@@ -61,15 +68,20 @@ object PairingStore {
         val pub = SecureStore.getString(context, PREFS, "client_pub")
         if (priv != null && pub != null) return dec.decode(priv) to dec.decode(pub)
         val pair = com.simtether.shared.crypto.SecureSession.generateKeyPair()
-        SecureStore.putString(context, PREFS, "client_priv", enc.encodeToString(pair.first))
-        SecureStore.putString(context, PREFS, "client_pub", enc.encodeToString(pair.second))
+        // Both halves fail closed — the private key must never sit
+        // plaintext, and persisting only one half would resurrect a
+        // mismatched identity on the next launch.
+        SecureStore.putString(context, PREFS, "client_priv",
+            enc.encodeToString(pair.first), failClosed = true)
+        SecureStore.putString(context, PREFS, "client_pub",
+            enc.encodeToString(pair.second), failClosed = true)
         return pair
     }
 
     /** Token rotation — the bridge pushes a fresh credential inside
      *  each established session (pairing.rotate event). */
     fun updateToken(context: Context, token: String) {
-        SecureStore.putString(context, PREFS, "token", token)
+        SecureStore.putString(context, PREFS, "token", token, failClosed = true)
     }
 
     /** Update the cached address after mDNS rediscovery — the identity

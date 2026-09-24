@@ -99,11 +99,25 @@ class BridgeWsServer(
     val staticPrivKey: ByteArray get() = staticKeyPair.first
 
     /** Client socket open AND encrypted session established. */
-    fun isReady() = client?.isOpen == true && session != null
+    fun isReady() = synchronized(lock) { client?.isOpen == true && session != null }
+
+    /**
+     * (client, session) must be read as one atomic pair — adoption
+     * assigns them under [lock] back-to-back, so a send that interleaves
+     * between the two volatile writes would encrypt under the OLD
+     * session and send on the NEW socket: guaranteed peer-side AEAD
+     * failure that tears down a healthy session. Same race class as
+     * the receive path fixed below.
+     */
+    private fun pair(): Pair<WebSocket, SecureSession>? =
+        synchronized(lock) {
+            val c = client; val s = session
+            if (c != null && s != null) c to s else null
+        }
 
     fun send(env: Protocol.Envelope) {
-        val s = session ?: run { Log.w(TAG, "send dropped: no session (${env.type})"); return }
-        val c = client ?: run { Log.w(TAG, "send dropped: no client (${env.type})"); return }
+        val (c, s) = pair()
+            ?: run { Log.w(TAG, "send dropped: no session (${env.type})"); return }
         Log.d(TAG, "send ${env.type} seq=${env.seq}")
         c.send(s.encrypt(Protocol.encode(env).toByteArray()))
     }
@@ -115,8 +129,7 @@ class BridgeWsServer(
      * decode and tear the session down per the Noise AEAD rule.
      */
     fun sendMedia(pcm: ByteArray) {
-        val s = session ?: return
-        val c = client ?: return
+        val (c, s) = pair() ?: return
         c.send(s.encrypt(byteArrayOf(Protocol.MEDIA_TAG) + pcm))
     }
 
@@ -180,7 +193,9 @@ class BridgeWsServer(
                 // client/session and the peer re-handshakes. For the
                 // relay path this also drops the registration socket —
                 // RelayLink re-dials and the room comes back clean.
-                Log.e(TAG, "decrypt/decode failed — resetting session", it)
+                // Log the class only — kotlinx decode errors embed a
+                // raw excerpt of the payload (possible PII).
+                Log.e(TAG, "decrypt/decode failed (${it.javaClass.simpleName}) — resetting session")
                 conn.close(1008, "decrypt")
                 return
             }
@@ -260,11 +275,16 @@ class BridgeWsServer(
      *  registration socket itself is managed by RelayLink. */
     fun handleRemoteClose(conn: WebSocket) {
         authFails.remove(conn)
-        if (conn == client) {
-            client = null
-            session = null
-            onClientDisconnected()
+        // Clear the pair under lock — a mid-flight null outside it can
+        // wipe a session adopted between the two writes.
+        val ours = synchronized(lock) {
+            if (conn == client) {
+                client = null
+                session = null
+                true
+            } else false
         }
+        if (ours) onClientDisconnected()
     }
 
     override fun onMessage(conn: WebSocket, message: String) {
@@ -275,11 +295,14 @@ class BridgeWsServer(
         Log.d(TAG, "client closed code=$code reason=$reason remote=$remote")
         pendingAuth.remove(conn)
         authFails.remove(conn)
-        if (conn == client) {
-            client = null
-            session = null
-            onClientDisconnected()
+        val ours = synchronized(lock) {
+            if (conn == client) {
+                client = null
+                session = null
+                true
+            } else false
         }
+        if (ours) onClientDisconnected()
     }
 
     override fun onError(conn: WebSocket?, ex: Exception) {

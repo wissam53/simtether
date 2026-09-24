@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -135,6 +136,24 @@ private fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit)
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("SimTether", style = MaterialTheme.typography.headlineMedium)
+
+        // Keystore fell back to plaintext — the client identity key and
+        // pairing token sit unprotected (and now fail closed). Surface
+        // it loudly instead of silently accepting a degraded store.
+        if (!com.simtether.shared.SecureStore.encryptionReady()) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Text(
+                    stringResource(R.string.keystore_warning),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(12.dp),
+                )
+            }
+        }
 
         if (paired && revoked) {
             Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {

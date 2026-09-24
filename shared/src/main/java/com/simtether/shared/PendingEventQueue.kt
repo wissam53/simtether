@@ -61,6 +61,15 @@ class PendingEventQueue(
     }
 
     fun persist() = runCatching { writeNow() }
+        .onFailure {
+            // runCatching on the log itself — this class also runs in
+            // plain-JVM unit tests where android.util.Log is absent.
+            runCatching {
+                android.util.Log.e(TAG, "persist failed — queue may lose events", it)
+            }
+        }
+
+    private companion object { const val TAG = "SimTether.PendingQ" }
 
     private fun persistSoon() {
         synchronized(writeLock) {

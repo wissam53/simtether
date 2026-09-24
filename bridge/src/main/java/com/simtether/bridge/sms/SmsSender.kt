@@ -47,7 +47,9 @@ object SmsSender {
             }
             Log.d(TAG, "sent to=$address parts=${parts.size} ref=$ref")
         }.onFailure {
-            Log.e(TAG, "send failed to=$address", it)
+            // Log.e survives release stripping — never put the
+            // recipient address in it.
+            Log.e(TAG, "send failed ref=$ref (${it.javaClass.simpleName})")
             report(ref, Protocol.SmsStatus.Status.FAILED, it.message)
         }
     }
@@ -77,10 +79,14 @@ object SmsSender {
         BridgeServiceHolder.service?.emit("sms.status", payload)
     }
 
-    /** The SIM this bridge's traffic belongs on — the active-data sub,
-     *  else the first active subscription. Shared with the USSD path
-     *  so a dual-SIM bridge runs service codes on the right line. */
+    /** The SIM this bridge's traffic belongs on — the default-SMS sub
+     *  first (that's the line "the bridge number" means to the owner
+     *  and what getSystemService(SmsManager) resolves to), then the
+     *  active-data sub, then any active subscription. Shared with the
+     *  USSD and dial paths so all three agree on the same line. */
     internal fun activeSubId(context: Context): Int? = runCatching {
+        val smsId = SubscriptionManager.getDefaultSmsSubscriptionId()
+        if (smsId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) return@runCatching smsId
         val sm = context.getSystemService(SubscriptionManager::class.java)
         // getActiveDataSubscriptionId is API 30+.
         val id = if (android.os.Build.VERSION.SDK_INT >= 30)
