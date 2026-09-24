@@ -87,6 +87,9 @@ class BridgeWsClient(
     @Volatile private var closed = false
     private var backoffMs = 1_000L
     private var lastState: Boolean? = null
+    // Consecutive Noise msg2 failures — a streak means the stored
+    // bridge identity is stale, not that the network is flaky.
+    private var handshakeFails = 0
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private var pendingReconnect: Runnable? = null
     // Last inbound frame — heartbeat silence means the socket is a
@@ -185,9 +188,22 @@ class BridgeWsClient(
                     session = runCatching { hs.complete(bytes.toByteArray()) }
                         .getOrElse {
                             Log.e(TAG, "handshake failed", it)
-                            webSocket.close(4003, "handshake")
+                            // NOT 4003 — a self-issued 4003 lands in
+                            // onClosed and reads as "pairing revoked",
+                            // wedging the client forever on a transient
+                            // failure. 4000 = abnormal, just reconnect.
+                            webSocket.close(4000, "handshake")
+                            handshakeFails++
+                            if (handshakeFails >= 5) {
+                                // Repeated msg2 failures = the stored
+                                // bridge key is stale (re-paired bridge)
+                                // — surface the banner but keep retrying
+                                // at backoff; a re-pair rebuilds us.
+                                onRevoked()
+                            }
                             return
                         }
+                    handshakeFails = 0
                     pendingHandshake = null
                     lastInbound = android.os.SystemClock.elapsedRealtime()
                     // Announce optional features before any app traffic —
@@ -265,6 +281,23 @@ class BridgeWsClient(
         // (the stale() guard), and senders must not hit the dead
         // socket in the gap.
         ws = socket
+        // The attempt is over once a socket exists — ws!=null guards
+        // connect() from here on, so connecting can release.
+        connecting = false
+        // Handshake deadline: OkHttp disables read timeouts once the
+        // upgrade completes, so a bridge that accepts TCP but never
+        // answers Noise msg2 (half-killed process, dead accept loop)
+        // leaves no callback path — no onOpen failure, no read error,
+        // and the watchdog only watches established sessions. With
+        // connecting=true and ws!=null every reconnect returns early:
+        // a permanent wedge. If no session is live 15s after opening,
+        // kill the socket; onFailure drives the normal reconnect path.
+        handler.postDelayed({
+            if (!closed && session == null && ws === socket) {
+                Log.w(TAG, "handshake timeout — resetting socket")
+                socket.cancel()
+            }
+        }, 15_000)
     }
 
     /** True when [webSocket] is no longer our live socket — every
