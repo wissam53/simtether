@@ -6,10 +6,9 @@ SimTether turns a cheap Android phone into a bridge for a registered SIM —
 SMS and GSM call control arrive on your main phone, end-to-end encrypted,
 with no account and no server in the middle.
 
-Built for situations like IMEI-registration regimes (e.g. Turkey), where a
-foreign phone loses cellular service after a grace period: leave the
-registered SIM — and its registered phone — at home, and carry whatever
-phone you want.
+Built for situations like IMEI-registration regimes, where a foreign phone
+loses cellular service after a grace period: leave the registered SIM — and
+its registered phone — at home, and carry whatever phone you want.
 
 ## The two apps
 

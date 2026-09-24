@@ -22,11 +22,11 @@ data — which is, by design, almost nothing.
 
 ## What the apps are
 
-SimTether is two apps. **SimTether Bridge** (sideloaded) runs on a
-cheap Android phone holding your SIM. **SimTether** (Play Store) runs
-on your main phone and receives SMS, call events, and call control
-from the bridge — end-to-end encrypted over the local network, or
-over the internet via a relay if you opt in.
+SimTether is two apps. **SimTether Bridge** runs on a cheap Android
+phone holding your SIM. **SimTether** runs on your main phone and
+receives SMS, call events, and call control from the bridge —
+end-to-end encrypted over the local network, or over the internet via
+a relay if you opt in.
 
 ## What data the app handles — and where it goes
 
@@ -86,22 +86,25 @@ to function.
 
 Leave remote access off and everything stays on your local network.
 
-## Optional call relay (planned, off by default)
+## Optional call audio (rooted bridge build, off by default)
 
-If you enable the call-audio relay feature, calls are forwarded at the
-**carrier level** to an internet phone service (SIP provider) which
-delivers them to the app. This changes the privacy picture, and the
-app shows a consent screen before enabling it:
+The standard build forwards call *control* — ringing, answer, reject,
+DTMF — but not audio. An optional rooted bridge build can additionally
+capture live GSM call audio on the bridge phone and stream it to your
+main phone:
 
-- Your carrier sees the same forwarding metadata it always sees.
-- The SIP provider is technically in the audio path — like any phone
-  company, it could access call audio and metadata.
-- We see only call-routing information needed to deliver the call.
-  We do not record or store audio.
-- **Your SMS never touches this path.** It remains local-only always.
+- Audio travels bridge → your phone over the **same end-to-end
+  encrypted channel** — Noise ciphertext on the LAN, and ciphertext
+  through the relay if remote access is on. There is no third-party
+  telephony provider in the audio path.
+- We do not record, store, or ever possess call audio.
+- It requires a rooted bridge phone and is distributed via GitHub
+  Releases only; it is off unless you enable it on the bridge.
+- The bridge's persistent foreground notification stays visible while
+  the service runs — including when audio relay is active.
 
-Leave the relay off and nothing above applies — call control and SMS
-remain 100% local either way.
+Leave it off and nothing above applies — call control and SMS remain
+100% local either way.
 
 ## Permissions, honestly
 

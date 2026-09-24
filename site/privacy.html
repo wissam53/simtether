@@ -45,8 +45,8 @@
     </ul>
 
     <h3>What the apps are</h3>
-    <p>SimTether is two apps. <strong>SimTether Bridge</strong> (sideloaded) runs on a
-       cheap Android phone holding your SIM. <strong>SimTether</strong> (Play Store) runs
+    <p>SimTether is two apps. <strong>SimTether Bridge</strong> runs on a
+       cheap Android phone holding your SIM. <strong>SimTether</strong> runs
        on your main phone and receives SMS, call events, and call control
        from the bridge — end-to-end encrypted over the local network, or
        over the internet via a relay if you opt in.</p>
@@ -104,6 +104,23 @@
        relay stops or becomes paid, local/hotspot mode and self-hosted
        relays keep working unchanged and free — the app itself never
        depends on our infrastructure to function.</p>
+
+    <h3>Optional call audio (rooted bridge build, off by default)</h3>
+    <p>The standard build forwards call <em>control</em> — ringing, answer,
+       reject, DTMF — but not audio. An optional rooted bridge build can
+       additionally capture live GSM call audio on the bridge phone and
+       stream it to your main phone:</p>
+    <ul>
+      <li>Audio travels bridge → your phone over the <strong>same end-to-end
+          encrypted channel</strong> — Noise ciphertext on the LAN, and
+          ciphertext through the relay if remote access is on. No
+          third-party telephony provider is in the audio path.</li>
+      <li>We do not record, store, or ever possess call audio.</li>
+      <li>It requires a rooted bridge phone, ships via GitHub Releases only,
+          and is off unless you enable it on the bridge.</li>
+      <li>The bridge's persistent foreground notification stays visible
+          while the service runs — including when audio relay is active.</li>
+    </ul>
 
     <h3>Permissions, honestly</h3>
     <p>The two apps split permissions by role. The <strong>bridge</strong> app asks
