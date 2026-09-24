@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,7 +60,9 @@ class InCallActivity : ComponentActivity() {
                 var seen by remember { mutableStateOf(false) }
                 if (call != null) seen = true
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
+                    // targetSdk 35 enforces edge-to-edge — keep the
+                    // call actions clear of the nav bar.
+                    modifier = Modifier.fillMaxSize().safeDrawingPadding(),
                     color = CallColors.Surface,
                 ) {
                     when {
