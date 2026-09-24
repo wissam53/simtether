@@ -189,7 +189,9 @@
     <string name="remote_repair_needed">Отсканируйте QR-код сопряжения на другом телефоне заново, чтобы он узнал адрес ретранслятора.</string>
     <string name="home_linked_remote">Связь есть · через интернет</string>
     <string name="remote_agree">Включить</string>
-    <string name="remote_active_relay">Ретранслятор: %1$s</string>
+    <string name="remote_active_relay">Ретранслятор: %1$s · %2$s</string>
+    <string name="remote_active_relay_default">Ретранслятор: наш сервер (по умолчанию)</string>
+    <string name="remote_src_custom">свой</string>
     <string name="remote_custom_relay">Свой сервер-ретранслятор</string>
     <string name="remote_use_default">Сервер по умолчанию</string>
 

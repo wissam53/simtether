@@ -209,7 +209,9 @@
     <string name="remote_repair_needed">Re-scan the pairing QR on your other phone so it learns the relay address.</string>
     <string name="home_linked_remote">Linked · via internet</string>
     <string name="remote_agree">Enable</string>
-    <string name="remote_active_relay">Relay: %1$s</string>
+    <string name="remote_active_relay">Relay: %1$s · %2$s</string>
+    <string name="remote_active_relay_default">Relay: hosted (default)</string>
+    <string name="remote_src_custom">custom</string>
     <string name="remote_custom_relay">Custom relay server</string>
     <string name="remote_use_default">Use default server</string>
 

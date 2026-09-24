@@ -102,6 +102,25 @@ class ClientService : LifecycleService() {
                 if (!ClientServiceHolder.connected.value) {
                     Log.d(TAG, "network up — kicking reconnect")
                     ws?.kick()
+                } else if (ClientServiceHolder.viaRelay.value) {
+                    // Linked through the relay but a fresh network just
+                    // appeared — the bridge may be directly reachable
+                    // now. Probe the cached address; if it answers,
+                    // drop the relay link and re-resolve to LAN.
+                    eventScope.launch { maybePreferLan() }
+                }
+            }
+
+            override fun onLost(network: android.net.Network) {
+                // LAN sockets are bound to their Network — the OS
+                // errors them the moment it dies. The relay socket
+                // rides the *default route*: when that network goes
+                // away the socket can zombie silently (UI still says
+                // "connected", sends blackhole). Drop it and
+                // re-resolve on whatever connectivity remains.
+                if (ClientServiceHolder.viaRelay.value) {
+                    Log.d(TAG, "network lost while relay-linked — resetting link")
+                    ws?.dropAndReconnect()
                 }
             }
         }
@@ -291,6 +310,22 @@ class ClientService : LifecycleService() {
         }
         true
     }.getOrDefault(false)
+
+    /**
+     * We're relay-linked but a new network appeared — if the bridge's
+     * last-known LAN address answers a fast probe, prefer the direct
+     * link. Conservative on purpose: only the cached address is
+     * probed (no mDNS window per network flap), and a failed probe
+     * leaves the working relay link untouched.
+     */
+    private fun maybePreferLan() {
+        val pairing = PairingStore.load(applicationContext) ?: return
+        val net = networkFor(pairing.host) ?: return
+        if (!probe(net, pairing.host, pairing.port)) return
+        if (!ClientServiceHolder.viaRelay.value) return  // re-resolved already
+        Log.d(TAG, "bridge reachable on LAN while relay-linked — switching")
+        ws?.dropAndReconnect()
+    }
 
     /** Settings changed (remote toggle) — retry resolution now. */
     fun reconnect() = ws?.kick()

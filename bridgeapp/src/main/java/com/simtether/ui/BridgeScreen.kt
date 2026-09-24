@@ -421,8 +421,14 @@ fun BridgeScreen() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            stringResource(R.string.remote_active_relay,
-                                relayAddr.ifBlank { RemoteStore.DEFAULT_RELAY }),
+                            // The hosted default has no user-meaningful
+                            // address to show — the raw hostname only
+                            // appears when a custom relay is configured.
+                            if (relayAddr.isBlank())
+                                stringResource(R.string.remote_active_relay_default)
+                            else stringResource(R.string.remote_active_relay,
+                                relayAddr,
+                                stringResource(R.string.remote_src_custom)),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),

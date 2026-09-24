@@ -446,7 +446,15 @@ private fun RemoteAccessCard(pairing: PairingPayload?) {
         mutableStateOf(pairing?.relay
             ?.takeIf { it != com.simtether.shared.RemoteStore.DEFAULT_RELAY } ?: "")
     }
-    var relayTok by remember { mutableStateOf(pairing?.relayToken ?: "") }
+    // Same rule as the address field: the QR also carries the built-in
+    // hosted-relay token — showing it as an editable value invites a
+    // token-only edit that freezes the override past ACCESS_TOKENS
+    // rollover. Custom tokens still show; only the built-in is hidden.
+    var relayTok by remember {
+        mutableStateOf(pairing?.relayToken
+            ?.takeIf { !com.simtether.shared.RemoteStore.isBuiltInToken(it) }
+            .orEmpty())
+    }
     var relayError by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
@@ -495,9 +503,14 @@ private fun RemoteAccessCard(pairing: PairingPayload?) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        stringResource(R.string.remote_active_relay,
-                            relayAddr.ifBlank {
-                                com.simtether.shared.RemoteStore.DEFAULT_RELAY }),
+                        // The hosted default has no user-meaningful
+                        // address to show — the raw hostname only
+                        // appears when a custom relay is configured.
+                        if (relayAddr.isBlank())
+                            stringResource(R.string.remote_active_relay_default)
+                        else stringResource(R.string.remote_active_relay,
+                            relayAddr,
+                            stringResource(R.string.remote_src_custom)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
@@ -510,7 +523,9 @@ private fun RemoteAccessCard(pairing: PairingPayload?) {
                             relayAddr = p?.relay?.takeIf {
                                 it != com.simtether.shared.RemoteStore.DEFAULT_RELAY
                             }.orEmpty()
-                            relayTok = p?.relayToken.orEmpty()
+                            relayTok = p?.relayToken?.takeIf {
+                                !com.simtether.shared.RemoteStore.isBuiltInToken(it)
+                            }.orEmpty()
                             relayError = false
                         }
                         advanced = !advanced

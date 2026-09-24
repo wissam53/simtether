@@ -189,7 +189,9 @@
     <string name="remote_repair_needed">Beýleki telefonyňyz geçiriji salgysyny öwrenmegi üçin jübütleme QR kodyny täzeden skanirläň.</string>
     <string name="home_linked_remote">Bagly · internet üzerinden</string>
     <string name="remote_agree">Aç</string>
-    <string name="remote_active_relay">Geçiriji: %1$s</string>
+    <string name="remote_active_relay">Geçiriji: %1$s · %2$s</string>
+    <string name="remote_active_relay_default">Geçiriji: deslapky serwer</string>
+    <string name="remote_src_custom">ýörite</string>
     <string name="remote_custom_relay">Özbaşdak geçiriji serwer</string>
     <string name="remote_use_default">Deslapky serweri ulanyň</string>
 

@@ -55,6 +55,12 @@ object RemoteStore {
     fun relayToken(context: Context): String? =
         SecureStore.getString(context, PREFS, "token")?.takeIf { it.isNotBlank() }
 
+    /** True when [tok] is the shipped hosted-relay token — a stored
+     *  value equal to it isn't a user override and shouldn't render
+     *  as one in the settings field (a QR that carries the default
+     *  relay also carries this token). */
+    fun isBuiltInToken(tok: String?): Boolean = tok == DEFAULT_RELAY_TOKEN
+
     fun setRelay(context: Context, addr: String?, token: String?) {
         SecureStore.putString(context, PREFS, "relay", normalizeRelay(addr) ?: "")
         SecureStore.putString(context, PREFS, "token", token?.trim() ?: "")

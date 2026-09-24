@@ -189,7 +189,9 @@
     <string name="remote_repair_needed">روی گوشی دیگرتان QR جفت‌سازی را دوباره اسکن کنید تا نشانی بازگردان را یاد بگیرد.</string>
     <string name="home_linked_remote">متصل · از طریق اینترنت</string>
     <string name="remote_agree">فعال‌سازی</string>
-    <string name="remote_active_relay">بازگردان: %1$s</string>
+    <string name="remote_active_relay">بازگردان: %1$s · %2$s</string>
+    <string name="remote_active_relay_default">بازگردان: میزبانی‌شده (پیش‌فرض)</string>
+    <string name="remote_src_custom">سفارشی</string>
     <string name="remote_custom_relay">سرور بازگردان سفارشی</string>
     <string name="remote_use_default">استفاده از سرور پیش‌فرض</string>
 

@@ -97,6 +97,18 @@ class BridgeWsClient(
     @Volatile private var lastInbound = 0L
     private var watchdogStarted = false
 
+    /**
+     * The bridge heartbeats every 30s — silence past this on an
+     * established session means zombie. Also gates sendCommand: a
+     * stale socket's send() buffers bytes into a dead pipe instead of
+     * erroring, so callers must queue/reject rather than lose them.
+     */
+    private fun socketStale(): Boolean {
+        val t = lastInbound
+        return session != null && t > 0 &&
+            android.os.SystemClock.elapsedRealtime() - t > ZOMBIE_MS
+    }
+
     // Offline outbox — only command types that opt in (sms.send) queue
     // here; call/dial/control commands must never replay stale.
     private val outbox = java.util.concurrent.ConcurrentLinkedQueue<Pair<String, String>>()
@@ -124,14 +136,14 @@ class BridgeWsClient(
             override fun run() {
                 if (closed) return
                 if (session != null && lastInbound > 0 &&
-                    android.os.SystemClock.elapsedRealtime() - lastInbound > 120_000L) {
+                    android.os.SystemClock.elapsedRealtime() - lastInbound > ZOMBIE_MS) {
                     Log.w(TAG, "heartbeat silence — killing zombie socket")
                     ws?.cancel()
                 }
-                handler.postDelayed(this, 60_000)
+                handler.postDelayed(this, 30_000)
             }
         }
-        handler.postDelayed(check, 60_000)
+        handler.postDelayed(check, 30_000)
     }
 
     fun connect() {
@@ -316,7 +328,19 @@ class BridgeWsClient(
         // mix the new socket with the old cipher.
         val s = session
         val sock = ws
-        if (s == null || sock == null) {
+        // socketStale: a zombie socket accepts send() and silently
+        // drops the bytes — callers must treat it as offline so
+        // queueable commands wait for the reconnect instead of
+        // vanishing (seen: network switch left the relay socket dead
+        // while the UI still read "connected").
+        val stale = socketStale()
+        if (stale) {
+            // Don't wait out the watchdog — cancel now so onFailure
+            // drives the reconnect immediately.
+            Log.w(TAG, "send on stale socket — killing it")
+            runCatching { sock?.cancel() }
+        }
+        if (s == null || sock == null || stale) {
             if (queueIfOffline) {
                 while (outbox.size >= MAX_OUTBOX) outbox.poll() // drop oldest
                 outbox.add(type to payload)
@@ -359,6 +383,22 @@ class BridgeWsClient(
     }
 
     /**
+     * Drop the live socket and re-resolve — called when a better
+     * transport just became reachable (LAN probe answered while we're
+     * relay-linked) or the default-route network under a relay socket
+     * was lost and TCP hasn't errored it yet. The close drives the
+     * normal onClosed → scheduleReconnect path; pre-resetting backoff
+     * keeps the re-dial immediate.
+     */
+    fun dropAndReconnect() {
+        if (closed) return
+        pendingReconnect?.let { handler.removeCallbacks(it) }
+        pendingReconnect = null
+        backoffMs = 1_000L
+        ws?.close(1000, "transport switch") ?: connect()
+    }
+
+    /**
      * NetworkCallback fires this when a LAN transport appears — retry
      * now instead of sleeping out the backoff (that 3-minute gap).
      */
@@ -374,5 +414,12 @@ class BridgeWsClient(
         closed = true
         ws?.close(1000, "bye")
         http.dispatcher.executorService.shutdown()
+    }
+
+    private companion object {
+        // ~2 missed 30s heartbeats tolerated before a session is
+        // declared zombie — scheduler/GC jank on the bridge can stall
+        // individual beats without killing the link.
+        const val ZOMBIE_MS = 75_000L
     }
 }

@@ -189,7 +189,9 @@
     <string name="remote_repair_needed">أعد مسح رمز QR للاقتران على هاتفك الآخر ليتعرف على عنوان الوسيط.</string>
     <string name="home_linked_remote">متصل · عبر الإنترنت</string>
     <string name="remote_agree">تفعيل</string>
-    <string name="remote_active_relay">الوسيط: %1$s</string>
+    <string name="remote_active_relay">الوسيط: %1$s · %2$s</string>
+    <string name="remote_active_relay_default">الوسيط: مستضاف (افتراضي)</string>
+    <string name="remote_src_custom">مخصص</string>
     <string name="remote_custom_relay">خادم وسيط مخصص</string>
     <string name="remote_use_default">استخدام الخادم الافتراضي</string>
 
