@@ -31,4 +31,5 @@ dependencies {
     api("androidx.lifecycle:lifecycle-service:2.8.7")
     // WebSocket client for the LAN channel
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation("junit:junit:4.13.2")
 }

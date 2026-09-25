@@ -51,6 +51,16 @@ class ClientService : LifecycleService() {
     // Recently-processed envelope ids — redeliveries (the bridge never
     // got our ack) are re-acked but not re-processed.
     private val seenIds = com.simtether.shared.IdDedup()
+    private val eventPipeline = EventPipeline(
+        seenIds,
+        route = ::route,
+        ack = ::sendAck,
+        onError = { env, t ->
+            // Class name only — decode exceptions embed a payload
+            // excerpt (possible PII in release logcat).
+            Log.e(TAG, "route ${env.type} failed (${t.javaClass.simpleName})")
+        },
+    )
 
     // In-app language override — notification strings resolve through
     // the service context, so it must be wrapped too.
@@ -373,34 +383,15 @@ class ClientService : LifecycleService() {
     }
 
     /**
-     * Dedup → process → ack. The ack goes out only after route()
-     * completes, so an event that kills processing is redelivered on
-     * the next session. Heartbeats are neither deduped nor acked —
-     * they never enter the bridge's pending queue.
+     * pv check, then the dedup → route → ack pipeline (see
+     * [EventPipeline] for the redelivery semantics).
      */
     private fun handleEvent(env: Protocol.Envelope) {
         if (env.pv > Protocol.PROTOCOL_VERSION) {
             Log.w(TAG, "bridge speaks newer protocol pv=${env.pv} — update the client")
             ClientServiceHolder.setPeerNewer(true)
         }
-        if (env.type != "hb") {
-            if (!seenIds.add(env.id)) {
-                sendAck(env.id)
-                return
-            }
-        }
-        val ok = runCatching { route(env) }
-            .onFailure {
-                // Class name only — decode exceptions embed a payload
-                // excerpt (possible PII in release logcat).
-                Log.e(TAG, "route ${env.type} failed (${it.javaClass.simpleName})")
-            }.isSuccess
-        if (env.type != "hb") {
-            if (ok) sendAck(env.id)
-            // Failed routes stay un-acked so the bridge redelivers; drop
-            // the dedup mark or the redelivery itself gets swallowed.
-            else seenIds.remove(env.id)
-        }
+        eventPipeline.handle(env)
     }
 
     private fun sendAck(forId: String) {

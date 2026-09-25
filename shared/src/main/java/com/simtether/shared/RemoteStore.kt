@@ -105,11 +105,16 @@ object RemoteStore {
             val auth = u.rawAuthority?.substringAfterLast('@').orEmpty()
             val tail = auth.substringAfterLast('.', "")
             val p = tail.toIntOrNull()
-            if (p == null || p !in 1..65535) return null
+            // All-numeric authorities are mangled IPv4 literals, not
+            // "host.PORT" typos — refuse instead of redialing a host
+            // with its last octet eaten as the port.
+            if (p == null || p !in 1..65535 ||
+                auth.all { it.isDigit() || it == '.' }) return null
             host = auth.substringBeforeLast('.', "")
             port = p
         }
-        if (port < 0) {
+        if (port < 0 &&
+            !host.all { it.isDigit() || it == '.' }) {   // IPv4 literal
             val tail = host.substringAfterLast('.', "")
             val p = tail.toIntOrNull()
             if (p != null && p in 1..65535) {

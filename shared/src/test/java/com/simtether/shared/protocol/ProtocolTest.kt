@@ -1,6 +1,8 @@
 package com.simtether.shared.protocol
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProtocolTest {
@@ -39,5 +41,37 @@ class ProtocolTest {
             Protocol.json.encodeToString(
                 Protocol.PairingRotate.serializer(), Protocol.PairingRotate("dG9rZW4=")))
         assertEquals("dG9rZW4=", rot.token)
+    }
+
+    // ── isServiceCode: the gate that routes *#/MMI strings to the
+    // opt-in USSD path instead of dial/SMS ─────────────────────────
+
+    @Test
+    fun `service code accepts carrier MMI shapes`() {
+        assertTrue(Protocol.isServiceCode("*123#"))
+        assertTrue(Protocol.isServiceCode("*#06#"))
+        // Full MMI forward-enable — the shape the opt-in gate exists for.
+        assertTrue(Protocol.isServiceCode("**61*00441234567*20#"))
+        assertTrue(Protocol.isServiceCode("*#*#4636#*#*"))
+    }
+
+    @Test
+    fun `service code rejects ordinary dialable numbers`() {
+        assertFalse(Protocol.isServiceCode("5551234"))
+        assertFalse(Protocol.isServiceCode("+15551234567"))
+        assertFalse(Protocol.isServiceCode(""))
+    }
+
+    @Test
+    fun `service code rejects non-dialpad characters`() {
+        assertFalse(Protocol.isServiceCode("*abc#"))
+        // '+' can't appear mid-code — this shape fails both gates.
+        assertFalse(Protocol.isServiceCode("*21*+15551234567#"))
+    }
+
+    @Test
+    fun `service code length cap is enforced`() {
+        assertTrue(Protocol.isServiceCode("*" + "1".repeat(62) + "#"))   // 64 chars
+        assertFalse(Protocol.isServiceCode("*" + "1".repeat(63) + "#"))  // 65 chars
     }
 }

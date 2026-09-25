@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 object SentBoxWatcher {
     private const val TAG = "SimTether.SentBox"
     private const val CONFIRM_MS = 20_000L
-    private const val DATE_SLOP_MS = 3_000L
+    internal const val DATE_SLOP_MS = 3_000L
 
     private data class Pending(
         val address: String,
@@ -83,9 +83,9 @@ object SentBoxWatcher {
         }.getOrNull() ?: return
         for (p in pending) {
             val hit = rows.any { (addr, body, date) ->
-                date >= p.since - DATE_SLOP_MS &&
-                    body == p.body &&
-                    PhoneNumberUtils.compare(addr, p.address)
+                sentRowMatches(p.address, p.body, p.since, addr, body, date) {
+                        a, b -> PhoneNumberUtils.compare(a, b)
+                }
             }
             if (hit) {
                 pending.remove(p)
@@ -95,3 +95,20 @@ object SentBoxWatcher {
         }
     }
 }
+
+/**
+ * Does a sent-box row confirm [pending]? All three must hold: the row
+ * post-dates the request (minus clock slop — the provider stamps its
+ * own time), the body is byte-identical, and the address is the same
+ * phone number. The comparator is injected — production passes
+ * PhoneNumberUtils.compare; tests a plain == (the Android class is a
+ * stub on the JVM).
+ */
+internal fun sentRowMatches(
+    pendingAddr: String, pendingBody: String, pendingSince: Long,
+    rowAddr: String, rowBody: String, rowDate: Long,
+    addressesEqual: (String, String) -> Boolean,
+): Boolean =
+    rowDate >= pendingSince - SentBoxWatcher.DATE_SLOP_MS &&
+        rowBody == pendingBody &&
+        addressesEqual(rowAddr, pendingAddr)
