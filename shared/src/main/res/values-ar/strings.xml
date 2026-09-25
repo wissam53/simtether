@@ -109,6 +109,8 @@
     <string name="bridge_off_title">الجسر متوقف</string>
     <string name="bridge_off_body">تعمل المكالمات والرسائل مباشرة على هذا الهاتف.</string>
     <string name="start_bridge">تشغيل الجسر</string>
+    <string name="bridge_needs_notif">إشعار الحالة محظور — لا يستطيع الجسر العمل ما لم يُظهر أنه نشط.</string>
+    <string name="enable_notifications">تفعيل الإشعارات</string>
 
     <string name="controls_title">تحكم الجسر</string>
     <string name="controls_network">الشبكة: %1$s</string>
@@ -140,10 +142,12 @@
     <string name="action_cancel">إلغاء</string>
     <string name="pairing_revoked">أُلغي الإقران على الجسر — أعد مسح رمز QR من الإعدادات لإعادة الاتصال.</string>
     <string name="settings_language">اللغة</string>
+    <string name="settings_perms">الأذونات</string>
     <string name="language_system">لغة النظام</string>
 
     <string name="channel_bridge_link">رابط الجسر</string>
     <string name="channel_bridge">الجسر</string>
+    <string name="channel_bridge_desc">مطلوب — إخفاء هذا الإشعار يوقف الجسر.</string>
     <string name="channel_missed">مكالمات فائتة</string>
     <string name="notif_connected">متصل بالجسر</string>
     <string name="notif_offline">الجسر غير متصل — جارٍ إعادة الاتصال</string>
@@ -160,11 +164,23 @@
     <string name="companion_linked">✓ تم الربط كجهاز مرافق</string>
     <string name="companion_unsupported">يتطلب ربط المرافق Android 13 أو أحدث — استخدم طلبات الأذونات بدلًا منه</string>
     <string name="companion_failed">فشل الربط — حاول مجددًا</string>
-    <string name="grant_perms">منح الأذونات المتبقية (%1$d)</string>
+    <string name="perm_receive_sms">استقبال SMS — الرسائل الواردة لن تصل إلى هاتفك المقترن</string>
+    <string name="perm_send_sms">إرسال SMS — لا يمكن لهاتفك المقترن إرسال الرسائل</string>
+    <string name="perm_read_sms">قراءة SMS — سجل الرسائل لن يتزامن</string>
+    <string name="perm_phone_state">حالة الهاتف — حالة المكالمات الحية لن تُنقل</string>
+    <string name="perm_call_phone">إجراء مكالمات — لا يمكن إجراء مكالمات من الهاتف المقترن</string>
+    <string name="perm_answer_calls">الرد على المكالمات — لا يمكن الرد أو الرفض عن بُعد</string>
+    <string name="perm_contacts">جهات الاتصال — ستظهر الأرقام بدلاً من الأسماء</string>
+    <string name="perm_notifications">الإشعارات — يتوقف الجسر بدون إشعار الحالة</string>
+    <string name="perm_nearby">الأجهزة القريبة — يحتاجها الاتصال المحلي الدائم</string>
+    <string name="perm_camera">الكاميرا — لا يمكن مسح رمز الاقتران</string>
+    <string name="perm_manage_calls">التحكم بالمكالمات — المكالمات المنقولة لن ترنّ على هذا الهاتف</string>
+    <string name="perm_record_audio">الميكروفون — صوت المكالمة يبقى استماعًا فقط</string>
+    <string name="perm_notifications_client">الإشعارات — لا تنبيهات للرسائل أو حالة الاتصال</string>
 
     <string name="disclosure_title">قبل المتابعة</string>
-    <string name="disclosure_bridge_body">يحتاج SimTether إلى الوصول إلى رسائل SMS والمكالمات وجهات الاتصال وحالة الهاتف لنقلها إلى جهازك المقترن عبر شبكتك المحلية. الرسائل والمكالمات مشفّرة من الطرف إلى الطرف، ولا تُرفع أبدًا إلى أي خادم ولا تُشارك مع أطراف ثالثة — تنتقل فقط بين هاتفيك.</string>
-    <string name="disclosure_client_body">يحتاج SimTether إلى الكاميرا لمسح رمز الاقتران، وجهات الاتصال لعرض الأسماء، وأذونات المكالمات لعرض المكالمات المنقولة. تبقى جميع البيانات على شبكتك المحلية — لا يُرفع أو يُشارك أي شيء.</string>
+    <string name="disclosure_bridge_body">ينقل SimTether رسائل SMS والمكالمات من هذا الهاتف إلى جهازك المقترن عبر شبكتك المحلية — وبالعكس. وللقيام بذلك يطلب:\n\n• رسائل SMS والمكالمات وحالة الهاتف — لاستلامها وإرسالها وإدارتها عن بُعد\n• جهات الاتصال — لعرض الأسماء بدلاً من الأرقام\n• الإشعارات — لتنبيه «الجسر نشط» الدائم\n• الأجهزة القريبة — للاتصال المحلي بهاتفك المقترن\n• الميكروفون (في الإصدارات الداعمة) — لنقل صوت المكالمات اختياريًا\n\nوقد يطلب أيضًا إعفاءً من تحسين البطارية حتى يصمد الاتصال في وضع الاستعداد، ودور تطبيق الاتصال الافتراضي لعناصر التحكم داخل المكالمة.\n\nالرسائل والمكالمات مشفّرة من الطرف إلى الطرف، ولا تُرفع أبدًا إلى أي خادم ولا تُشارك مع أطراف ثالثة — تنتقل فقط بين هاتفيك. وطالما كان الجسر يعمل، يجب أن يبقى إشعار الحالة ظاهرًا حتى يرى المالك دائمًا أن النقل نشط — حظره يوقف الجسر.</string>
+    <string name="disclosure_client_body">يُقرن SimTether هاتفك بهاتف الجسر لإرسال واستقبال رسائل SMS والمكالمات عبر شبكتك المحلية. وللقيام بذلك يطلب:\n\n• الكاميرا — لمسح رمز الاقتران\n• جهات الاتصال — لعرض الأسماء بدلاً من الأرقام\n• أذونات المكالمات — لعرض المكالمات المنقولة وإدارتها\n• الميكروفون — لنقل صوت المكالمات عندما يدعمه الجسر (اختياري)\n• الإشعارات — لحالة الاتصال والرسائل الواردة\n• الأجهزة القريبة — للاتصال المحلي بالجسر\n\nوقد يطلب أيضًا إعفاءً من تحسين البطارية حتى يصمد الاتصال في وضع الاستعداد. تبقى جميع البيانات بين هاتفيك — لا يُرفع أو يُشارك أي شيء.</string>
     <string name="disclosure_agree">أوافق ومتابعة</string>
     <string name="disclosure_decline">ليس الآن</string>
 
@@ -211,4 +227,5 @@
     <string name="call_rejected_no_perm">الجسر يفتقد إذن الاتصال</string>
     <string name="ussd_failed">فشل طلب USSD</string>
     <string name="health_notif_visible">إشعار الحالة مرئي</string>
+    <string name="keep_alive_notif_note">يجب أن يبقى إشعار الحالة مفعّلاً — إخفاؤه يوقف الجسر.</string>
 </resources>

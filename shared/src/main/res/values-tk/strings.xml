@@ -109,6 +109,8 @@
     <string name="bridge_off_title">Köpri öçük</string>
     <string name="bridge_off_body">Jaňlar we habarlar bu telefonda göni işleýär.</string>
     <string name="start_bridge">Köprini başlat</string>
+    <string name="bridge_needs_notif">Ýagdaý bildirişi bloklanan — köpri işjeňdigini görkezmeýän ýagdaýda işläp bilmeýär.</string>
+    <string name="enable_notifications">Bildirişleri aç</string>
 
     <string name="controls_title">Köpri dolandyryşy</string>
     <string name="controls_network">Tor: %1$s</string>
@@ -140,10 +142,12 @@
     <string name="action_cancel">Ýatyr</string>
     <string name="pairing_revoked">Jübütlik köprüde ýatyryldy — täzeden birikmek üçin Sazlamalardan QR kody skanirlaň.</string>
     <string name="settings_language">Dil</string>
+    <string name="settings_perms">Rugsatlar</string>
     <string name="language_system">Sistem boýunça</string>
 
     <string name="channel_bridge_link">Köpri baglanyşygy</string>
     <string name="channel_bridge">Köpri</string>
+    <string name="channel_bridge_desc">Hökmany — bu bildirişi gizlemek köprüni saklaýar.</string>
     <string name="channel_missed">Jogapsyz jaňlar</string>
     <string name="notif_connected">Köpri bilen birikdi</string>
     <string name="notif_offline">Köpri awtonom — täzeden birikdirilýär</string>
@@ -160,11 +164,23 @@
     <string name="companion_linked">✓ Ýoldaş enjam hökmünde baglandy</string>
     <string name="companion_unsupported">Ýoldaş baglanyşygy üçin Android 13+ gerek — rugsat soraglaryny ulanyň</string>
     <string name="companion_failed">Baglanyşyk şowsuz — täzeden synanyşyň</string>
-    <string name="grant_perms">Galan rugsatlary ber (%1$d)</string>
+    <string name="perm_receive_sms">SMS kabul etmek — gelen habarlar jübüt telefonuňa ýetmeýär</string>
+    <string name="perm_send_sms">SMS ibermek — jübüt telefon habar iberip bilmeýär</string>
+    <string name="perm_read_sms">SMS okamak — habarlaryň taryhy sinhronlanmaýar</string>
+    <string name="perm_phone_state">Telefon ýagdaýy — jaňlaryň ýagdaýy gönükdirilmeýär</string>
+    <string name="perm_call_phone">Jaň etmek — jübüt telefondan jaň edip bolmaýar</string>
+    <string name="perm_answer_calls">Jaňlara jogap — uzakdan kabul etmek ýa ret etmek bolmaýar</string>
+    <string name="perm_contacts">Kontaktlar — atlaryň ýerine diňe belgiler görünýär</string>
+    <string name="perm_notifications">Bildirişler — ýagdaý bildirişisiz köpri saklanýar</string>
+    <string name="perm_nearby">Ýakyn enjamlar — hemişelik ýerli birikme üçin gerek</string>
+    <string name="perm_camera">Kamera — jübütleme koduny skanirläp bolmaýar</string>
+    <string name="perm_manage_calls">Jaň dolandyryşy — gönükdirilen jaňlar bu telefonda jyňlamýar</string>
+    <string name="perm_record_audio">Mikrofon — jaň sesi diňe diňlenýär</string>
+    <string name="perm_notifications_client">Bildirişler — habarlar ýa birikme ýagdaýy üçin duýduryş ýok</string>
 
     <string name="disclosure_title">Dowam etmezden öň</string>
-    <string name="disclosure_bridge_body">SimTether SMS, jaňlar, kontaktlar we telefon ýagdaýyna giriş sorar — bular diňe öz jübüt enjamyňyza ýerli tor arkaly ibermek üçin. Habarlar we jaňlar uçdan-uça şifrli; hiç bir serwere ýüklenmeýär we üçünji taraplara paýlaşylmaýar — diňe iki telefonyňyzyň arasynda gatnaýar.</string>
-    <string name="disclosure_client_body">SimTether jübütleme koduny skanirlemek üçin kamera, atlary görkezmek üçin kontaktlar we gönükdirilen jaňlary görkezmek üçin jaň rugsatlaryny sorar. Ähli maglumatlar ýerli tordyňyzda galýar — hiç zat ýüklenmeýär ýa-da paýlaşylmaýar.</string>
+    <string name="disclosure_bridge_body">SimTether bu telefonyň SMS-lerini we jaňlaryny ýerli toryňyz arkaly öz jübüt enjamyňyza gönükdirýär — we yza. Munuň üçin şulary sorar:\n\n• SMS, jaňlar we telefon ýagdaýy — olary uzakdan kabul etmek, ibermek we dolandyrmak üçin\n• Kontaktlar — belgileriň ýerine atlary görkezmek üçin\n• Bildirişler — hemişelik «köpri işjeň» ýagdaý bildirişi üçin\n• Ýakyn enjamlar — jübüt telefonyňyz bilen ýerli birikmek üçin\n• Mikrofon (goldanýan wersiýalarda) — islege görä jaň sesini gönükmek üçin\n\nŞeýle hem birikme garaşly ýagdaýda ýaşasyn diýip batareýa optimizasiýasyndan mazmun we jaň içinde dolandyryşlar üçin esasy jaň ediji wezipesini sora bilir.\n\nHabarlar we jaňlar uçdan-uça şifrledilýär, hiç bir serwere ýüklenmeýär we üçünji taraplara paýlaşylmaýar — diňe iki telefonyňyzyň arasynda gatnaýar. Köpri açyk bolanda, eýesi gönükdirmäniň işjeňdigini hemişe görüp bilsin diýip ýagdaý bildirişi görünüp durmaly — ony bloklamak köprüni saklaýar.</string>
+    <string name="disclosure_client_body">SimTether telefonyňyzy köpri telefony bilen jübütleýär we SMS hem-de jaňlary ýerli tor arkaly iberip kabul edýär. Munuň üçin şulary sorar:\n\n• Kamera — jübütleme koduny skanirlemek üçin\n• Kontaktlar — belgileriň ýerine atlary görkezmek üçin\n• Jaň rugsatlary — gönükdirilen jaňlary görkezmek we dolandyrmak üçin\n• Mikrofon — köpri goldan bolsa jaň sesini gönükmek üçin (islege görä)\n• Bildirişler — birikme ýagdaýy we gelen habarlar üçin\n• Ýakyn enjamlar — köpri bilen ýerli birikmek üçin\n\nŞeýle hem birikme garaşly ýagdaýda ýaşasyn diýip batareýa optimizasiýasyndan mazmun sora bilir. Ähli maglumatlar iki telefonyňyzyň arasynda galýar — hiç zat ýüklenmeýär ýa-da paýlaşylmaýar.</string>
     <string name="disclosure_agree">Razy we dowam et</string>
     <string name="disclosure_decline">Häzir däl</string>
 
@@ -211,4 +227,5 @@
     <string name="call_rejected_no_perm">Köprüde jaň etmek rugsady ýok</string>
     <string name="ussd_failed">USSD haýyşy şowsuz</string>
     <string name="health_notif_visible">Ýagdaý bildirişi görünýär</string>
+    <string name="keep_alive_notif_note">Ýagdaý bildirişi açyk galmaly — ony gizlemek köprüni saklaýar.</string>
 </resources>

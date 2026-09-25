@@ -1,6 +1,7 @@
 package com.simtether.ui
 
 import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -134,6 +135,16 @@ private fun LocalHome(
     val calls by CallLogStore.entries.collectAsState()
     val names by ContactLookup.names.collectAsState()
 
+    // The bridge refuses to run while its status notice is blocked —
+    // reflect the live toggles so the card flips the moment it's fixed.
+    var notifOk by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            notifOk = com.simtether.bridge.BridgeService.noticeVisible(context)
+            kotlinx.coroutines.delay(1_500)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("SimTether", style = MaterialTheme.typography.headlineMedium)
 
@@ -145,10 +156,27 @@ private fun LocalHome(
                     stringResource(R.string.bridge_off_body),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                if (!notifOk) {
+                    Text(
+                        stringResource(R.string.bridge_needs_notif),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
                 Button(
-                    onClick = onStartBridge,
+                    onClick = {
+                        if (notifOk) onStartBridge()
+                        else runCatching {
+                            context.startActivity(openNoticeSettings(context))
+                        }
+                    },
                     modifier = Modifier.padding(top = 8.dp),
-                ) { Text(stringResource(R.string.start_bridge)) }
+                ) {
+                    Text(stringResource(
+                        if (notifOk) R.string.start_bridge
+                        else R.string.enable_notifications))
+                }
             }
         }
 
@@ -196,4 +224,20 @@ private fun LocalHome(
             }
         }
     }
+}
+
+/**
+ * Deep-link the exact blocked switch: the app-level notification
+ * toggle when that's off (also the fix for a denied POST_NOTIFICATIONS
+ * grant), otherwise the bridge channel's settings.
+ */
+fun openNoticeSettings(context: android.content.Context): Intent {
+    val nm = context.getSystemService(android.app.NotificationManager::class.java)
+    return if (nm?.areNotificationsEnabled() != false) {
+        Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_CHANNEL_ID,
+                com.simtether.bridge.BridgeService.CHANNEL_ID)
+    } else {
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+    }.putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
 }

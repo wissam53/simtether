@@ -56,10 +56,11 @@ design gap to decide on explicitly.
 4. **Opt-in gates**: USSD/service codes, call-audio relay, and remote
    (relay) access are off by default and enable-able **only on the
    bridge device** — never by a remote command.
-5. **Visibility**: while the bridge service runs, its status
-   notification is on screen — ongoing, re-posted on dismiss, channel
-   mute surfaced as a health failure. The owner cannot be silently
-   bridged.
+5. **Visibility**: the bridge runs only while its status notification
+   can be shown — ongoing, re-posted on dismiss. A muted channel or an
+   app-level notification block is enforced, not just surfaced: the
+   service flips its own master switch off (fail closed) and the UI
+   explains how to restore it. The owner cannot be silently bridged.
 6. **Sensitive settings**: relay/token overrides and toggles live only
    on the bridge; the client cannot push configuration.
 7. **Keystore**: secrets are AES/GCM-wrapped by Android Keystore when

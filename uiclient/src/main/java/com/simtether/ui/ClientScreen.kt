@@ -1,7 +1,14 @@
 package com.simtether.ui
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +40,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.simtether.client.ClientServiceHolder
@@ -411,6 +420,68 @@ private fun SettingsScreen(
             },
         )
 
+        // Missing runtime permissions, each named with its cost —
+        // denials otherwise degrade silently (listen-only audio, no
+        // SMS alerts, no QR scan).
+        val clientPerms = remember {
+            buildList {
+                add(Manifest.permission.CAMERA)
+                add(Manifest.permission.MANAGE_OWN_CALLS)
+                add(Manifest.permission.READ_CONTACTS)
+                add(Manifest.permission.RECORD_AUDIO)
+                if (Build.VERSION.SDK_INT >= 33) {
+                    add(Manifest.permission.POST_NOTIFICATIONS)
+                    add(Manifest.permission.NEARBY_WIFI_DEVICES)
+                }
+            }
+        }
+        fun missing() = clientPerms.filter {
+            ContextCompat.checkSelfPermission(context, it) !=
+                PackageManager.PERMISSION_GRANTED
+        }
+        var missingPerms by remember { mutableStateOf(missing()) }
+        val permLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { grants ->
+            missingPerms = missing()
+            // "Don't ask again" turns the prompt into a silent no-show —
+            // the app-details page is the only fix left.
+            val activity = findActivity(context)
+                ?: return@rememberLauncherForActivityResult
+            if (grants.any { (perm, granted) -> !granted &&
+                    !androidx.core.app.ActivityCompat
+                        .shouldShowRequestPermissionRationale(activity, perm) }) {
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            .setData(Uri.parse("package:${context.packageName}")))
+                }
+            }
+        }
+        // A fix can happen off-screen (settings deep-link) — re-check
+        // on resume so a round-trip refreshes the list.
+        val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner) {
+            val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+                if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME)
+                    missingPerms = missing()
+            }
+            lifecycleOwner.lifecycle.addObserver(obs)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+        }
+        if (missingPerms.isNotEmpty()) {
+            Text(
+                stringResource(R.string.settings_perms).uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+            missingPerms.forEach { perm ->
+                PermRow(missingPermLabel(context, perm)) {
+                    permLauncher.launch(arrayOf(perm))
+                }
+            }
+        }
+
         Text(
             stringResource(R.string.settings_language).uppercase(),
             style = MaterialTheme.typography.labelMedium,
@@ -424,6 +495,51 @@ private fun SettingsScreen(
 
         RemoteAccessCard(pairing)
     }
+}
+
+/**
+ * Remote-access card — opt-in internet fallback through a splice
+ * relay the user chooses (BYO). The toggle is the consent: enabling
+ * asks once what the internet path means, disabling drops a live
+ * relay link immediately.
+ */
+/** A denied permission + its cost + fix — mirrors the bridge's
+ *  HealthRow (kept local: the client has no "all clear" state to show). */
+@Composable
+private fun PermRow(label: String, onFix: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium)
+        TextButton(onClick = onFix) {
+            Text(stringResource(R.string.action_fix))
+        }
+    }
+}
+
+/** Unwrap LocaleHelper/context wrappers to the host Activity —
+ *  shouldShowRequestPermissionRationale needs it. */
+private tailrec fun findActivity(context: android.content.Context): android.app.Activity? =
+    when (context) {
+        is android.app.Activity -> context
+        is android.content.ContextWrapper -> findActivity(context.baseContext)
+        else -> null
+    }
+
+/** Missing-permission row label: the ask + what breaks without it. */
+private fun missingPermLabel(context: android.content.Context, perm: String): String {
+    val res = when (perm) {
+        Manifest.permission.CAMERA -> R.string.perm_camera
+        Manifest.permission.MANAGE_OWN_CALLS -> R.string.perm_manage_calls
+        Manifest.permission.READ_CONTACTS -> R.string.perm_contacts
+        Manifest.permission.RECORD_AUDIO -> R.string.perm_record_audio
+        Manifest.permission.POST_NOTIFICATIONS -> R.string.perm_notifications_client
+        Manifest.permission.NEARBY_WIFI_DEVICES -> R.string.perm_nearby
+        else -> return perm.substringAfterLast('.')
+    }
+    return context.getString(res)
 }
 
 /**

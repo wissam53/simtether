@@ -109,6 +109,8 @@
     <string name="bridge_off_title">پل خاموش است</string>
     <string name="bridge_off_body">تماس‌ها و پیام‌ها مستقیماً روی همین گوشی کار می‌کنند.</string>
     <string name="start_bridge">راه‌اندازی پل</string>
+    <string name="bridge_needs_notif">اعلان وضعیت مسدود است — پل نمی‌تواند کار کند وقتی نتواند نشان دهد که فعال است.</string>
+    <string name="enable_notifications">فعال‌سازی اعلان‌ها</string>
 
     <string name="controls_title">کنترل‌های پل</string>
     <string name="controls_network">شبکه: %1$s</string>
@@ -140,10 +142,12 @@
     <string name="action_cancel">انصراف</string>
     <string name="pairing_revoked">جفت‌سازی روی پل لغو شد — برای اتصال مجدد کد QR را از تنظیمات اسکن کنید.</string>
     <string name="settings_language">زبان</string>
+    <string name="settings_perms">مجوزها</string>
     <string name="language_system">پیش‌فرض سیستم</string>
 
     <string name="channel_bridge_link">پیوند پل</string>
     <string name="channel_bridge">پل</string>
+    <string name="channel_bridge_desc">الزامی — مخفی‌کردن این اعلان پل را متوقف می‌کند.</string>
     <string name="channel_missed">تماس‌های از دست‌رفته</string>
     <string name="notif_connected">به پل متصل است</string>
     <string name="notif_offline">پل آفلاین است — در حال اتصال مجدد</string>
@@ -160,11 +164,23 @@
     <string name="companion_linked">✓ به‌عنوان دستگاه همراه متصل شد</string>
     <string name="companion_unsupported">اتصال همراه به Android 13 یا بالاتر نیاز دارد — از درخواست‌های مجوز استفاده کنید</string>
     <string name="companion_failed">اتصال ناموفق بود — دوباره تلاش کنید</string>
-    <string name="grant_perms">اعطای مجوزهای باقی‌مانده (%1$d)</string>
+    <string name="perm_receive_sms">دریافت پیامک — پیام‌های دریافتی به گوشی جفت‌شده نمی‌رسند</string>
+    <string name="perm_send_sms">ارسال پیامک — گوشی جفت‌شده نمی‌تواند پیامک بفرستد</string>
+    <string name="perm_read_sms">خواندن پیامک — تاریخچهٔ پیام‌ها همگام نمی‌شود</string>
+    <string name="perm_phone_state">وضعیت تلفن — وضعیت زندهٔ تماس منتقل نمی‌شود</string>
+    <string name="perm_call_phone">برقراری تماس — از گوشی جفت‌شده نمی‌توان تماس گرفت</string>
+    <string name="perm_answer_calls">پاسخ به تماس — پاسخ یا رد از راه دور ممکن نیست</string>
+    <string name="perm_contacts">مخاطبین — نام‌ها نمایش داده نمی‌شوند، فقط شماره</string>
+    <string name="perm_notifications">اعلان‌ها — پل بدون اعلان وضعیت متوقف می‌شود</string>
+    <string name="perm_nearby">دستگاه‌های نزدیک — اتصال محلی همیشه‌فعال به آن نیاز دارد</string>
+    <string name="perm_camera">دوربین — اسکن کد جفت‌سازی ممکن نیست</string>
+    <string name="perm_manage_calls">کنترل تماس — تماس‌های منتقل‌شده روی این گوشی زنگ نمی‌خورند</string>
+    <string name="perm_record_audio">میکروفون — صدای تماس فقط شنیدنی می‌ماند</string>
+    <string name="perm_notifications_client">اعلان‌ها — هشداری برای پیام‌ها یا وضعیت اتصال نیست</string>
 
     <string name="disclosure_title">قبل از ادامه</string>
-    <string name="disclosure_bridge_body">SimTether برای انتقال پیامک‌ها، تماس‌ها، مخاطبین و وضعیت تلفن به دستگاه جفت‌شدهٔ خودتان از طریق شبکهٔ محلی به دسترسی نیاز دارد. پیام‌ها و تماس‌ها رمزنگاری سرتاسری می‌شوند و هرگز به هیچ سروری بارگذاری یا با اشخاص ثالث به اشتراک گذاشته نمی‌شوند — فقط بین دو گوشی شما جابه‌جا می‌شوند.</string>
-    <string name="disclosure_client_body">SimTether برای اسکن کد جفت‌سازی به دوربین، برای نمایش نام‌ها به مخاطبین و برای نمایش تماس‌های منتقل‌شده به مجوزهای تماس نیاز دارد. همهٔ داده‌ها در شبکهٔ محلی شما می‌مانند — هیچ‌چیز بارگذاری یا به اشتراک گذاشته نمی‌شود.</string>
+    <string name="disclosure_bridge_body">SimTether پیامک‌ها و تماس‌های این گوشی را از طریق شبکهٔ محلی به دستگاه جفت‌شدهٔ شما می‌فرستد — و برمی‌گرداند. برای این کار موارد زیر را درخواست می‌کند:\n\n• پیامک‌ها، تماس‌ها و وضعیت تلفن — برای دریافت، ارسال و مدیریت آن‌ها از راه دور\n• مخاطبین — برای نمایش نام‌ها به‌جای شماره‌ها\n• اعلان‌ها — برای اعلان دائمی «پل فعال است»\n• دستگاه‌های نزدیک — برای اتصال محلی به گوشی جفت‌شدهٔ شما\n• میکروفون (در نسخه‌هایی که پشتیبانی می‌شود) — برای انتقال اختیاری صدای تماس\n\nهمچنین ممکن است برای ماندگاری اتصال در حالت آماده‌به‌کار، معافیت بهینه‌سازی باتری و برای کنترل‌های داخل تماس، نقش شماره‌گیر پیش‌فرض را بخواهد.\n\nپیام‌ها و تماس‌ها رمزنگاری سرتاسری می‌شوند و هرگز به هیچ سروری بارگذاری یا با اشخاص ثالث به اشتراک گذاشته نمی‌شوند — فقط بین دو گوشی شما جابه‌جا می‌شوند. تا زمانی که پل روشن است، اعلان وضعیت باید قابل‌مشاهده بماند تا مالک همیشه فعال‌بودن انتقال را ببیند — مسدودکردن آن پل را متوقف می‌کند.</string>
+    <string name="disclosure_client_body">SimTether گوشی شما را با گوشی پل جفت می‌کند تا پیامک‌ها و تماس‌ها را از طریق شبکهٔ محلی بفرستد و بگیرد. برای این کار موارد زیر را درخواست می‌کند:\n\n• دوربین — برای اسکن کد جفت‌سازی\n• مخاطبین — برای نمایش نام‌ها به‌جای شماره‌ها\n• مجوزهای تماس — برای نمایش و مدیریت تماس‌های منتقل‌شده\n• میکروفون — برای انتقال صدای تماس وقتی پل پشتیبانی می‌کند (اختیاری)\n• اعلان‌ها — برای وضعیت اتصال و پیام‌های دریافتی\n• دستگاه‌های نزدیک — برای اتصال محلی به پل\n\nهمچنین ممکن است برای ماندگاری اتصال در حالت آماده‌به‌کار، معافیت بهینه‌سازی باتری را بخواهد. همهٔ داده‌ها بین دو گوشی شما می‌مانند — هیچ‌چیز بارگذاری یا به اشتراک گذاشته نمی‌شود.</string>
     <string name="disclosure_agree">می‌پذیرم و ادامه</string>
     <string name="disclosure_decline">فعلاً نه</string>
 
@@ -211,4 +227,5 @@
     <string name="call_rejected_no_perm">پل مجوز تماس ندارد</string>
     <string name="ussd_failed">درخواست USSD ناموفق بود</string>
     <string name="health_notif_visible">اعلان وضعیت قابل مشاهده است</string>
+    <string name="keep_alive_notif_note">اعلان وضعیت باید روشن بماند — مخفی‌کردنش پل را متوقف می‌کند.</string>
 </resources>

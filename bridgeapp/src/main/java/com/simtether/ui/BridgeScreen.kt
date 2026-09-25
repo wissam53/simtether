@@ -110,7 +110,7 @@ fun BridgeScreen() {
             dndGranted = context.getSystemService(NotificationManager::class.java)
                 ?.isNotificationPolicyAccessGranted == true
             notifVisible = BridgeServiceHolder.service
-                ?.statusChannelVisible() != false
+                ?.statusNoticeVisible() != false
             kotlinx.coroutines.delay(500)
         }
     }
@@ -181,7 +181,21 @@ fun BridgeScreen() {
 
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { missingPerms = checkMissingPerms() }
+    ) { grants ->
+        missingPerms = checkMissingPerms()
+        // "Don't ask again" turns the system prompt into a silent
+        // no-show — the app-details page is the only fix left.
+        val activity = findActivity(context) ?: return@rememberLauncherForActivityResult
+        if (grants.any { (perm, granted) -> !granted &&
+                !androidx.core.app.ActivityCompat
+                    .shouldShowRequestPermissionRationale(activity, perm) }) {
+            runCatching {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .setData(Uri.parse("package:${context.packageName}")))
+            }
+        }
+    }
 
     // Bridge off ≠ dead phone — the SIM still needs its own dialer
     // and messaging UI, backed by local GSM. Rendered standalone,
@@ -350,11 +364,13 @@ fun BridgeScreen() {
                             modifier = Modifier.padding(top = 4.dp))
                     }
                 }
-                if (missingPerms.isNotEmpty()) {
-                    HealthRow(
-                        stringResource(R.string.grant_perms, missingPerms.size),
-                        done = false,
-                    ) { permLauncher.launch(missingPerms.toTypedArray()) }
+                // One row per denial, named with its cost — a bare
+                // "grant N remaining" count teaches nothing, and the
+                // row text is the only context the prompt ever gets.
+                missingPerms.forEach { perm ->
+                    HealthRow(missingPermLabel(context, perm), done = false) {
+                        permLauncher.launch(arrayOf(perm))
+                    }
                 }
             }
         }
@@ -583,6 +599,22 @@ fun BridgeScreen() {
                     androidx.compose.runtime.LaunchedEffect(Unit) {
                         com.simtether.RootFeatures.probeAsync { ok -> rootOk = ok }
                     }
+                    // Mic feeds only the in-app capture fallback (the
+                    // root daemon doesn't need it) — asked here, at the
+                    // toggle, where the why is self-evident. Denial just
+                    // drops the fallback; the relay still works.
+                    val micLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission()
+                    ) { }
+                    fun enableAudioRelay() {
+                        com.simtether.RootFeatures.setAudioRelayEnabled(context, true)
+                        audioOn = true
+                        if (ContextCompat.checkSelfPermission(context,
+                                Manifest.permission.RECORD_AUDIO)
+                                != PackageManager.PERMISSION_GRANTED) {
+                            micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }
                     Text(stringResource(R.string.audio_relay),
                         style = MaterialTheme.typography.labelMedium)
                     Row(
@@ -606,16 +638,14 @@ fun BridgeScreen() {
                                     // never hold a frame.
                                     com.simtether.RootFeatures.probeAsync { ok ->
                                         rootOk = ok
-                                        if (ok) {
-                                            com.simtether.RootFeatures
-                                                .setAudioRelayEnabled(context, true)
-                                            audioOn = true
-                                        }
+                                        if (ok) enableAudioRelay()
                                     }
+                                } else if (want) {
+                                    enableAudioRelay()
                                 } else {
                                     com.simtether.RootFeatures
-                                        .setAudioRelayEnabled(context, want)
-                                    audioOn = want
+                                        .setAudioRelayEnabled(context, false)
+                                    audioOn = false
                                 }
                             },
                         )
@@ -650,18 +680,24 @@ fun BridgeScreen() {
                             Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
                     }
                 }
-                // If the status channel got muted the bridge can run
-                // invisibly — the owner must always see forwarding is
-                // on, so a muted channel is a health failure.
+                // A blocked status notice (muted channel or app-level
+                // off) means the FGS runs with no visible indicator —
+                // the owner must always see forwarding is on. The
+                // service also self-enforces this (stops the bridge);
+                // the row is the early warning + the fix path.
                 HealthRow(stringResource(R.string.health_notif_visible),
                     done = notifVisible) {
                     runCatching {
-                        context.startActivity(
-                            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                .putExtra(Settings.EXTRA_CHANNEL_ID, "bridge"))
+                        context.startActivity(openNoticeSettings(context))
                     }
                 }
+                // State the consequence where people tinker — a user
+                // hiding the notice to clean the shade learns here
+                // that the bridge goes with it.
+                Text(stringResource(R.string.keep_alive_notif_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp))
             }
         }
 
@@ -789,6 +825,32 @@ private fun openOemBackgroundSettings(context: android.content.Context) {
     for (i in candidates + fallback) {
         if (runCatching { context.startActivity(i); true }.getOrDefault(false)) return
     }
+}
+
+/** Unwrap LocaleHelper/context wrappers to the host Activity —
+ *  shouldShowRequestPermissionRationale needs it. */
+private tailrec fun findActivity(context: android.content.Context): android.app.Activity? =
+    when (context) {
+        is android.app.Activity -> context
+        is android.content.ContextWrapper -> findActivity(context.baseContext)
+        else -> null
+    }
+
+/** Missing-permission row label: the ask + what breaks without it. */
+private fun missingPermLabel(context: android.content.Context, perm: String): String {
+    val res = when (perm) {
+        Manifest.permission.RECEIVE_SMS -> R.string.perm_receive_sms
+        Manifest.permission.SEND_SMS -> R.string.perm_send_sms
+        Manifest.permission.READ_SMS -> R.string.perm_read_sms
+        Manifest.permission.READ_PHONE_STATE -> R.string.perm_phone_state
+        Manifest.permission.CALL_PHONE -> R.string.perm_call_phone
+        Manifest.permission.ANSWER_PHONE_CALLS -> R.string.perm_answer_calls
+        Manifest.permission.READ_CONTACTS -> R.string.perm_contacts
+        Manifest.permission.POST_NOTIFICATIONS -> R.string.perm_notifications
+        Manifest.permission.NEARBY_WIFI_DEVICES -> R.string.perm_nearby
+        else -> return perm.substringAfterLast('.')
+    }
+    return context.getString(res)
 }
 
 private const val QR_VISIBLE_MS = 60_000L

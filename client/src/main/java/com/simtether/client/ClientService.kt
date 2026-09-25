@@ -619,6 +619,20 @@ class ClientService : LifecycleService() {
             .setSmallIcon(com.simtether.shared.R.drawable.ic_stat_simtether)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            // Post immediately — the default DEFERRED behavior leaves a
+            // window where the link runs with no visible notice.
+            .setForegroundServiceBehavior(
+                NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            // Android 14+ lets users swipe-dismiss even ongoing FGS
+            // notifications — deleteIntent fires on dismiss and the
+            // receiver re-posts it.
+            .setDeleteIntent(
+                android.app.PendingIntent.getBroadcast(
+                    this, 0,
+                    android.content.Intent(this, NotifDismissReceiver::class.java)
+                        .setAction(ACTION_NOTIF_DISMISSED),
+                    android.app.PendingIntent.FLAG_IMMUTABLE
+                        or android.app.PendingIntent.FLAG_UPDATE_CURRENT))
             // Channel badge setting is locked at creation — the
             // per-notification flag fixes installs that already have it.
             .setBadgeIconType(NotificationCompat.BADGE_ICON_NONE)
@@ -635,6 +649,7 @@ class ClientService : LifecycleService() {
         updateNotification(ClientServiceHolder.connected.value)
 
     companion object {
+        const val ACTION_NOTIF_DISMISSED = "com.simtether.client.NOTIF_DISMISSED"
         private const val CHANNEL_ID = "client"
         private const val NOTIF_ID = 2
         private const val TAG = "SimTether.ClientSvc"

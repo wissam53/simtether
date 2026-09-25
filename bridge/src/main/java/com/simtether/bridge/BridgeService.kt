@@ -126,6 +126,7 @@ class BridgeService : LifecycleService() {
             }
         }
         startServerWatchdog()
+        startNoticeWatchdog()
     }
 
     /**
@@ -166,6 +167,40 @@ class BridgeService : LifecycleService() {
                 advertiser = null
                 runCatching { startRelay(key) }
                     .onFailure { Log.e(TAG, "watchdog restart failed", it) }
+            }
+        }
+    }
+
+    /**
+     * The status notice is the owner's proof the relay is live — when
+     * it can't post (notification permission denied, app toggle off,
+     * channel muted) the bridge must not run. Polled because notify()
+     * drops blocked posts silently and the app-level toggle has no
+     * broadcast. The grace window absorbs flipping it off and back on
+     * in settings; sustained blockage flips the master switch off —
+     * isEnabled gates every restart path (activity open, boot,
+     * incoming SMS), so a stop here is durable.
+     */
+    private var noticeHiddenSince = 0L
+    private fun startNoticeWatchdog() {
+        lifecycleScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(NOTICE_WATCH_MS)
+                if (statusNoticeVisible()) {
+                    noticeHiddenSince = 0L
+                    continue
+                }
+                val since = noticeHiddenSince
+                if (since == 0L) {
+                    noticeHiddenSince = System.currentTimeMillis()
+                    Log.w(TAG, "status notice blocked — stopping bridge in ${NOTICE_GRACE_MS}ms")
+                    continue
+                }
+                if (System.currentTimeMillis() - since < NOTICE_GRACE_MS) continue
+                Log.w(TAG, "status notice blocked past grace — bridge off")
+                setEnabled(applicationContext, false)
+                stopSelf()
+                break
             }
         }
     }
@@ -726,7 +761,15 @@ class BridgeService : LifecycleService() {
                     .getString(com.simtether.shared.R.string.channel_bridge),
                 NotificationManager.IMPORTANCE_LOW)
                 // Persistent status — never counts toward the app badge.
-                .apply { setShowBadge(false) }
+                .apply {
+                    setShowBadge(false)
+                    // Warns on the channel's settings page — the screen
+                    // a user visits to mute it. Locked at creation, so
+                    // pre-existing installs keep the blank description.
+                    description = com.simtether.shared.LocaleHelper
+                        .wrap(this@BridgeService)
+                        .getString(com.simtether.shared.R.string.channel_bridge_desc)
+                }
         )
         startForegroundSafely(buildNotification(connected = false))
     }
@@ -837,13 +880,9 @@ class BridgeService : LifecycleService() {
             .build()
     }
 
-    /** True when the bridge's status channel still shows — a muted
-     *  channel means the FGS could run with no visible indicator. */
-    fun statusChannelVisible(): Boolean {
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val ch = nm.getNotificationChannel(CHANNEL_ID) ?: return true
-        return ch.importance != NotificationManager.IMPORTANCE_NONE
-    }
+    /** True while the status notice can actually show — the app-level
+     *  toggle or a muted channel both hide it (see companion). */
+    fun statusNoticeVisible() = noticeVisible(this)
 
     private fun updateNotification(connected: Boolean) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -858,13 +897,15 @@ class BridgeService : LifecycleService() {
 
     companion object {
         const val ACTION_NOTIF_DISMISSED = "com.simtether.bridge.NOTIF_DISMISSED"
-        private const val CHANNEL_ID = "bridge"
+        const val CHANNEL_ID = "bridge"
         private const val NOTIF_ID = 1
         private const val TAG = "SimTether.Bridge"
         private const val MAX_PENDING = 200
         private const val STATUS_PUSH_MS = 60_000L
         private const val SERVER_WATCHDOG_MS = 60_000L
         private const val SERVER_RESTART_COOLDOWN_MS = 5 * 60_000L
+        private const val NOTICE_WATCH_MS = 15_000L
+        private const val NOTICE_GRACE_MS = 60_000L
         private const val PARKED_FILE = "parked_events.jsonl"
         const val EXTRA_EVENT_TYPE = "com.simtether.bridge.EVENT_TYPE"
         const val EXTRA_EVENT_PAYLOAD = "com.simtether.bridge.EVENT_PAYLOAD"
@@ -893,6 +934,22 @@ class BridgeService : LifecycleService() {
         fun setEnabled(context: android.content.Context, enabled: Boolean) {
             context.getSharedPreferences("app", MODE_PRIVATE).edit()
                 .putBoolean("bridge_enabled", enabled).apply()
+        }
+
+        /**
+         * Both switches must allow the status notice: the app-level
+         * toggle (also false while POST_NOTIFICATIONS is denied on 33+)
+         * AND the channel's importance. The "never runs invisibly"
+         * contract can't rely on notify() throwing — blocked posts are
+         * dropped silently.
+         */
+        fun noticeVisible(context: android.content.Context): Boolean {
+            val nm = context.getSystemService(
+                android.content.Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (!nm.areNotificationsEnabled()) return false
+            // Absent channel = never muted (created unmuted at start).
+            val ch = nm.getNotificationChannel(CHANNEL_ID) ?: return true
+            return ch.importance != NotificationManager.IMPORTANCE_NONE
         }
     }
 }

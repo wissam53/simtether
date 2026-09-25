@@ -102,6 +102,17 @@
             </intent-filter>
         </service>
 
+        <!-- Re-posts the link-status notification if the user
+             dismisses it — the notice is the visible "linked to
+             bridge" signal. -->
+        <receiver
+            android:name="com.simtether.client.NotifDismissReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.simtether.client.NOTIF_DISMISSED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Restart the client service after reboot/OTA -->
         <receiver
             android:name=".BootReceiver"

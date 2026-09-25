@@ -121,7 +121,9 @@
     <!-- Local mode (bridge off) -->
     <string name="bridge_off_title">Bridge is off</string>
     <string name="bridge_off_body">Calls and messages work on this phone directly.</string>
+    <string name="bridge_needs_notif">The status notification is blocked — the bridge can’t run while it can’t show it’s active.</string>
     <string name="start_bridge">Start bridge</string>
+    <string name="enable_notifications">Enable notifications</string>
 
     <!-- Controls -->
     <string name="controls_title">Bridge controls</string>
@@ -155,11 +157,13 @@
     <string name="action_cancel">Cancel</string>
     <string name="pairing_revoked">Pairing revoked on the bridge — re-scan the QR in Settings to reconnect.</string>
     <string name="settings_language">Language</string>
+    <string name="settings_perms">Permissions</string>
     <string name="language_system">System default</string>
 
     <!-- Services & notifications -->
     <string name="channel_bridge_link">Bridge link</string>
     <string name="channel_bridge">Bridge</string>
+    <string name="channel_bridge_desc">Required — hiding this notification stops the bridge.</string>
     <string name="channel_missed">Missed calls</string>
     <string name="notif_connected">Connected to bridge</string>
     <string name="notif_offline">Bridge offline — reconnecting</string>
@@ -178,12 +182,25 @@
     <string name="companion_linked">✓ Linked as companion device</string>
     <string name="companion_unsupported">Companion link needs Android 13+ — use the permission prompts instead</string>
     <string name="companion_failed">Linking failed — try again</string>
-    <string name="grant_perms">Grant remaining permissions (%1$d)</string>
+    <!-- Missing-permission rows: the ask + what breaks without it -->
+    <string name="perm_receive_sms">Receive SMS — incoming texts won’t reach your paired phone</string>
+    <string name="perm_send_sms">Send SMS — your paired phone can’t send texts</string>
+    <string name="perm_read_sms">Read SMS — message history won’t sync</string>
+    <string name="perm_phone_state">Phone state — live call status won’t relay</string>
+    <string name="perm_call_phone">Call phone — can’t place calls from the paired phone</string>
+    <string name="perm_answer_calls">Answer calls — can’t answer or reject remotely</string>
+    <string name="perm_contacts">Contacts — numbers show instead of names</string>
+    <string name="perm_notifications">Notifications — the bridge stops without its status notice</string>
+    <string name="perm_nearby">Nearby devices — the always-on local link needs it</string>
+    <string name="perm_camera">Camera — can’t scan the pairing code</string>
+    <string name="perm_manage_calls">Call control — relayed calls won’t ring on this phone</string>
+    <string name="perm_record_audio">Microphone — call audio stays listen-only</string>
+    <string name="perm_notifications_client">Notifications — no alerts for texts or link status</string>
 
     <!-- Prominent disclosure (Play requirement, before runtime perms) -->
     <string name="disclosure_title">Before you continue</string>
-    <string name="disclosure_bridge_body">SimTether needs access to your SMS messages, calls, contacts and phone state to relay them to your own paired device over your local network. Messages and calls are end-to-end encrypted and are never uploaded to any server or shared with third parties — they only travel between your two phones.</string>
-    <string name="disclosure_client_body">SimTether needs the camera to scan the pairing code, contacts to show names, and call permissions to display relayed calls. All data stays on your local network — nothing is uploaded or shared.</string>
+    <string name="disclosure_bridge_body">SimTether relays this phone’s SMS and calls to your own paired device over your local network — and back. To do that it asks for:\n\n• SMS, calls and phone state — to receive, send and manage them remotely\n• Contacts — to show names instead of numbers\n• Notifications — for a persistent “bridge active” notice\n• Nearby devices — for the local connection to your paired phone\n• Microphone (on builds that support it) — for optional call-audio relay\n\nIt may also ask for battery-optimization exemption so the link survives standby, and to be your default dialer for in-call controls.\n\nMessages and calls are end-to-end encrypted and are never uploaded to any server or shared with third parties — they only travel between your two phones. While the bridge is on, the status notification must stay visible so the owner can always see relaying is active — blocking it stops the bridge.</string>
+    <string name="disclosure_client_body">SimTether pairs with your bridge phone to send and receive SMS and calls over your local network. To do that it asks for:\n\n• Camera — to scan the pairing code\n• Contacts — to show names instead of numbers\n• Call permissions — to display and manage relayed calls\n• Microphone — for call-audio relay when the bridge supports it (optional)\n• Notifications — for connection status and incoming messages\n• Nearby devices — for the local connection to the bridge\n\nIt may also ask for battery-optimization exemption so the link survives standby. All data stays between your two phones — nothing is uploaded or shared.</string>
     <string name="disclosure_agree">Agree &amp; continue</string>
     <string name="disclosure_decline">Not now</string>
 
@@ -231,4 +248,5 @@
     <string name="call_rejected_no_perm">Bridge is missing the call permission</string>
     <string name="ussd_failed">USSD request failed</string>
     <string name="health_notif_visible">Status notification visible</string>
+    <string name="keep_alive_notif_note">The status notification must stay on — hiding it stops the bridge.</string>
 </resources>

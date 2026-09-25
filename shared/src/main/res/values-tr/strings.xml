@@ -109,6 +109,8 @@
     <string name="bridge_off_title">Köprü kapalı</string>
     <string name="bridge_off_body">Aramalar ve mesajlar doğrudan bu telefonda çalışır.</string>
     <string name="start_bridge">Köprüyü başlat</string>
+    <string name="bridge_needs_notif">Durum bildirimi engellendi — köprü, etkin olduğunu gösteremediğinde çalışamaz.</string>
+    <string name="enable_notifications">Bildirimleri aç</string>
 
     <string name="controls_title">Köprü kontrolleri</string>
     <string name="controls_network">Ağ: %1$s</string>
@@ -140,10 +142,12 @@
     <string name="action_cancel">Vazgeç</string>
     <string name="pairing_revoked">Eşleşme köprüde iptal edildi — yeniden bağlanmak için Ayarlar\'dan QR kodu okutun.</string>
     <string name="settings_language">Dil</string>
+    <string name="settings_perms">İzinler</string>
     <string name="language_system">Sistem varsayılanı</string>
 
     <string name="channel_bridge_link">Köprü bağlantısı</string>
     <string name="channel_bridge">Köprü</string>
+    <string name="channel_bridge_desc">Gerekli — bu bildirimi gizlemek köprüyü durdurur.</string>
     <string name="channel_missed">Cevapsız aramalar</string>
     <string name="notif_connected">Köprüye bağlı</string>
     <string name="notif_offline">Köprü çevrimdışı — yeniden bağlanılıyor</string>
@@ -160,11 +164,23 @@
     <string name="companion_linked">✓ Eşlik cihazı olarak bağlandı</string>
     <string name="companion_unsupported">Eşlik bağlantısı Android 13+ gerektirir — izin istemlerini kullanın</string>
     <string name="companion_failed">Bağlantı kurulamadı — tekrar deneyin</string>
-    <string name="grant_perms">Kalan izinleri ver (%1$d)</string>
+    <string name="perm_receive_sms">SMS alma — gelen mesajlar eşlenen telefona ulaşmaz</string>
+    <string name="perm_send_sms">SMS gönderme — eşlenen telefon mesaj gönderemez</string>
+    <string name="perm_read_sms">SMS okuma — mesaj geçmişi eşitlenmez</string>
+    <string name="perm_phone_state">Telefon durumu — canlı arama durumu iletilmez</string>
+    <string name="perm_call_phone">Arama yapma — eşlenen telefondan arama yapılamaz</string>
+    <string name="perm_answer_calls">Aramaları yanıtlama — uzaktan yanıtlama veya reddetme yapılamaz</string>
+    <string name="perm_contacts">Kişiler — isimler yerine numaralar gösterilir</string>
+    <string name="perm_notifications">Bildirimler — durum bildirimi olmadan köprü durur</string>
+    <string name="perm_nearby">Yakındaki cihazlar — sürekli yerel bağlantı için gerekli</string>
+    <string name="perm_camera">Kamera — eşleştirme kodu taranamaz</string>
+    <string name="perm_manage_calls">Arama kontrolü — iletilen aramalar bu telefonda çalmaz</string>
+    <string name="perm_record_audio">Mikrofon — arama sesi sadece dinlenebilir</string>
+    <string name="perm_notifications_client">Bildirimler — mesajlar veya bağlantı durumu için uyarı yok</string>
 
     <string name="disclosure_title">Devam etmeden önce</string>
-    <string name="disclosure_bridge_body">SimTether, SMS mesajlarınıza, aramalarınıza, kişilerinize ve telefon durumunuza erişim ister — bunları yalnızca kendi eşleştirilmiş cihazınıza yerel ağınız üzerinden iletmek için. Mesajlar ve aramalar uçtan uca şifrelenir; hiçbir sunucuya yüklenmez ve üçüncü taraflarla paylaşılmaz — yalnızca iki telefonunuz arasında taşınır.</string>
-    <string name="disclosure_client_body">SimTether, eşleştirme kodunu taramak için kamera, isimleri göstermek için kişiler ve iletilen aramaları göstermek için arama izinleri ister. Tüm veriler yerel ağınızda kalır — hiçbir şey yüklenmez veya paylaşılmaz.</string>
+    <string name="disclosure_bridge_body">SimTether bu telefonun SMS’lerini ve aramalarını yerel ağınız üzerinden eşleştirilmiş cihazınıza iletir — ve geri. Bunun için şunları ister:\n\n• SMS, aramalar ve telefon durumu — bunları uzaktan almak, göndermek ve yönetmek için\n• Kişiler — numaralar yerine isimleri göstermek için\n• Bildirimler — kalıcı «köprü etkin» durum bildirimi için\n• Yakındaki cihazlar — eşleştirilmiş telefonunuzla yerel bağlantı için\n• Mikrofon (destekleyen sürümlerde) — isteğe bağlı arama sesi aktarımı için\n\nAyrıca bağlantının bekleme modunda yaşaması için pil optimizasyonu muafiyeti ve arama içi kontroller için varsayılan arayıcı rolü istenebilir.\n\nMesajlar ve aramalar uçtan uca şifrelenir; hiçbir sunucuya yüklenmez ve üçüncü taraflarla paylaşılmaz — yalnızca iki telefonunuz arasında taşınır. Köprü açıkken, sahibin aktarımın etkin olduğunu her zaman görebilmesi için durum bildirimi görünür kalmalıdır — engellenmesi köprüyü durdurur.</string>
+    <string name="disclosure_client_body">SimTether telefonunuzu köprü telefonla eşleştirerek SMS ve aramaları yerel ağ üzerinden gönderip alır. Bunun için şunları ister:\n\n• Kamera — eşleştirme kodunu taramak için\n• Kişiler — numaralar yerine isimleri göstermek için\n• Arama izinleri — iletilen aramaları göstermek ve yönetmek için\n• Mikrofon — köprü desteklediğinde arama sesi aktarımı için (isteğe bağlı)\n• Bildirimler — bağlantı durumu ve gelen mesajlar için\n• Yakındaki cihazlar — köprüyle yerel bağlantı için\n\nAyrıca bağlantının bekleme modunda yaşaması için pil optimizasyonu muafiyeti istenebilir. Tüm veriler iki telefonunuz arasında kalır — hiçbir şey yüklenmez veya paylaşılmaz.</string>
     <string name="disclosure_agree">Kabul et ve devam et</string>
     <string name="disclosure_decline">Şimdi değil</string>
 
@@ -211,4 +227,5 @@
     <string name="call_rejected_no_perm">Köprüde arama izni eksik</string>
     <string name="ussd_failed">USSD isteği başarısız</string>
     <string name="health_notif_visible">Durum bildirimi görünür</string>
+    <string name="keep_alive_notif_note">Durum bildirimi açık kalmalı — gizlenmesi köprüyü durdurur.</string>
 </resources>
