@@ -43,6 +43,11 @@ Foreground service + WS server  ◀──────▶  WS client, persistent 
   ownership is proven by a DH-challenge/HMAC (`RelayProof`), not the access
   token. See `relay/` for the self-contained server (`fly deploy`, or any
   JRE 17 + TLS terminator).
+- **Scope:** carrier SMS and GSM calls only. RCS "chat" messages are
+  delivered over IP inside the messaging app and never touch the SMS
+  pipeline — there is no Android API for third-party RCS access. Chat
+  features must be disabled on the bridge phone (Google Messages →
+  Messages settings → RCS chats → off) or inbound chats won't be relayed.
 
 ## Building
 

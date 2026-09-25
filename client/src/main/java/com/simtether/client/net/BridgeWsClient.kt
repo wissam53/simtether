@@ -85,6 +85,11 @@ class BridgeWsClient(
     // used to each spawn a socket, and the bridge took the LAST one.
     @Volatile private var connecting = false
     @Volatile private var closed = false
+    // When the current ws socket was created — lets the watchdog reap
+    // a socket that never completed the handshake when its one-shot
+    // handshake timeout produced no callback (e.g. it was gracefully
+    // closed into a blackholed peer, which never answers onClosed).
+    @Volatile private var wsOpenedAt = 0L
     private var backoffMs = 1_000L
     private var lastState: Boolean? = null
     // Consecutive Noise msg2 failures — a streak means the stored
@@ -118,8 +123,14 @@ class BridgeWsClient(
     private fun emitState(up: Boolean) {
         if (lastState == up) return
         lastState = up
-        onState(up)
-        onTransport(if (up) currentViaRelay else false)
+        // runCatching — a throwing listener (notification post, audio
+        // teardown) must never escape into scheduleReconnect and skip
+        // the ws/session cleanup + retry post; that used to leave a
+        // dead socket wedged in `ws` forever.
+        runCatching {
+            onState(up)
+            onTransport(if (up) currentViaRelay else false)
+        }
     }
 
     /**
@@ -135,10 +146,24 @@ class BridgeWsClient(
         val check = object : Runnable {
             override fun run() {
                 if (closed) return
-                if (session != null && lastInbound > 0 &&
-                    android.os.SystemClock.elapsedRealtime() - lastInbound > ZOMBIE_MS) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (session != null && lastInbound > 0 && now - lastInbound > ZOMBIE_MS) {
                     Log.w(TAG, "heartbeat silence — killing zombie socket")
                     ws?.cancel()
+                } else if (session == null && ws != null &&
+                    now - wsOpenedAt > HANDSHAKE_TIMEOUT_MS) {
+                    // A socket we're holding never established a
+                    // session and is past its handshake window. The
+                    // 15s timeout already cancelled it, but a cancel()
+                    // on an already-terminating socket fires no
+                    // onFailure — ws stays non-null and connect()
+                    // early-returns on it forever. Clear it ourselves.
+                    Log.w(TAG, "sessionless socket past handshake window — forcing reconnect")
+                    val dead = ws
+                    ws = null
+                    connecting = false
+                    runCatching { dead?.cancel() }
+                    scheduleReconnect()
                 }
                 handler.postDelayed(this, 30_000)
             }
@@ -155,15 +180,26 @@ class BridgeWsClient(
         // Resolution (cached-IP probe, then mDNS) can block — run off
         // the main thread.
         Thread({
-            if (closed) { connecting = false; return@Thread }
-            val target = targetProvider()
-            if (target == null) {
+            try {
+                if (closed) { connecting = false; return@Thread }
+                val target = targetProvider()
+                if (target == null) {
+                    connecting = false
+                    Log.d(TAG, "no reachable bridge yet, retrying")
+                    scheduleReconnect()
+                    return@Thread
+                }
+                openSocket(target)
+            } catch (t: Throwable) {
+                // An escape (mDNS quirk, malformed resolved address,
+                // prefs/crypto failure) used to leave connecting=true
+                // forever — every later connect() early-returned and
+                // the link stayed dead with no further log output.
+                Log.w(TAG, "resolve/connect threw — scheduling retry", t)
                 connecting = false
-                Log.d(TAG, "no reachable bridge yet, retrying")
+                ws = null
                 scheduleReconnect()
-                return@Thread
             }
-            openSocket(target)
         }, "st-resolve").start()
     }
 
@@ -293,6 +329,7 @@ class BridgeWsClient(
         // (the stale() guard), and senders must not hit the dead
         // socket in the gap.
         ws = socket
+        wsOpenedAt = android.os.SystemClock.elapsedRealtime()
         // The attempt is over once a socket exists — ws!=null guards
         // connect() from here on, so connecting can release.
         connecting = false
@@ -309,7 +346,7 @@ class BridgeWsClient(
                 Log.w(TAG, "handshake timeout — resetting socket")
                 socket.cancel()
             }
-        }, 15_000)
+        }, HANDSHAKE_TIMEOUT_MS)
     }
 
     /** True when [webSocket] is no longer our live socket — every
@@ -365,12 +402,15 @@ class BridgeWsClient(
 
     private fun scheduleReconnect() {
         if (closed) return
-        emitState(false)
+        // Clear transport state BEFORE any listener callback — if a
+        // callback throws partway, ws must already be null or the next
+        // connect() early-returns on the dead socket forever.
         session?.destroy()
         session = null
         pendingHandshake = null
         connecting = false
         ws = null
+        emitState(false)
         val delay = backoffMs + java.util.concurrent.ThreadLocalRandom.current()
             .nextLong(0, backoffMs / 2 + 1)
         backoffMs = (backoffMs * 2).coerceAtMost(30_000L)
@@ -386,16 +426,17 @@ class BridgeWsClient(
      * Drop the live socket and re-resolve — called when a better
      * transport just became reachable (LAN probe answered while we're
      * relay-linked) or the default-route network under a relay socket
-     * was lost and TCP hasn't errored it yet. The close drives the
-     * normal onClosed → scheduleReconnect path; pre-resetting backoff
-     * keeps the re-dial immediate.
+     * was lost and TCP hasn't errored it yet. cancel() — not a graceful
+     * close: a blackholed peer never answers the close frame, so
+     * onClosed can stall for minutes holding ws non-null. cancel()
+     * fires onFailure deterministically → scheduleReconnect.
      */
     fun dropAndReconnect() {
         if (closed) return
         pendingReconnect?.let { handler.removeCallbacks(it) }
         pendingReconnect = null
         backoffMs = 1_000L
-        ws?.close(1000, "transport switch") ?: connect()
+        ws?.cancel() ?: connect()
     }
 
     /**
@@ -421,5 +462,9 @@ class BridgeWsClient(
         // declared zombie — scheduler/GC jank on the bridge can stall
         // individual beats without killing the link.
         const val ZOMBIE_MS = 75_000L
+        // A socket that hasn't completed the Noise handshake this long
+        // after open is dead — OkHttp disables read timeouts once the
+        // upgrade completes, so it would never error on its own.
+        const val HANDSHAKE_TIMEOUT_MS = 15_000L
     }
 }

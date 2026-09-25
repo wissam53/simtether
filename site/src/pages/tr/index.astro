@@ -4,7 +4,7 @@ import { getRelativeLocaleUrl } from 'astro:i18n';
 
 const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span class="b">ana telefonunuz</span>
 ┌───────────────────────┐        ┌───────────────────────┐
-│  GSM ağı              │        │  SMS kutusu + yanıtlar│
+│  GSM ağı              │        │  SMS'ler + yanıtlar   │
 │  SimTether Bridge     │ ────▶  │  gelen aramalar       │
 │  (ücretsiz uygulama)  │        │  ara / cevapla / DTMF │
 └──────────┬────────────┘        └──────────▲────────────┘
@@ -41,7 +41,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
   <section id="how">
     <div class="container">
       <h2>Nasıl çalışır</h2>
-      <p class="sub">İki uygulama, bir QR taraması — SIM'iniz çekmecede durabilen bir telefonda yaşar.</p>
+      <p class="sub">İki uygulama, bir QR taraması — SIM'iniz çekmeceye kaldırabileceğiniz bir telefonda durur.</p>
       <div class="cards">
         <div class="card">
           <span class="step">adım 01</span>
@@ -82,7 +82,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
       <div class="note">
         Yerel mod varsayılandır — trafik ağınızdan asla çıkmaz. Uzaktan erişim iki
         telefonda da isteğe bağlıdır ve relay bizimki yerine sizinki olabilir.
-        Barındırılan relay'imiz elinden gelenin en iyisi bir hizmettir; uygulama
+        Barındırılan relay'imiz en iyi çaba esaslı bir hizmettir; uygulama
         onsuz da sonsuza dek çalışır.
       </div>
     </div>
@@ -90,15 +90,17 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
 
   <section>
     <div class="container">
-      <h2>İki sürüm, dürüstçe etiketlenmiş</h2>
+      <h2>İki sürüm — fark aralarında açık</h2>
       <p class="sub">Aynı şifreli hat — root'lu sürüm Android'in vermediği tek şeyi ekler.</p>
       <div class="cards">
         <div class="card">
           <h3>Standart</h3>
           <p>
             Tam SMS yönlendirme, arama bildirimleri ve arama kontrolü — cevaplama,
-            reddetme, arama ve DTMF. Android 8.0+ sürümlerinde root gerekmeden
-            çalışır. Google Play'deki sürüm budur.
+            reddetme, arama ve DTMF. Yalnızca operatör SMS'i — RCS sohbetleri
+            köprüye ulaşamaz; köprüdeki mesajlaşma uygulamasında sohbet
+            özelliklerini kapalı tutun. Android 8.0+ herhangi bir telefonda
+            root'suz çalışır. Google Play'deki sürüm budur.
           </p>
         </div>
         <div class="card">
@@ -123,7 +125,7 @@ const diagram = `<span class="b">köprü telefon (SIM'iniz)</span>        <span 
               ülkelerde yerel olarak kayıtlı olmayan bir telefon, belirli bir süre
               sonra hücresel hizmetini kaybeder. Kayıtlı SIM'i — ve kayıtlı
               telefonu — evde bırakın; istediğiniz telefonu yanınızda taşıyın.</li>
-          <li><strong>Cebinizde ikinci bir telefon taşımadan ikinci SIM.</strong>
+          <li><strong>İkinci bir telefonu cebinizde taşımadan ikinci SIM.</strong>
               Taşımak istemediğiniz bir numaraya gelen doğrulama kodları, operatör
               mesajları ve aramalar.</li>
           <li><strong>Gizliliğe önem veren ve SMS yönlendirmesi için mesaj

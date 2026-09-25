@@ -33,6 +33,18 @@ import Layout from '../../layouts/Layout.astro';
         <li>Connect it to power and WiFi. The bridge shows a QR code.</li>
       </ol>
 
+      <div class="note warn">
+        <strong>Turn off RCS ("chat features") on the bridge phone.</strong>
+        SimTether relays carrier SMS — texts that go through the mobile
+        network. RCS chats (on by default in Google Messages) travel over
+        the internet straight into the messaging app; they never touch SMS,
+        so the bridge can't see them — and no Android API can change that.
+        On the bridge phone: <strong>Google Messages → profile icon →
+        Messages settings → RCS chats → off</strong> (in other messaging
+        apps, disable their "chat" settings the same way). With RCS off,
+        senders fall back to SMS automatically — nothing is missed.
+      </div>
+
       <h3>Step 2 — your main phone</h3>
       <ol>
         <li>Install <strong>SimTether</strong> from Google Play.</li>
@@ -112,6 +124,7 @@ import Layout from '../../layouts/Layout.astro';
         <tr><th>Symptom</th><th>Usually means</th></tr>
         <tr><td>"Pairing rejected"</td><td>The QR expired or the bridge was re-paired — show a fresh QR on the bridge and scan again.</td></tr>
         <tr><td>Client can't find the bridge</td><td>Phones aren't on the same network, or the bridge phone's battery saver killed the service — disable optimization for the app.</td></tr>
+        <tr><td>Some texts reach the bridge phone but never arrive on the main phone</td><td>Those arrived as RCS chats, not SMS — disable chat features in the bridge's messaging app (see step 1).</td></tr>
         <tr><td>Remote access never connects</td><td>Check the relay address in bridge settings, and that remote access is enabled on <em>both</em> phones.</td></tr>
         <tr><td>Keystore warning banner</td><td>This device's Android Keystore is broken — stored secrets fall back to plain files. A factory image / different phone is the real fix.</td></tr>
       </table>

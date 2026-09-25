@@ -25,14 +25,27 @@ import Layout from '../../layouts/Layout.astro';
       <ol>
         <li>SIM'li telefona <strong>SimTether Bridge</strong>'i kurun — Google
             Play'de ücretsizdir veya
-            <a href="https://github.com/">GitHub Releases</a>'dan APK'yı yandan
-            yükleyebilirsiniz (<code>simtether-bridge.apk</code>). Burada yandan
-            yükleme normaldir ve güvenlidir; Android, tarayıcınızdan kuruluma bir
+            <a href="https://github.com/">GitHub Releases</a>'dan APK dosyasını
+            kurabilirsiniz (<code>simtether-bridge.apk</code>). APK ile kurulum
+            burada normaldir ve güvenlidir; Android, tarayıcınızdan kuruluma bir
             kez izin vermenizi isteyecektir.</li>
         <li>Uygulamayı açın ve istediği izinleri verin — SMS ve arama erişimine
-            ihtiyacı vardır; yapması gereken temel işlem budur.</li>
+            ihtiyacı vardır; tüm işi budur.</li>
         <li>Güce ve WiFi'a bağlayın. Köprü bir QR kodu gösterir.</li>
       </ol>
+
+      <div class="note warn">
+        <strong>Köprü telefonda RCS'i ("sohbet özellikleri") kapatın.</strong>
+        SimTether operatör SMS'ini iletir — mobil ağ üzerinden giden mesajları.
+        RCS sohbetleri (Google Mesajlar'da varsayılan olarak açıktır) internet
+        üzerinden doğrudan mesajlaşma uygulamasına ulaşır; SMS yolundan hiç
+        geçmedikleri için köprü onları göremez — bunu değiştirebilecek bir
+        Android API'si yoktur. Köprü telefonda: <strong>Google Mesajlar →
+        profil simgesi → Mesajlar ayarları → RCS sohbetleri → kapalı</strong>
+        (başka bir mesajlaşma uygulaması kullanılıyorsa oradaki "sohbet"
+        ayarlarını aynı şekilde kapatın). RCS kapalıyken gönderenler otomatik
+        olarak SMS'e döner — hiçbir mesaj kaçırılmaz.
+      </div>
 
       <h3>Adım 2 — ana telefonunuz</h3>
       <ol>
@@ -61,7 +74,7 @@ import Layout from '../../layouts/Layout.astro';
             relay'e yönlendirebilir.</li>
       </ol>
       <div class="note">
-        Barındırılan relay en iyi çaba esaslı bir hizmettir — sonlandırılabilir
+        Barındırılan relay garantisiz bir hizmettir — sonlandırılabilir
         veya ileride ücretli hale gelebilir. Yerel/hotspot modu ve kendi
         relay'iniz her durumda ücretsizdir ve bundan etkilenmez. Uygulama
         çalışmak için hiçbir zaman altyapımıza bağımlı değildir.
@@ -85,7 +98,7 @@ import Layout from '../../layouts/Layout.astro';
       </ol>
       <div class="note">
         Tam olarak bir örnek çalıştırın — odalar bellekte tutulur ve sunucular
-        arası arama yoktur. Tüm seçenekler (ortam değişkenleri, limitler) depodaki
+        arası sorgulama yoktur. Tüm seçenekler (ortam değişkenleri, limitler) depodaki
         <code>relay/README.md</code> dosyasındadır.
       </div>
 
@@ -113,11 +126,12 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Sorun giderme</h3>
       <table>
-        <tr><th>Belirti</th><th>Genellikle anlamı</th></tr>
+        <tr><th>Sorun</th><th>Olası nedeni</th></tr>
         <tr><td>"Eşleştirme reddedildi"</td><td>QR kodunun süresi doldu veya köprü yeniden eşleştirildi — köprüde yeni bir QR kodu gösterin ve tekrar tarayın.</td></tr>
         <tr><td>İstemci köprüyü bulamıyor</td><td>Telefonlar aynı ağda değil veya köprü telefonun pil tasarrufu servisi sonlandırdı — uygulama için pil optimizasyonunu kapatın.</td></tr>
+        <tr><td>Bazı mesajlar köprü telefona geliyor ama ana telefona ulaşmıyor</td><td>Bunlar SMS değil RCS sohbetidir — köprüdeki mesajlaşma uygulamasında sohbet özelliklerini kapatın (bkz. adım 1).</td></tr>
         <tr><td>Uzaktan erişim hiç bağlanmıyor</td><td>Köprü ayarlarındaki relay adresini ve uzaktan erişimin iki telefonda da açık olduğunu kontrol edin.</td></tr>
-        <tr><td>Keystore uyarı bandı</td><td>Bu cihazın Android Keystore'u bozuk — saklanan sırlar düz dosyalara düşer. Gerçek çözüm fabrika imajı / farklı bir telefondur.</td></tr>
+        <tr><td>Keystore uyarı şeridi</td><td>Bu cihazın Android Keystore'u bozuk — saklanan sırlar düz dosyalara düşer. Gerçek çözüm fabrika imajı / farklı bir telefondur.</td></tr>
       </table>
     </div>
   </section>
