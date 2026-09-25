@@ -131,6 +131,8 @@ import Layout from '../../layouts/Layout.astro';
         <tr><th>İzin</th><th>Kullanımı</th></tr>
         <tr><td>RECEIVE_SMS / SEND_SMS / READ_SMS</td><td>Gelen SMS'leri almak ve SIM'inizden yanıt göndermek.</td></tr>
         <tr><td>READ_PHONE_STATE / ANSWER_PHONE_CALLS / CALL_PHONE</td><td>GSM aramalarını görmek ve kontrol etmek.</td></tr>
+        <tr><td>NEARBY_WIFI_DEVICES</td><td>Android 13+ üzerinde eşleşen telefonu yerel WiFi'da bulmak.</td></tr>
+        <tr><td>RECORD_AUDIO <em>(yalnızca root'lu sürüm)</em></td><td>Arama sesini aktarmak için — yalnızca ses aktarımını açtığınızda sorulur, başlangıçta asla.</td></tr>
       </table>
       <p><strong>İstemci</strong> uygulaması (ana telefon) bunların hiçbirine
          ihtiyaç duymaz:</p>
@@ -138,6 +140,7 @@ import Layout from '../../layouts/Layout.astro';
         <tr><th>İzin</th><th>Kullanımı</th></tr>
         <tr><td>MANAGE_OWN_CALLS</td><td>Gelen aramaları arama arayüzünde göstermek.</td></tr>
         <tr><td>CAMERA</td><td>Eşleştirme QR kodunu taramak.</td></tr>
+        <tr><td>NEARBY_WIFI_DEVICES</td><td>Android 13+ üzerinde köprüyü yerel WiFi'da bulmak — orada konum izninin yerini alır.</td></tr>
         <tr><td>ACCESS_FINE/COARSE_LOCATION</td><td>Köprüyü yerel WiFi'da bulmak — Android, eski sürümlerde ağ keşfi için konum izni ister. Konumunuz asla izlenmez veya iletilmez.</td></tr>
         <tr><td>RECORD_AUDIO</td><td>İsteğe bağlı — sesinizi aramaya iletmek için, yalnızca root'lu köprü sürümüyle ve yalnızca arama aktifken.</td></tr>
       </table>
@@ -147,7 +150,7 @@ import Layout from '../../layouts/Layout.astro';
         <tr><td>READ_CONTACTS</td><td>Yalın numaralar yerine isim göstermek.</td></tr>
         <tr><td>FOREGROUND_SERVICE_*</td><td>Şifreli bağlantıyı canlı tutmak.</td></tr>
         <tr><td>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</td><td>Android'in bağlantıyı sonlandırmaması için — tek bir sistem sorusu, sizin seçiminiz.</td></tr>
-        <tr><td>POST_NOTIFICATIONS</td><td>SMS/arama bildirimleri.</td></tr>
+        <tr><td>POST_NOTIFICATIONS</td><td>SMS/arama bildirimleri — ve köprüde, zorunlu "köprü açık" durum bildirimi (gizlemek köprüyü durdurur).</td></tr>
       </table>
 
       <h3>Veri saklama ve silme</h3>

@@ -125,6 +125,8 @@ import Layout from '../../layouts/Layout.astro';
         <tr><th>الإذن</th><th>الاستخدام</th></tr>
         <tr><td>RECEIVE_SMS / SEND_SMS / READ_SMS</td><td>استقبال رسائل SMS الواردة وإرسال الردود باستخدام شريحتك.</td></tr>
         <tr><td>READ_PHONE_STATE / ANSWER_PHONE_CALLS / CALL_PHONE</td><td>رؤية مكالمات GSM والتحكم بها.</td></tr>
+        <tr><td>NEARBY_WIFI_DEVICES</td><td>العثور على الهاتف المقترن على WiFi المحلي في أندرويد 13+.</td></tr>
+        <tr><td>RECORD_AUDIO <em>(إصدار root فقط)</em></td><td>التقاط صوت المكالمة لنقله — يُطلب فقط عند تفعيل نقل الصوت، وليس عند بدء التشغيل أبداً.</td></tr>
       </table>
       <p>تطبيق <strong>العميل</strong> (الهاتف الرئيسي) لا يحتاج إلى أيٍّ
          من هذه الأذونات:</p>
@@ -132,6 +134,7 @@ import Layout from '../../layouts/Layout.astro';
         <tr><th>الإذن</th><th>الاستخدام</th></tr>
         <tr><td>MANAGE_OWN_CALLS</td><td>عرض المكالمات الواردة في واجهة الاتصال.</td></tr>
         <tr><td>CAMERA</td><td>مسح رمز QR للاقتران.</td></tr>
+        <tr><td>NEARBY_WIFI_DEVICES</td><td>العثور على الجسر على WiFi المحلي في أندرويد 13+ — يحل محل إذن الموقع هناك.</td></tr>
         <tr><td>ACCESS_FINE/COARSE_LOCATION</td><td>العثور على الجسر على WiFi المحلي — يتطلب أندرويد إذن الموقع لاكتشاف الشبكة في الإصدارات الأقدم. لا يتم تتبع موقعك ولا إرساله أبداً.</td></tr>
         <tr><td>RECORD_AUDIO</td><td>اختياري — نقل صوتك إلى المكالمة، فقط مع إصدار الجسر root وفقط أثناء وجود مكالمة نشطة.</td></tr>
       </table>
@@ -141,7 +144,7 @@ import Layout from '../../layouts/Layout.astro';
         <tr><td>READ_CONTACTS</td><td>عرض الأسماء بدلاً من الأرقام المجردة.</td></tr>
         <tr><td>FOREGROUND_SERVICE_*</td><td>إبقاء الاتصال المشفّر نشطاً.</td></tr>
         <tr><td>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</td><td>لمنع أندرويد من إنهاء الاتصال — سؤال نظام واحد، والقرار لك.</td></tr>
-        <tr><td>POST_NOTIFICATIONS</td><td>إشعارات SMS/المكالمات.</td></tr>
+        <tr><td>POST_NOTIFICATIONS</td><td>إشعارات SMS/المكالمات — وفي الجسر، إشعار «الجسر يعمل» الإلزامي (إخفاؤه يوقف الجسر).</td></tr>
       </table>
 
       <h3>الاحتفاظ بالبيانات وحذفها</h3>

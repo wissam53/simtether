@@ -117,12 +117,15 @@ import Layout from '../../layouts/Layout.astro';
         <tr><th>Permission</th><th>Used for</th></tr>
         <tr><td>RECEIVE_SMS / SEND_SMS / READ_SMS</td><td>Receive incoming SMS and send replies on your SIM.</td></tr>
         <tr><td>READ_PHONE_STATE / ANSWER_PHONE_CALLS / CALL_PHONE</td><td>See and control GSM calls.</td></tr>
+        <tr><td>NEARBY_WIFI_DEVICES</td><td>Finding the paired phone on local WiFi on Android 13+.</td></tr>
+        <tr><td>RECORD_AUDIO <em>(rooted build only)</em></td><td>Capturing call audio for relay — asked only when you enable audio relay, never at startup.</td></tr>
       </table>
       <p>The <strong>client</strong> app (main phone) needs none of those:</p>
       <table>
         <tr><th>Permission</th><th>Used for</th></tr>
         <tr><td>MANAGE_OWN_CALLS</td><td>Render incoming calls in the call UI.</td></tr>
         <tr><td>CAMERA</td><td>Scanning the pairing QR.</td></tr>
+        <tr><td>NEARBY_WIFI_DEVICES</td><td>Finding the bridge on local WiFi on Android 13+ — supersedes the location permission there.</td></tr>
         <tr><td>ACCESS_FINE/COARSE_LOCATION</td><td>Finding the bridge on local WiFi — Android requires location for network discovery on older versions. Never tracked or transmitted.</td></tr>
         <tr><td>RECORD_AUDIO</td><td>Optional — your voice into a call, only with the rooted bridge build and only while a call is active.</td></tr>
       </table>
@@ -132,7 +135,7 @@ import Layout from '../../layouts/Layout.astro';
         <tr><td>READ_CONTACTS</td><td>Display names instead of bare numbers.</td></tr>
         <tr><td>FOREGROUND_SERVICE_*</td><td>Keeping the encrypted link alive.</td></tr>
         <tr><td>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</td><td>So Android doesn't kill the link — one system prompt, your choice.</td></tr>
-        <tr><td>POST_NOTIFICATIONS</td><td>SMS/call notifications.</td></tr>
+        <tr><td>POST_NOTIFICATIONS</td><td>SMS/call notifications — and on the bridge, the mandatory "bridge is on" status notice (hiding it stops the bridge).</td></tr>
       </table>
 
       <h3>Data retention &amp; deletion</h3>
