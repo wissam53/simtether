@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Cleartext must stay permitted at the base layer: the bridge
+         link is a literal-IP ws:// dial on the LAN/hotspot, and
+         Android domain rules can't express RFC1918/link-local ranges.
+         Every frame is Noise IK ciphertext — cleartext is only the
+         transport wrapper. The code layer restricts cleartext
+         destinations to private/link-local hosts (NetSafety gates the
+         bridge dial; RemoteStore.normalizeRelay gates the relay). -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- The relay link must only chain to the platform store —
+                 user/admin-installed CAs are not trusted. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- The hosted relay speaks wss only — cleartext to it would put
+         the access token and room ticket on the wire. Belt-and-
+         suspenders over normalizeRelay's public-host refusal. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">simtether-relay.fly.dev</domain>
+    </domain-config>
+</network-security-config>

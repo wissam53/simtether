@@ -74,23 +74,6 @@ object RemoteStore {
      * even reports host=null, which java-websocket silently turns
      * into a localhost dial), so rewrite it as the intended port.
      */
-    /** Loopback, link-local, RFC1918 and mDNS-style names — the only
-     *  places cleartext ws:// is acceptable for a relay address. */
-    private fun isPrivateHost(host: String): Boolean {
-        val h = host.lowercase()
-        return h == "localhost" || h == "::1" || h.endsWith(".local") ||
-            h.endsWith(".lan") || h.endsWith(".internal") ||
-            h.startsWith("127.") || h.startsWith("10.") ||
-            h.startsWith("192.168.") || h.startsWith("169.254.") ||
-            (h.startsWith("172.") &&
-                (h.substringAfter("172.").substringBefore('.')
-                    .toIntOrNull() ?: -1) in 16..31) ||
-            // IPv6: fc00::/7 ULA and fe80::/10 link-local.
-            (':' in h && (h.startsWith("fc") || h.startsWith("fd") ||
-                (h.startsWith("fe") &&
-                    h.getOrNull(2)?.lowercaseChar() in '8'..'b')))
-    }
-
     fun normalizeRelay(addr: String?): String? {
         var s = addr?.trim().orEmpty()
         if (s.isEmpty()) return null
@@ -132,7 +115,7 @@ object RemoteStore {
         // "host:port" upgrades to wss://; an explicitly typed
         // "ws://public" is refused — don't silently honor a request
         // for something insecure.
-        val scheme = if (u.scheme == "ws" && !isPrivateHost(bare)) {
+        val scheme = if (u.scheme == "ws" && !NetSafety.isPrivateHost(bare)) {
             if (explicitScheme) return null else "wss"
         } else u.scheme
         val h = if (':' in bare) "[$bare]" else bare

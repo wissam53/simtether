@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Cleartext must stay permitted at the base layer: a self-hosted
+         relay on the LAN may legitimately be ws:// to a private host
+         (normalizeRelay only allows ws:// to private destinations), and
+         domain rules can't express RFC1918/link-local ranges. The
+         inbound WS server is unaffected by this config. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <!-- The relay link must only chain to the platform store —
+                 user/admin-installed CAs are not trusted. -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- The hosted relay speaks wss only — cleartext to it would put
+         the access token and room ticket on the wire. Belt-and-
+         suspenders over normalizeRelay's public-host refusal. -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">simtether-relay.fly.dev</domain>
+    </domain-config>
+</network-security-config>

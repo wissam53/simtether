@@ -207,6 +207,15 @@ class ClientService : LifecycleService() {
         pairing: com.simtether.shared.pairing.PairingPayload,
         pubKey: ByteArray,
     ): com.simtether.client.net.ResolvedTarget? {
+        // The LAN dial is cleartext ws:// — a QR naming a public host
+        // is hostile or corrupt; relay is the only public path and it
+        // runs wss. NSC domain rules can't express private IP ranges,
+        // so the check lives here.
+        if (!com.simtether.shared.NetSafety.isPrivateHost(pairing.host)) {
+            Log.w(TAG, "pairing host ${pairing.host} is not LAN-private — " +
+                "refusing cleartext dial")
+            return relayTarget(pairing, pubKey)
+        }
         val cachedNet = networkFor(pairing.host)
         if (cachedNet != null && probe(cachedNet, pairing.host, pairing.port)) {
             return com.simtether.client.net.ResolvedTarget(
@@ -229,6 +238,10 @@ class ClientService : LifecycleService() {
             return relayTarget(pairing, pubKey)
         }
         val host = found.hostString ?: return null
+        if (!com.simtether.shared.NetSafety.isPrivateHost(host)) {
+            Log.w(TAG, "mDNS resolved non-private host $host — refusing dial")
+            return null
+        }
         val net = networkFor(host) ?: run {
             Log.w(TAG, "resolved $host but no local network owns that subnet")
             return null
