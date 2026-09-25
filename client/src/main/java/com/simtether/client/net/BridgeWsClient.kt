@@ -138,7 +138,9 @@ class BridgeWsClient(
      * writes for ~15min before the retransmit timeout errors out.
      * The bridge heartbeats every 30s — if an established session sees
      * no inbound frame for 2min, the socket is dead regardless of what
-     * TCP thinks. cancel() forces onFailure → normal reconnect path.
+     * TCP thinks. We tear down + reconnect manually: cancel() on an
+     * already-terminating socket fires no onFailure, so relying on it
+     * leaves ws/session stale and connect() early-returns forever.
      */
     private fun startWatchdog() {
         if (watchdogStarted) return
@@ -149,7 +151,7 @@ class BridgeWsClient(
                 val now = android.os.SystemClock.elapsedRealtime()
                 if (session != null && lastInbound > 0 && now - lastInbound > ZOMBIE_MS) {
                     Log.w(TAG, "heartbeat silence — killing zombie socket")
-                    ws?.cancel()
+                    killSocketAndReconnect()
                 } else if (session == null && ws != null &&
                     now - wsOpenedAt > HANDSHAKE_TIMEOUT_MS) {
                     // A socket we're holding never established a
@@ -169,6 +171,23 @@ class BridgeWsClient(
             }
         }
         handler.postDelayed(check, 30_000)
+    }
+
+    /**
+     * Kill the live socket and schedule a reconnect. Callers must NOT
+     * rely on cancel() delivering onFailure — OkHttp fires no callback
+     * for a cancel() on an already-terminating socket, and a bare
+     * cancel() leaves ws/session/connecting stale: connect()
+     * early-returns on ws!=null and the watchdog re-kills the same
+     * dead socket every 30s without ever redialing. Clearing ws first
+     * means any late callback from the dead socket hits stale().
+     */
+    private fun killSocketAndReconnect() {
+        val dead = ws
+        ws = null
+        connecting = false
+        runCatching { dead?.cancel() }
+        scheduleReconnect()
     }
 
     fun connect() {
@@ -272,8 +291,7 @@ class BridgeWsClient(
                 }
                 val plain = runCatching { s.decrypt(bytes.toByteArray()) }.getOrElse {
                     Log.e(TAG, "decrypt failed — resetting session", it)
-                    session = null
-                    webSocket.cancel()
+                    killSocketAndReconnect()
                     return
                 }
                 if (plain.isNotEmpty() && plain[0] == Protocol.MEDIA_TAG) {
@@ -291,8 +309,7 @@ class BridgeWsClient(
                     // see it — heartbeats were stamping liveness even
                     // while failing to decrypt).
                     Log.e(TAG, "decrypt/decode failed — resetting session", it)
-                    session = null
-                    webSocket.cancel()
+                    killSocketAndReconnect()
                     return
                 }
                 lastInbound = android.os.SystemClock.elapsedRealtime()
@@ -340,11 +357,11 @@ class BridgeWsClient(
         // and the watchdog only watches established sessions. With
         // connecting=true and ws!=null every reconnect returns early:
         // a permanent wedge. If no session is live 15s after opening,
-        // kill the socket; onFailure drives the normal reconnect path.
+        // tear down and retry ourselves — cancel() may fire nothing.
         handler.postDelayed({
             if (!closed && session == null && ws === socket) {
                 Log.w(TAG, "handshake timeout — resetting socket")
-                socket.cancel()
+                killSocketAndReconnect()
             }
         }, HANDSHAKE_TIMEOUT_MS)
     }
@@ -372,10 +389,9 @@ class BridgeWsClient(
         // while the UI still read "connected").
         val stale = socketStale()
         if (stale) {
-            // Don't wait out the watchdog — cancel now so onFailure
-            // drives the reconnect immediately.
+            // Don't wait out the watchdog — tear down + reconnect now.
             Log.w(TAG, "send on stale socket — killing it")
-            runCatching { sock?.cancel() }
+            killSocketAndReconnect()
         }
         if (s == null || sock == null || stale) {
             if (queueIfOffline) {
@@ -426,17 +442,16 @@ class BridgeWsClient(
      * Drop the live socket and re-resolve — called when a better
      * transport just became reachable (LAN probe answered while we're
      * relay-linked) or the default-route network under a relay socket
-     * was lost and TCP hasn't errored it yet. cancel() — not a graceful
-     * close: a blackholed peer never answers the close frame, so
-     * onClosed can stall for minutes holding ws non-null. cancel()
-     * fires onFailure deterministically → scheduleReconnect.
+     * was lost and TCP hasn't errored it yet. We tear down state
+     * ourselves — cancel() on an already-terminating socket fires no
+     * onFailure, so the socket must not gate the reconnect.
      */
     fun dropAndReconnect() {
         if (closed) return
         pendingReconnect?.let { handler.removeCallbacks(it) }
         pendingReconnect = null
         backoffMs = 1_000L
-        ws?.cancel() ?: connect()
+        if (ws != null) killSocketAndReconnect() else connect()
     }
 
     /**
