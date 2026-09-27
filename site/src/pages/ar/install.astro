@@ -23,11 +23,11 @@ import Layout from '../../layouts/Layout.astro';
       <h3>الخطوة 1 — هاتف الجسر</h3>
       <ol>
         <li>ثبّت <strong>SimTether Bridge</strong> على هاتف الشريحة —
-            مجاناً على Google Play، أو ثبّت ملف APK مباشرة من
+            مجاني، ثبّت ملف APK مباشرة من
             <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>
             (<code>simtether-bridge.apk</code>). التثبيت من خارج المتجر
             هنا إجراء عادي وآمن؛ وسيطلب أندرويد السماح بالتثبيت من
-            متصفحك مرة واحدة.</li>
+            متصفحك مرة واحدة. صفحة Google Play قادمة.</li>
         <li>افتحه وامنحه الأذونات التي يطلبها — الوصول إلى SMS والمكالمات هو
             جوهر المهمة، إضافة إلى الإشعارات وإذن الأجهزة القريبة لإبقاء
             الاتصال نشطاً. أبقِ إشعار الحالة ظاهراً؛ إخفاؤه يوقف الجسر.</li>
@@ -48,7 +48,10 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>الخطوة 2 — هاتفك الرئيسي</h3>
       <ol>
-        <li>ثبّت <strong>SimTether</strong> من Google Play.</li>
+        <li>ثبّت <strong>SimTether</strong> — شراء لمرة واحدة على
+            Google Play (قريباً). إلى أن تُنشر الصفحة، نزّل
+            <code>simtether.apk</code> من
+            <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>.</li>
         <li>افتحه، واضغط <strong>«اقتران»</strong>، ثم امسح رمز QR الظاهر
             على الجسر. هذا كل ما يلزم للاقتران — يتم تبادل المفاتيح
             وتثبيتها أثناء هذا المسح.</li>
@@ -103,7 +106,7 @@ import Layout from '../../layouts/Layout.astro';
       <h3>إصدار root</h3>
       <table>
         <tr><th></th><th>القياسي</th><th>جسر بإصدار root</th></tr>
-        <tr><td>أين</td><td>Play Store + GitHub</td><td>GitHub Releases فقط</td></tr>
+        <tr><td>أين</td><td>GitHub Releases (Play قريباً)</td><td>GitHub Releases فقط</td></tr>
         <tr><td>SMS + تحكم بالمكالمات</td><td>نعم</td><td>نعم</td></tr>
         <tr><td>صوت المكالمة المباشر</td><td>لا</td><td>نعم — يتطلب هاتف جسر بصلاحيات root</td></tr>
         <tr><td>الحالة</td><td>مستقر</td><td><em>قيد التطوير</em></td></tr>

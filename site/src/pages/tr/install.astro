@@ -23,12 +23,11 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Adım 1 — köprü telefon</h3>
       <ol>
-        <li>SIM'li telefona <strong>SimTether Bridge</strong>'i kurun — Google
-            Play'de ücretsizdir veya
+        <li>SIM'li telefona <strong>SimTether Bridge</strong>'i kurun — ücretsiz,
             <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>'dan APK dosyasını
             kurabilirsiniz (<code>simtether-bridge.apk</code>). APK ile kurulum
             burada normaldir ve güvenlidir; Android, tarayıcınızdan kuruluma bir
-            kez izin vermenizi isteyecektir.</li>
+            kez izin vermenizi isteyecektir. Google Play kaydı yakında.</li>
         <li>Uygulamayı açın ve istediği izinleri verin — SMS ve arama erişimi
             işin kendisi; ayrıca bağlantıyı ayakta tutmak için bildirim ve
             yakındaki cihazlar erişimi. Durum bildirimini görünür tutun;
@@ -51,7 +50,10 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Adım 2 — ana telefonunuz</h3>
       <ol>
-        <li><strong>SimTether</strong>'i Google Play'den kurun.</li>
+        <li><strong>SimTether</strong>'i kurun — Google Play'de tek seferlik
+            ücretli (yakında). Kayıt yayınlanana kadar
+            <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>'dan
+            <code>simtether.apk</code> dosyasını indirin.</li>
         <li>Uygulamayı açın, <strong>Eşleştir</strong>'e dokunun ve köprüdeki QR
             kodunu tarayın. Eşleştirme bu kadar — anahtarlar bu tarama sırasında
             değiştirilir ve sabitlenir.</li>
@@ -107,7 +109,7 @@ import Layout from '../../layouts/Layout.astro';
       <h3>Root'lu sürüm</h3>
       <table>
         <tr><th></th><th>Standart</th><th>Root'lu köprü</th></tr>
-        <tr><td>Nerede</td><td>Play Store + GitHub</td><td>Yalnızca GitHub Releases</td></tr>
+        <tr><td>Nerede</td><td>GitHub Releases (Play yakında)</td><td>Yalnızca GitHub Releases</td></tr>
         <tr><td>SMS + arama kontrolü</td><td>evet</td><td>evet</td></tr>
         <tr><td>Canlı arama sesi</td><td>hayır</td><td>evet — root'lu köprü telefon gerekir</td></tr>
         <tr><td>Durum</td><td>kararlı</td><td><em>geliştirme aşamasında</em></td></tr>

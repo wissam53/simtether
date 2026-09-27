@@ -22,12 +22,12 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Step 1 — the bridge phone</h3>
       <ol>
-        <li>Install <strong>SimTether Bridge</strong> on the SIM phone — free
-            on Google Play, or sideload the APK from
+        <li>Install <strong>SimTether Bridge</strong> on the SIM phone — free,
+            sideload the APK from
             <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>
             (<code>simtether-bridge.apk</code>). Sideloading is normal and safe
             here; Android will ask you to allow installs from your browser
-            once.</li>
+            once. A Google Play listing is coming.</li>
         <li>Open it and grant the permissions it asks for — SMS and call access
             is the job, plus notifications and nearby-device access to keep the
             link up. Keep the status notification visible; hiding it stops the
@@ -49,7 +49,10 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Step 2 — your main phone</h3>
       <ol>
-        <li>Install <strong>SimTether</strong> from Google Play.</li>
+        <li>Install <strong>SimTether</strong> — a paid one-time purchase on
+            Google Play (coming soon). Until the listing is live, grab
+            <code>simtether.apk</code> from
+            <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>.</li>
         <li>Open it, tap <strong>Pair</strong>, and scan the QR on the bridge.
             That's the entire pairing — keys are exchanged and pinned in that scan.</li>
         <li>Done. SMS and call events now arrive on your main phone.</li>
@@ -102,7 +105,7 @@ import Layout from '../../layouts/Layout.astro';
       <h3>The rooted build</h3>
       <table>
         <tr><th></th><th>Standard</th><th>Rooted bridge</th></tr>
-        <tr><td>Where</td><td>Play Store + GitHub</td><td>GitHub Releases only</td></tr>
+        <tr><td>Where</td><td>GitHub Releases (Play soon)</td><td>GitHub Releases only</td></tr>
         <tr><td>SMS + call control</td><td>yes</td><td>yes</td></tr>
         <tr><td>Live call audio</td><td>no</td><td>yes — requires a rooted bridge phone</td></tr>
         <tr><td>Status</td><td>stable</td><td><em>in development</em></td></tr>
