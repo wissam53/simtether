@@ -10,6 +10,7 @@
     <string name="home_linked">● birikdi</string>
     <string name="home_linked_via">● %1$s arkaly birikdi</string>
     <string name="home_offline">○ awtonom — gözlenýär</string>
+    <string name="home_stopped">○ duruldy</string>
     <string name="home_battery_line">Batareýa %1$d%% · %2$s</string>
     <string name="home_sim_not_ready"> · SIM taýýar däl</string>
     <string name="carrier_unknown">operator ýok</string>
@@ -104,6 +105,9 @@
     <string name="health_huawei">Programma işe girizişi (EMUI)</string>
     <string name="health_oneplus">Programma awtoişe girizişi (OxygenOS)</string>
     <string name="stop_bridge">Köprini duruz</string>
+    <string name="stop_link">Baglanyşygy duruz</string>
+    <string name="start_link">Baglan</string>
+    <string name="stop_link_hint">Gaýtadan birikmegi duruzýar — jübütlik we geçmiş saklanýar.</string>
     <string name="bridge_fallback_name">Köpri</string>
 
     <string name="bridge_off_title">Köpri öçük</string>

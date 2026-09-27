@@ -43,6 +43,10 @@ class MainActivity : ComponentActivity() {
         handleNavIntent(intent)
         disclosed = getSharedPreferences("app", MODE_PRIVATE)
             .getBoolean("disclosed", false)
+        // Seed the UI's link switch — when the link is stopped the
+        // service never runs, so nothing else would publish it.
+        com.simtether.client.ClientServiceHolder
+            .setLinkEnabled(ClientService.isEnabled(this))
         if (disclosed) enter()
         enableEdgeToEdge()
         setContent {
@@ -91,6 +95,11 @@ class MainActivity : ComponentActivity() {
                             )
                             true -> ClientScreen(
                                 onPaired = {
+                                    // A fresh QR scan is explicit
+                                    // consent — lift a previous
+                                    // "Stop link" before connecting.
+                                    ClientService.setEnabled(
+                                        this@MainActivity, true)
                                     startForegroundService(
                                         Intent(this@MainActivity,
                                             ClientService::class.java))
@@ -135,11 +144,14 @@ class MainActivity : ComponentActivity() {
         permissionLauncher.launch(perms.toTypedArray())
 
         // A paired client must reconnect on every app open, not only
-        // right after a scan — the service no-ops when unpaired.
-        startForegroundService(Intent(this, ClientService::class.java))
-        // The client holds a persistent link — doze defers its
-        // reconnect timers and stalls pings without this.
-        requestBatteryExemption()
+        // right after a scan — the service no-ops when unpaired. The
+        // user switch gates it: "Stop link" must survive app opens too.
+        if (ClientService.isEnabled(this)) {
+            startForegroundService(Intent(this, ClientService::class.java))
+            // The client holds a persistent link — doze defers its
+            // reconnect timers and stalls pings without this.
+            requestBatteryExemption()
+        }
     }
 
     /** Forget pairing → back to the unpaired home; stops the service. */

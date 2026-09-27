@@ -35,6 +35,14 @@ object ClientServiceHolder {
     val viaRelay: StateFlow<Boolean> = _viaRelay
     fun setViaRelay(v: Boolean) { _viaRelay.value = v }
 
+    /**
+     * Mirrors ClientService.isEnabled for the UI — seeded by the host
+     * activity (the service itself never runs while disabled).
+     */
+    private val _linkEnabled = MutableStateFlow(true)
+    val linkEnabled: StateFlow<Boolean> = _linkEnabled
+    fun setLinkEnabled(v: Boolean) { _linkEnabled.value = v }
+
     /** Bridge rotated its identity — the stored pairing is dead and
      *  the user must re-scan the new QR. */
     private val _pairingRevoked = MutableStateFlow(false)

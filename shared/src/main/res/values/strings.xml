@@ -16,6 +16,7 @@
     <string name="home_linked">● linked</string>
     <string name="home_linked_via">● linked via %1$s</string>
     <string name="home_offline">○ offline — searching</string>
+    <string name="home_stopped">○ stopped</string>
     <string name="home_battery_line">Battery %1$d%% · %2$s</string>
     <string name="home_sim_not_ready"> · SIM not ready</string>
     <string name="carrier_unknown">no carrier</string>
@@ -116,6 +117,9 @@
     <string name="health_huawei">App launch (EMUI)</string>
     <string name="health_oneplus">App autostart (OxygenOS)</string>
     <string name="stop_bridge">Stop bridge</string>
+    <string name="stop_link">Stop link</string>
+    <string name="start_link">Connect</string>
+    <string name="stop_link_hint">Stops reconnecting — the pairing and history are kept.</string>
     <string name="bridge_fallback_name">Bridge</string>
 
     <!-- Local mode (bridge off) -->

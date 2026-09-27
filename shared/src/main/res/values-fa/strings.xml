@@ -10,6 +10,7 @@
     <string name="home_linked">● متصل</string>
     <string name="home_linked_via">● متصل از طریق %1$s</string>
     <string name="home_offline">○ آفلاین — در حال جستجو</string>
+    <string name="home_stopped">○ متوقف</string>
     <string name="home_battery_line">باتری %1$d%% · %2$s</string>
     <string name="home_sim_not_ready"> · سیم‌کارت آماده نیست</string>
     <string name="carrier_unknown">بدون اپراتور</string>
@@ -104,6 +105,9 @@
     <string name="health_huawei">اجرای برنامه (EMUI)</string>
     <string name="health_oneplus">اجرای خودکار برنامه (OxygenOS)</string>
     <string name="stop_bridge">توقف پل</string>
+    <string name="stop_link">توقف پیوند</string>
+    <string name="start_link">اتصال</string>
+    <string name="stop_link_hint">اتصال مجدد را متوقف می‌کند — جفت‌سازی و تاریخچه حفظ می‌شود.</string>
     <string name="bridge_fallback_name">پل</string>
 
     <string name="bridge_off_title">پل خاموش است</string>

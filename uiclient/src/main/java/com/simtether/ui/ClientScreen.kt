@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import com.simtether.client.ClientService
 import com.simtether.client.ClientServiceHolder
 import com.simtether.client.PairingStore
 import com.simtether.client.StatusBus
@@ -140,6 +141,7 @@ private fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit)
     val paired = remember { PairingStore.isPaired(context) }
     val revoked by ClientServiceHolder.pairingRevoked.collectAsState()
     val viaRelay by ClientServiceHolder.viaRelay.collectAsState()
+    val linkEnabled by ClientServiceHolder.linkEnabled.collectAsState()
     val unreadTotal = messages.count { !it.outgoing && !it.read }
     val unseenCalls = calls.count { !it.seen }
 
@@ -206,10 +208,23 @@ private fun HomeScreen(onNavigate: (Screen) -> Unit, onThread: (String) -> Unit)
                         else status?.network?.let {
                             stringResource(R.string.home_linked_via, it)
                         } ?: stringResource(R.string.home_linked)
+                    else if (!linkEnabled) stringResource(R.string.home_stopped)
                     else stringResource(R.string.home_offline),
                     color = if (connected) MaterialTheme.colorScheme.primary
+                            else if (!linkEnabled)
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             else MaterialTheme.colorScheme.error,
                 )
+                if (paired && !linkEnabled) {
+                    Button(
+                        onClick = {
+                            ClientService.setEnabled(context, true)
+                            ContextCompat.startForegroundService(context,
+                                Intent(context, ClientService::class.java))
+                        },
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) { Text(stringResource(R.string.start_link)) }
+                }
                 status?.let {
                     Text(
                         stringResource(
@@ -391,6 +406,31 @@ private fun SettingsScreen(
             Text(stringResource(R.string.repair_scan),
                 modifier = Modifier.padding(start = 6.dp))
         }
+        // Non-destructive off-switch — kills the reconnect loop but
+        // keeps the pairing and history, unlike "Forget bridge".
+        val linkEnabled by ClientServiceHolder.linkEnabled.collectAsState()
+        OutlinedButton(
+            onClick = {
+                if (linkEnabled) {
+                    ClientService.setEnabled(context, false)
+                    context.stopService(Intent(context, ClientService::class.java))
+                } else {
+                    ClientService.setEnabled(context, true)
+                    ContextCompat.startForegroundService(context,
+                        Intent(context, ClientService::class.java))
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        ) {
+            Text(stringResource(
+                if (linkEnabled) R.string.stop_link else R.string.start_link))
+        }
+        if (linkEnabled) Text(
+            stringResource(R.string.stop_link_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         // Destructive (erases message + call history) → confirm first.
         var confirmForget by remember { mutableStateOf(false) }
         OutlinedButton(

@@ -23,6 +23,7 @@ class BootReceiver : BroadcastReceiver() {
         // answered yet — allow; Billing's callback stops us if the
         // answer is "not purchased".)
         if (PairingStore.isPaired(context) &&
+            ClientService.isEnabled(context) &&
             com.simtether.billing.Billing.entitled.value != false) {
             Log.d(TAG, "boot: restarting client service")
             // Background-start limits can reject this on 12+ — crash

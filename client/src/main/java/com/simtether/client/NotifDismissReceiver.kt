@@ -15,6 +15,9 @@ import android.util.Log
 class NotifDismissReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ClientService.ACTION_NOTIF_DISMISSED) return
+        // A stopped link owns no notification — a stray dismiss
+        // broadcast must not resurrect it.
+        if (!ClientService.isEnabled(context)) return
         val svc = ClientServiceHolder.service
         if (svc != null) {
             Log.w("SimTether.ClientSvc", "status notification dismissed — re-posting")

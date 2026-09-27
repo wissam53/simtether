@@ -10,6 +10,7 @@
     <string name="home_linked">● bağlı</string>
     <string name="home_linked_via">● %1$s üzerinden bağlı</string>
     <string name="home_offline">○ çevrimdışı — aranıyor</string>
+    <string name="home_stopped">○ durduruldu</string>
     <string name="home_battery_line">Pil %1$d%% · %2$s</string>
     <string name="home_sim_not_ready"> · SIM hazır değil</string>
     <string name="carrier_unknown">operatör yok</string>
@@ -104,6 +105,9 @@
     <string name="health_huawei">Uygulama başlatma (EMUI)</string>
     <string name="health_oneplus">Uygulama otomatik başlatma (OxygenOS)</string>
     <string name="stop_bridge">Köprüyü durdur</string>
+    <string name="stop_link">Bağlantıyı durdur</string>
+    <string name="start_link">Bağlan</string>
+    <string name="stop_link_hint">Yeniden bağlanmayı durdurur — eşleşme ve geçmiş korunur.</string>
     <string name="bridge_fallback_name">Köprü</string>
 
     <string name="bridge_off_title">Köprü kapalı</string>

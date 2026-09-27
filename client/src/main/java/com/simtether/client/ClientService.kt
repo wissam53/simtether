@@ -85,6 +85,13 @@ class ClientService : LifecycleService() {
             stopSelf()
             return
         }
+        // User switch — "Stop link" must survive process death and
+        // START_STICKY restarts, not just the current instance.
+        if (!isEnabled(applicationContext)) {
+            Log.i(TAG, "link disabled — not starting")
+            stopSelf()
+            return
+        }
 
         registerNetCallback()
         connectToBridge()
@@ -92,6 +99,12 @@ class ClientService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        // A stopped link must not reconnect — covers START_STICKY
+        // redelivery and app-open restarts.
+        if (!isEnabled(applicationContext)) {
+            stopSelf()
+            return START_STICKY
+        }
         // Re-invoked on re-pair: reload pairing + reconnect with fresh target
         connectToBridge()
         return START_STICKY
@@ -145,6 +158,7 @@ class ClientService : LifecycleService() {
     }
 
     private fun connectToBridge() {
+        if (!isEnabled(applicationContext)) return
         val pairing = PairingStore.load(applicationContext) ?: return // not paired yet
         // A fresh attempt with (possibly) fresh credentials — clear any
         // stale revocation banner from a previous dead pairing.
@@ -657,5 +671,20 @@ class ClientService : LifecycleService() {
         private const val CHANNEL_ID = "client"
         private const val NOTIF_ID = 2
         private const val TAG = "SimTether.ClientSvc"
+
+        /**
+         * User-controlled master switch — when off, nothing may restart
+         * the link (activity open, boot, notification-dismiss all gate
+         * on it). Mirrors BridgeService's bridge_enabled.
+         */
+        fun isEnabled(context: android.content.Context) =
+            context.getSharedPreferences("app", MODE_PRIVATE)
+                .getBoolean("client_enabled", true)
+
+        fun setEnabled(context: android.content.Context, enabled: Boolean) {
+            context.getSharedPreferences("app", MODE_PRIVATE).edit()
+                .putBoolean("client_enabled", enabled).apply()
+            ClientServiceHolder.setLinkEnabled(enabled)
+        }
     }
 }

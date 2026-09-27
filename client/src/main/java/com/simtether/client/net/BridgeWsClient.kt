@@ -202,6 +202,9 @@ class BridgeWsClient(
             try {
                 if (closed) { connecting = false; return@Thread }
                 val target = targetProvider()
+                // "Stop link" can land mid-resolve — the probe/mDNS
+                // window is seconds long, so re-check before dialing.
+                if (closed) { connecting = false; return@Thread }
                 if (target == null) {
                     connecting = false
                     Log.d(TAG, "no reachable bridge yet, retrying")

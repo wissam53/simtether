@@ -10,6 +10,7 @@
     <string name="home_linked">● подключено</string>
     <string name="home_linked_via">● подключено через %1$s</string>
     <string name="home_offline">○ не в сети — поиск</string>
+    <string name="home_stopped">○ остановлено</string>
     <string name="home_battery_line">Батарея %1$d%% · %2$s</string>
     <string name="home_sim_not_ready"> · SIM не готова</string>
     <string name="carrier_unknown">нет оператора</string>
@@ -104,6 +105,9 @@
     <string name="health_huawei">Запуск приложения (EMUI)</string>
     <string name="health_oneplus">Автозапуск приложения (OxygenOS)</string>
     <string name="stop_bridge">Остановить мост</string>
+    <string name="stop_link">Остановить связь</string>
+    <string name="start_link">Подключиться</string>
+    <string name="stop_link_hint">Прекращает переподключение — сопряжение и история сохраняются.</string>
     <string name="bridge_fallback_name">Мост</string>
 
     <string name="bridge_off_title">Мост выключен</string>
