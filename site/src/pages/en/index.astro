@@ -133,11 +133,24 @@ const diagram = `<span class="b">bridge phone (your SIM)</span>          <span c
   </section>
 
   <section>
+    <div class="container">
+      <h2>What it looks like</h2>
+      <p class="sub">The main-phone app — recent activity, threads, and the call log.</p>
+      <div class="shots">
+        <img src="/shots/home.png" alt="SimTether home — recent SMS and call events" loading="lazy" />
+        <img src="/shots/messages.png" alt="Conversations list" loading="lazy" />
+        <img src="/shots/thread.png" alt="A conversation thread with delivery status" loading="lazy" />
+        <img src="/shots/calls.png" alt="Recent calls list" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <section>
     <div class="container" style="text-align:center">
       <h2>Get it</h2>
       <p class="sub">The bridge is free and open. The main-phone app is a one-time purchase on Google Play.</p>
       <a class="btn" href={getRelativeLocaleUrl('en', 'install')}>Install guide</a>
-      <a class="btn secondary" href="https://github.com/">GitHub releases</a>
+      <a class="btn secondary" href="https://github.com/wissam53/simtether/releases">GitHub releases</a>
     </div>
   </section>
 </Layout>

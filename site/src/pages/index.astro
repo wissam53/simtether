@@ -1,0 +1,16 @@
+---
+// Root landing — bounce to the default locale. Hand-written instead of
+// astro.config `redirects` because those emit absolute /en/ targets that
+// ignore `base` and 404 under a GitHub Pages project subpath.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const target = `${base}/en/`;
+const canonical = new URL(target, Astro.site);
+---
+<!doctype html>
+<title>Redirecting to: {target}</title>
+<meta http-equiv="refresh" content={`0;url=${target}`} />
+<meta name="robots" content="noindex" />
+<link rel="canonical" href={canonical} />
+<body>
+  <a href={target}>Redirecting from <code>/</code> to <code>{target}</code></a>
+</body>
