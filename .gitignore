@@ -27,3 +27,4 @@ docs/audit/findings-*.md
 site/node_modules/
 site/dist/
 site/.astro/
+release/
