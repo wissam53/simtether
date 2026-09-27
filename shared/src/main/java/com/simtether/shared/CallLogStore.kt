@@ -65,8 +65,24 @@ object CallLogStore {
     private val writeLock = Any()
     private var writeTask: java.util.concurrent.ScheduledFuture<*>? = null
 
+    /**
+     * Screenshot/demo mode — in-memory only, never reads or overwrites
+     * the real file. Restarting the app restores the real log.
+     */
+    @Volatile var demoMode = false
+        private set
+
+    fun seedDemo(entries: List<CallLogEntry>) {
+        demoMode = true
+        _entries.value = entries
+        synchronized(writeLock) {
+            writeTask?.cancel(false)
+            writeTask = null
+        }
+    }
+
     fun init(context: Context) {
-        if (file != null) return
+        if (file != null || demoMode) return
         val f = File(context.filesDir, "call_log.jsonl")
         file = f
         writer.execute {
@@ -74,18 +90,23 @@ object CallLogStore {
             val loaded = (SecureFile.read(f) ?: return@execute).lineSequence()
                 .mapNotNull { runCatching { json.decodeFromString<CallLogEntry>(it) }.getOrNull() }
                 .toList()
+            if (demoMode) return@execute
             // Keep anything appended before this load landed.
             _entries.update { (loaded + it).distinct() }
         }
     }
 
     /** Record meaningful transitions; returns the updated entry. */
-    fun onEvent(e: Protocol.CallEvent): CallLogEntry? = when (e.state) {
-        Protocol.CallEvent.State.RINGING,
-        Protocol.CallEvent.State.DIALING,
-        Protocol.CallEvent.State.ACTIVE,
-        Protocol.CallEvent.State.DISCONNECTED -> append(e)
-        else -> null
+    fun onEvent(e: Protocol.CallEvent): CallLogEntry? {
+        // Demo mode drops live traffic — see ConversationStore.append.
+        if (demoMode) return null
+        return when (e.state) {
+            Protocol.CallEvent.State.RINGING,
+            Protocol.CallEvent.State.DIALING,
+            Protocol.CallEvent.State.ACTIVE,
+            Protocol.CallEvent.State.DISCONNECTED -> append(e)
+            else -> null
+        }
     }
 
     private fun append(e: Protocol.CallEvent): CallLogEntry {
@@ -132,7 +153,7 @@ object CallLogStore {
             writeTask?.cancel(false)
             writeTask = null
         }
-        file?.let { f -> writer.execute { f.delete() } }
+        if (!demoMode) file?.let { f -> writer.execute { f.delete() } }
     }
 
     /** Viewing Recents acknowledges every unseen (missed) entry. */
@@ -145,6 +166,7 @@ object CallLogStore {
     /** Debounced persist — a call generates several events in a row. */
     private fun rewrite() {
         val f = file ?: return
+        if (demoMode) return
         synchronized(writeLock) {
             writeTask?.cancel(false)
             writeTask = writer.schedule(

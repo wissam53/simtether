@@ -46,9 +46,28 @@ object ConversationStore {
     private val writeLock = Any()
     private var writeTask: java.util.concurrent.ScheduledFuture<*>? = null
 
+    /**
+     * Screenshot/demo mode — in-memory only: no disk reads or writes,
+     * so the real history is never seen or overwritten. Restarting the
+     * app clears the flag and reloads the real file.
+     */
+    @Volatile var demoMode = false
+        private set
+
+    fun seedDemo(messages: List<ChatMessage>) {
+        demoMode = true
+        _messages.value = messages
+        // A debounced write queued before the flag flipped could still
+        // fire and persist demo data over the real file — drop it.
+        synchronized(writeLock) {
+            writeTask?.cancel(false)
+            writeTask = null
+        }
+    }
+
     /** Call once from a context-holding site (service onCreate). */
     fun init(context: Context) {
-        if (file != null) return
+        if (file != null || demoMode) return
         val f = File(context.filesDir, "conversations.jsonl")
         file = f
         writer.execute {
@@ -56,6 +75,9 @@ object ConversationStore {
             val loaded = (SecureFile.read(f) ?: return@execute).lineSequence()
                 .mapNotNull { runCatching { json.decodeFromString<ChatMessage>(it) }.getOrNull() }
                 .toList()
+            // A demo seed landing mid-load would get clobbered by
+            // this merge — bail instead of prepending real history.
+            if (demoMode) return@execute
             // Keep anything appended before this load landed.
             _messages.update { (loaded + it).distinct() }
         }
@@ -122,6 +144,9 @@ object ConversationStore {
     }
 
     private fun append(m: ChatMessage) {
+        // Demo mode drops live traffic so a real SMS can't leak
+        // into a screenshot while seed data is showing.
+        if (demoMode) return
         _messages.update { it + m }
         rewrite()
     }
@@ -133,6 +158,7 @@ object ConversationStore {
      */
     private fun rewrite() {
         val f = file ?: return
+        if (demoMode) return
         synchronized(writeLock) {
             writeTask?.cancel(false)
             writeTask = writer.schedule(
@@ -157,7 +183,7 @@ object ConversationStore {
             writeTask?.cancel(false)
             writeTask = null
         }
-        file?.let { f -> writer.execute { f.delete() } }
+        if (!demoMode) file?.let { f -> writer.execute { f.delete() } }
     }
 
     fun thread(address: String): List<ChatMessage> =
