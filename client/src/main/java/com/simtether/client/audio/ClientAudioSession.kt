@@ -1,5 +1,6 @@
 package com.simtether.client.audio
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
@@ -90,6 +91,10 @@ class ClientAudioSession(
             ?.isSpeakerphoneOn = on
     }
 
+    // RECORD_AUDIO is checked via checkSelfPermission just above the
+    // AudioRecord construction and the call is wrapped — lint can't
+    // trace either, so the MissingPermission error is suppressed here.
+    @SuppressLint("MissingPermission")
     private fun startUplink() {
         val granted = context.checkSelfPermission(
             android.Manifest.permission.RECORD_AUDIO) ==

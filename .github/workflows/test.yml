@@ -17,6 +17,9 @@ jobs:
       # JVM + host-side unit tests: shared crypto/protocol, the relay,
       # and the bridge transport suite (server, splice, proof).
       - run: ./gradlew test --stacktrace
+      # Lint is a gate too — it silently regressed once while CI only
+      # ran the test suite.
+      - run: ./gradlew lint --stacktrace
       # Both APKs must assemble — catches module-boundary regressions
       # (e.g. :client code leaking into the bridge APK).
       - run: ./gradlew :app:assembleDebug :bridgeapp:assembleDebug

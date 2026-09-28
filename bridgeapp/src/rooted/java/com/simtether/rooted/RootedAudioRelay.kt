@@ -1,5 +1,6 @@
 package com.simtether.rooted
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
@@ -81,6 +82,9 @@ class RootedAudioRelay : CallAudioRelay {
         @Volatile private var rec: AudioRecord? = null
         @Volatile private var thread: Thread? = null
 
+        // Only reached when CAPTURE_AUDIO_OUTPUT was granted (the
+        // priv-app path) — runCatching covers a refused record anyway.
+        @SuppressLint("MissingPermission")
         fun start(onPcm: (ByteArray) -> Unit): Boolean {
             val rate = RootCaptureDaemon.SAMPLE_RATE
             val min = AudioRecord.getMinBufferSize(

@@ -25,6 +25,9 @@
 
     <!-- Call control -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- Install-time permission that licenses the phoneCall FGS type
+         on API 34+; the bridge manages calls as the default dialer. -->
+    <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <!-- READ_PHONE_NUMBERS removed — declared but never read. -->
@@ -59,7 +62,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- A SIM phone is required by definition — filter WiFi-only
-         devices out of the listing rather than marking optional. -->
+         devices (incl. ChromeOS) out of the listing rather than
+         marking optional. -->
+    <uses-feature android:name="android.hardware.telephony" android:required="true" />
 
     <application
         android:icon="@mipmap/ic_launcher"

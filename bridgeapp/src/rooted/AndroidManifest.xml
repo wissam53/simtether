@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Rooted flavor only — the store manifest never carries these.
 
@@ -13,6 +14,9 @@
          placement works; ignored (never granted) on a normal install.
          The root-daemon capture path does not need it. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT" />
+    <!-- Deliberately system-only: only honored for the privileged
+         install path above; a normal install just never gets it. -->
+    <uses-permission android:name="android.permission.CAPTURE_AUDIO_OUTPUT"
+        tools:ignore="ProtectedPermissions" />
 
 </manifest>

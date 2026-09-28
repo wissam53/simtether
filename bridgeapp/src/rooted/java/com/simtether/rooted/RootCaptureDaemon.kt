@@ -1,5 +1,6 @@
 package com.simtether.rooted
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -99,6 +100,10 @@ object RootCaptureDaemon {
      * classes only; stdout is the PCM pipe, stderr is diagnostics.
      * Args: <audioSource> <sampleRate>
      */
+    // Runs under `su` as uid=0 — app-level runtime permissions don't
+    // apply to this process at all; a refused source throws and the
+    // loop tries the next one.
+    @SuppressLint("MissingPermission")
     @JvmStatic
     fun main(args: Array<String>) {
         val source = args.getOrNull(0)?.toIntOrNull()

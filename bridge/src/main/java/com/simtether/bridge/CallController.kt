@@ -1,5 +1,6 @@
 package com.simtether.bridge
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -169,6 +170,10 @@ object CallController {
      *  handle→subId API exists, but AOSP encodes the ICCID in the SIM
      *  account's handle id. OEMs that diverge just return null and the
      *  call goes out on the user's default account. */
+    // READ_PHONE_STATE backs getActiveSubscriptionInfo; a missing
+    // grant throws SecurityException, which the runCatching already
+    // degrades to "use the default account".
+    @SuppressLint("MissingPermission")
     private fun handleForSubId(
         context: Context,
         accounts: List<android.telecom.PhoneAccountHandle>,
@@ -184,12 +189,16 @@ object CallController {
 
     /** The user's standing calling preference, if one is set — the
      *  picker only appears when it's absent AND multiple accounts. */
+    // Needs a phone permission — a missing grant throws
+    // SecurityException and runCatching degrades to null. The
+    // "tel"-scheme getter exists since API 23, so no version branch:
+    // the old <29 fallback called userSelectedOutgoingPhoneAccount
+    // (API 29+), which silently NoSuchMethodError'd on 26–28.
+    @SuppressLint("MissingPermission")
     private fun selectedOutgoingAccount(
         tm: TelecomManager,
     ): android.telecom.PhoneAccountHandle? = runCatching {
-        if (android.os.Build.VERSION.SDK_INT >= 29)
-            tm.getDefaultOutgoingPhoneAccount("tel")
-        else @Suppress("DEPRECATION") tm.userSelectedOutgoingPhoneAccount
+        tm.getDefaultOutgoingPhoneAccount("tel")
     }.getOrNull()
 
     // ── Carrier service codes (USSD/MMI) ─────────────────────────
