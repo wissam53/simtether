@@ -189,11 +189,13 @@
     <string name="disclosure_decline">Şimdi değil</string>
 
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">Telefonlarınız arasında arama ve SMS aktarın — şifreli, kendi ağınızda, hiçbir şey yüklenmeden. Tek satın alım bu cihazı etkinleştirir.</string>
-    <string name="paywall_subscribe">Kilidi aç</string>
-    <string name="paywall_subscribe_price">Kilidi aç — %1$s</string>
-    <string name="paywall_onetime_line">Tek seferlik satın alım. Abonelik yok, süre sınırı yok.</string>
-    <string name="paywall_restore">Satın alımı geri yükle</string>
+    <string name="paywall_body">Telefonlarınız arasında arama ve SMS aktarın — şifreli, kendi ağınızda, hiçbir şey yüklenmeden. Aylık abonelik bu cihazı etkinleştirir.</string>
+    <string name="paywall_subscribe">Abone ol</string>
+    <string name="paywall_subscribe_price">Abone ol — %1$s/ay</string>
+    <string name="paywall_subscribe_trial">%1$d gün ücretsiz dene — sonra %2$s/ay</string>
+    <string name="paywall_trial_line">İlk %1$d gün ücretsiz, sonra aylık faturalandırılır. Play\'den istediğiniz zaman iptal edin.</string>
+    <string name="paywall_sub_line">Aylık faturalandırılır. Play\'den istediğiniz zaman iptal edin.</string>
+    <string name="paywall_restore">Aboneliği geri yükle</string>
 
     <!-- Remote access -->
     <string name="remote_access">Uzaktan erişim</string>

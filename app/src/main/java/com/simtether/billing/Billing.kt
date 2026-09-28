@@ -18,13 +18,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Play Billing one-time-purchase gate for the client role.
+ * Play Billing subscription gate for the client role.
  *
- * Product `simtether_pro` (non-consumable INAPP — buy once, no expiry)
- * is created in Play Console — nothing works until it exists and the
- * app is uploaded to a track. Entitlement lives in Play's on-device
- * cache, so checks work offline; `entitled` stays null until resolved
- * so the UI can show a spinner instead of flashing the paywall.
+ * Product `simtether_pro` (SUBS, monthly) is created in Play Console
+ * with a base plan plus an optional free-trial offer — the gate opens
+ * only when both exist on a released track. Entitlement lives in
+ * Play's on-device cache, so checks work offline; `entitled` stays
+ * null until resolved so the UI can show a spinner instead of
+ * flashing the paywall.
  *
  * Debug builds bypass the gate — there is no Play product locally.
  */
@@ -37,11 +38,19 @@ object Billing {
     private val _entitled = MutableStateFlow<Boolean?>(null)
     val entitled: StateFlow<Boolean?> = _entitled
 
-    /** Localized price label from Play ("₺150.00"), null until loaded. */
+    /** Localized recurring price label from Play ("₺150.00"). */
     private val _price = MutableStateFlow<String?>(null)
     val price: StateFlow<String?> = _price
 
+    /** Free-trial length in days when the loaded offer carries one —
+     *  0 when the configured offer has no free phase. */
+    private val _trialDays = MutableStateFlow(0)
+    val trialDays: StateFlow<Int> = _trialDays
+
     private var productDetails: ProductDetails? = null
+    /** Subscriptions launch against an offer, not the bare product —
+     *  the chosen offer decides whether the trial applies. */
+    private var offerToken: String? = null
     private var connected = false
     private var retries = 0
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -113,7 +122,7 @@ object Billing {
     private fun refreshPurchases() {
         client.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.INAPP)
+                .setProductType(BillingClient.ProductType.SUBS)
                 .build()
         ) { result, purchases ->
             if (result.responseCode != BillingClient.BillingResponseCode.OK) {
@@ -160,7 +169,7 @@ object Billing {
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.INAPP)
+                        .setProductType(BillingClient.ProductType.SUBS)
                         .build()
                 )
             ).build()
@@ -174,9 +183,35 @@ object Billing {
                 return@queryProductDetailsAsync
             }
             productDetails = pd
-            _price.value = pd.oneTimePurchaseOfferDetails?.formattedPrice
+            // Prefer the offer carrying a free-trial phase — launching
+            // a different offer charges immediately instead.
+            val offers = pd.subscriptionOfferDetails.orEmpty()
+            val offer = offers.firstOrNull { o ->
+                o.pricingPhases.pricingPhaseList
+                    .any { it.priceAmountMicros == 0L }
+            } ?: offers.firstOrNull()
+            offerToken = offer?.offerToken
+            val phases = offer?.pricingPhases?.pricingPhaseList.orEmpty()
+            _trialDays.value = phases.firstOrNull { it.priceAmountMicros == 0L }
+                ?.let { periodDays(it.billingPeriod) } ?: 0
+            _price.value = phases.lastOrNull { it.priceAmountMicros > 0L }
+                ?.formattedPrice
             maybeLaunch()
         }
+    }
+
+    /** Billing periods are ISO-8601 ("P14D", "P1W", "P1M") — collapse
+     *  to days for the trial-length string. */
+    private fun periodDays(period: String): Int {
+        var days = 0
+        for (m in Regex("(\\d+)([DWMY])").findAll(period)) {
+            val n = m.groupValues[1].toIntOrNull() ?: continue
+            days += when (m.groupValues[2]) {
+                "D" -> n; "W" -> n * 7; "M" -> n * 30; "Y" -> n * 365
+                else -> 0
+            }
+        }
+        return days
     }
 
     /** Opens Play's purchase sheet for the one-time product. */
@@ -193,11 +228,18 @@ object Billing {
         val activity = pendingLaunch?.get() ?: return
         val pd = productDetails ?: return
         if (!connected) return
+        val token = offerToken ?: run {
+            // No offer configured on the subscription — the flow would
+            // fail with a bare product. Wait for Console config.
+            Log.w(TAG, "no subscription offer on $PRODUCT_ID — check Console")
+            return
+        }
         pendingLaunch = null
         val params = BillingFlowParams.newBuilder().setProductDetailsParamsList(
             listOf(
                 BillingFlowParams.ProductDetailsParams.newBuilder()
                     .setProductDetails(pd)
+                    .setOfferToken(token)
                     .build()
             )
         ).build()

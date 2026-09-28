@@ -78,6 +78,11 @@ class MainActivity : ComponentActivity() {
                             .entitled.collectAsState()
                         val price by com.simtether.billing.Billing
                             .price.collectAsState()
+                        val trialDays by com.simtether.billing.Billing
+                            .trialDays.collectAsState()
+                        // null = Play cache unresolved — spinner, not a
+                        // paywall flash; a transient query failure must
+                        // not strand a paying user.
                         when (entitled) {
                             null -> Box(
                                 Modifier.fillMaxSize(),
@@ -85,6 +90,7 @@ class MainActivity : ComponentActivity() {
                             ) { CircularProgressIndicator() }
                             false -> com.simtether.ui.PaywallScreen(
                                 price = price,
+                                trialDays = trialDays,
                                 onSubscribe = {
                                     com.simtether.billing.Billing
                                         .purchase(this@MainActivity)

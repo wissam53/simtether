@@ -189,11 +189,13 @@
     <string name="disclosure_decline">ليس الآن</string>
 
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">انقل المكالمات والرسائل بين هاتفيك — مشفّرة، على شبكتك، دون أي رفع. عملية شراء واحدة تُفعّل هذا الجهاز.</string>
-    <string name="paywall_subscribe">فتح</string>
-    <string name="paywall_subscribe_price">فتح — %1$s</string>
-    <string name="paywall_onetime_line">شراء لمرة واحدة. لا اشتراك ولا انتهاء صلاحية.</string>
-    <string name="paywall_restore">استعادة الشراء</string>
+    <string name="paywall_body">انقل المكالمات والرسائل بين هاتفيك — مشفّرة، على شبكتك، دون أي رفع. اشتراك شهري يفعّل هذا الجهاز.</string>
+    <string name="paywall_subscribe">اشترك</string>
+    <string name="paywall_subscribe_price">اشترك — %1$s/شهر</string>
+    <string name="paywall_subscribe_trial">جرّب مجانًا %1$d يومًا — ثم %2$s/شهر</string>
+    <string name="paywall_trial_line">أول %1$d يومًا مجانًا، ثم فوترة شهرية. ألغِ في أي وقت من Play.</string>
+    <string name="paywall_sub_line">فوترة شهرية. ألغِ في أي وقت من Play.</string>
+    <string name="paywall_restore">استعادة الاشتراك</string>
 
     <!-- Remote access -->
     <string name="remote_access">الوصول عن بُعد</string>

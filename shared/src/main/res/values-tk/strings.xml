@@ -189,11 +189,13 @@
     <string name="disclosure_decline">Häzir däl</string>
 
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">Telefonlaryňyzyň arasynda jaň we SMS gönükdiriň — şifrli, öz tordyňyzda, hiç zat ýüklenmeden. Bir satyn alyş bu enjamy işjeňleşdirýär.</string>
-    <string name="paywall_subscribe">Aç</string>
-    <string name="paywall_subscribe_price">Aç — %1$s</string>
-    <string name="paywall_onetime_line">Bir gezeklik satyn alyş. Abuna ýok, möhlet ýok.</string>
-    <string name="paywall_restore">Satyn almagy dikelt</string>
+    <string name="paywall_body">Telefonlaryňyzyň arasynda jaň we SMS gönükdiriň — şifrli, öz tordyňyzda, hiç zat ýüklenmeden. Aýlyk abuna bu enjamy işjeňleşdirýär.</string>
+    <string name="paywall_subscribe">Abuna bol</string>
+    <string name="paywall_subscribe_price">Abuna bol — %1$s/aý</string>
+    <string name="paywall_subscribe_trial">%1$d gün mugt synag — soňra %2$s/aý</string>
+    <string name="paywall_trial_line">Ilkinji %1$d gün mugt, soňra aýlyk töleg. Islendik wagt Play-de ýatyryp bolýar.</string>
+    <string name="paywall_sub_line">Aýlyk töleg. Islendik wagt Play-de ýatyryp bolýar.</string>
+    <string name="paywall_restore">Abunany dikelt</string>
 
     <!-- Remote access -->
     <string name="remote_access">Uzakdan elýeterlilik</string>

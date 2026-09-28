@@ -189,11 +189,13 @@
     <string name="disclosure_decline">فعلاً نه</string>
 
     <string name="paywall_title">SimTether Pro</string>
-    <string name="paywall_body">تماس‌ها و پیامک‌ها را بین گوشی‌هایتان منتقل کنید — رمزنگاری‌شده، روی شبکهٔ خودتان، بدون هیچ بارگذاری. یک خرید این دستگاه را فعال می‌کند.</string>
-    <string name="paywall_subscribe">باز کردن قفل</string>
-    <string name="paywall_subscribe_price">باز کردن قفل — %1$s</string>
-    <string name="paywall_onetime_line">خرید یک‌باره. بدون اشتراک، بدون انقضا.</string>
-    <string name="paywall_restore">بازیابی خرید</string>
+    <string name="paywall_body">تماس‌ها و پیامک‌ها را بین گوشی‌هایتان منتقل کنید — رمزنگاری‌شده، روی شبکهٔ خودتان، بدون هیچ بارگذاری. اشتراک ماهانه این دستگاه را فعال می‌کند.</string>
+    <string name="paywall_subscribe">اشتراک</string>
+    <string name="paywall_subscribe_price">اشتراک — %1$s/ماه</string>
+    <string name="paywall_subscribe_trial">%1$d روز رایگان امتحان کنید — سپس %2$s/ماه</string>
+    <string name="paywall_trial_line">%1$d روز اول رایگان، سپس صورتحساب ماهانه. هر وقت از Play لغو کنید.</string>
+    <string name="paywall_sub_line">صورتحساب ماهانه. هر وقت از Play لغو کنید.</string>
+    <string name="paywall_restore">بازیابی اشتراک</string>
 
     <!-- Remote access -->
     <string name="remote_access">دسترسی از راه دور</string>
