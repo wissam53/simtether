@@ -23,11 +23,8 @@ import Layout from '../../layouts/Layout.astro';
       <h3>الخطوة 1 — هاتف الجسر</h3>
       <ol>
         <li>ثبّت <strong>SimTether Bridge</strong> على هاتف الشريحة —
-            مجاني، ثبّت ملف APK مباشرة من
-            <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>
-            (<code>simtether-bridge.apk</code>). التثبيت من خارج المتجر
-            هنا إجراء عادي وآمن؛ وسيطلب أندرويد السماح بالتثبيت من
-            متصفحك مرة واحدة. صفحة Google Play قادمة.</li>
+            مجاني على Google Play. الصفحة قيد المراجعة؛ وسيظهر الرابط
+            هنا فور إطلاقها.</li>
         <li>افتحه وامنحه الأذونات التي يطلبها — الوصول إلى SMS والمكالمات هو
             جوهر المهمة، إضافة إلى الإشعارات وإذن الأجهزة القريبة لإبقاء
             الاتصال نشطاً. أبقِ إشعار الحالة ظاهراً؛ إخفاؤه يوقف الجسر.</li>
@@ -48,9 +45,9 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>الخطوة 2 — هاتفك الرئيسي</h3>
       <ol>
-        <li>ثبّت <strong>SimTether</strong> من Google Play — شراء لمرة
-            واحدة. الصفحة ستُنشر قريباً؛ تطبيق الهاتف الرئيسي يُوزَّع
-            هناك حصرياً.</li>
+        <li>ثبّت <strong>SimTether</strong> من Google Play — اشتراك
+            شهري مع تجربة مجانية. الصفحة ستُنشر قريباً؛ تطبيق الهاتف
+            الرئيسي يُوزَّع هناك حصرياً.</li>
         <li>افتحه، واضغط <strong>«اقتران»</strong>، ثم امسح رمز QR الظاهر
             على الجسر. هذا كل ما يلزم للاقتران — يتم تبادل المفاتيح
             وتثبيتها أثناء هذا المسح.</li>
@@ -86,8 +83,9 @@ import Layout from '../../layouts/Layout.astro';
          ملف jar صغير واحد يمكنك تشغيله على أي VPS أو خادم منزلي أو مضيف
          Docker. وهو لا يمرّر سوى نص مشفّر.</p>
       <ol>
-        <li>أنشئه بالأمر <code>./gradlew :relay:fatJar</code> — أو احصل على
-            <code>simtether-relay.jar</code> من GitHub Releases.</li>
+        <li>احصل على <code>simtether-relay.jar</code> — ملف jar صغير
+            واحد، متاح عند الطلب على
+            <a href="mailto:CONTACT-EMAIL">CONTACT-EMAIL</a>.</li>
         <li>شغّله: <code>ACCESS_TOKEN=your-token java -jar simtether-relay.jar</code>
             (يعمل على المنفذ 44711). ضع أمامه نقطة إنهاء TLS —
             Caddy أو nginx أو أي بروكسي عكسي — حتى تصل التطبيقات إليه
@@ -98,14 +96,13 @@ import Layout from '../../layouts/Layout.astro';
       </ol>
       <div class="note">
         شغّل نسخة واحدة بالضبط — الغرف تُحفَظ في الذاكرة ولا يوجد اكتشاف بين
-        الخوادم. الخيارات الكاملة (متغيرات البيئة، الحدود) موجودة في
-        <code>relay/README.md</code> في المستودع.
+        الخوادم. الخيارات الكاملة (متغيرات البيئة، الحدود) تأتي مع الـjar.
       </div>
 
       <h3>إصدار root</h3>
       <table>
         <tr><th></th><th>القياسي</th><th>جسر بإصدار root</th></tr>
-        <tr><td>أين</td><td>GitHub Releases (Play قريباً)</td><td>GitHub Releases فقط</td></tr>
+        <tr><td>أين</td><td>Google Play (قيد المراجعة)</td><td><a href="/downloads/simtether-bridge-rooted.apk">تنزيل مباشر</a></td></tr>
         <tr><td>SMS + تحكم بالمكالمات</td><td>نعم</td><td>نعم</td></tr>
         <tr><td>صوت المكالمة المباشر</td><td>لا</td><td>نعم — يتطلب هاتف جسر بصلاحيات root</td></tr>
         <tr><td>الحالة</td><td>مستقر</td><td><em>قيد التطوير</em></td></tr>
@@ -117,11 +114,13 @@ import Layout from '../../layouts/Layout.astro';
          مطابق.</p>
 
       <div class="note warn">
-        إصدار root تجريبي — ثبّته فقط من صفحة GitHub Releases الرسمية.
-        للتحقق من أن أي بناء هو فعلاً لنا، قارن شهادة التوقيع ببصمة الإصبع
-        المنشورة في <a href="https://github.com/wissam53/simtether/blob/master/SECURITY.md">SECURITY.md</a>:
-        <code>apksigner verify --print-certs file.apk</code>. أي بصمة لا
-        تتطابق ليست بناءً منا.
+        إصدار root تجريبي — ثبّته فقط من الروابط على هذا الموقع أو من
+        صفحتنا على Play. كل بناء ننشره موقَّع بشهادة إصدار Play نفسها —
+        تحقق بالأمر
+        <code>apksigner verify --print-certs file.apk</code>؛ بصمة SHA-256
+        لدينا هي:
+        <code>B4:05:CF:6E:A2:90:3D:57:E4:18:1F:B0:0B:16:7E:09:DD:DC:01:A4:4C:A6:93:50:98:64:CA:BA:07:9C:1B:E4</code>.
+        أي بصمة لا تتطابق ليست بناءً منا.
       </div>
 
       <h3>حلّ المشاكل</h3>

@@ -1,9 +1,9 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  // Cloudflare Pages — served at the apex, no subpath. site drives
-  // canonical + hreflang URLs.
-  site: 'https://simtether.pages.dev',
+  // Fly.io static host — swap to the real domain when it's picked.
+  // site drives canonical + hreflang URLs.
+  site: 'https://simtether-site.fly.dev',
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'tr', 'ar'],

@@ -27,4 +27,7 @@ docs/audit/findings-*.md
 site/node_modules/
 site/dist/
 site/.astro/
+# Release binaries deploy from the local tree — not versioned in git.
+site/public/downloads/*.apk
+site/public/downloads/*.jar
 release/

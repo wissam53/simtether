@@ -23,11 +23,9 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Adım 1 — köprü telefon</h3>
       <ol>
-        <li>SIM'li telefona <strong>SimTether Bridge</strong>'i kurun — ücretsiz,
-            <a href="https://github.com/wissam53/simtether/releases">GitHub Releases</a>'dan APK dosyasını
-            kurabilirsiniz (<code>simtether-bridge.apk</code>). APK ile kurulum
-            burada normaldir ve güvenlidir; Android, tarayıcınızdan kuruluma bir
-            kez izin vermenizi isteyecektir. Google Play kaydı yakında.</li>
+        <li>SIM'li telefona <strong>SimTether Bridge</strong>'i kurun —
+            Google Play'de ücretsiz. Kayıt incelemede; yayına girer girmez
+            bağlantı bu sayfada olacak.</li>
         <li>Uygulamayı açın ve istediği izinleri verin — SMS ve arama erişimi
             işin kendisi; ayrıca bağlantıyı ayakta tutmak için bildirim ve
             yakındaki cihazlar erişimi. Durum bildirimini görünür tutun;
@@ -50,9 +48,9 @@ import Layout from '../../layouts/Layout.astro';
 
       <h3>Adım 2 — ana telefonunuz</h3>
       <ol>
-        <li><strong>SimTether</strong>'i Google Play'den kurun — tek seferlik
-            ücretli. Kayıt kısa süre içinde yayında; istemci uygulaması
-            yalnızca oradan dağıtılır.</li>
+        <li><strong>SimTether</strong>'i Google Play'den kurun — aylık
+            abonelik, ücretsiz deneme dahil. Kayıt kısa süre içinde yayında;
+            istemci uygulaması yalnızca oradan dağıtılır.</li>
         <li>Uygulamayı açın, <strong>Eşleştir</strong>'e dokunun ve köprüdeki QR
             kodunu tarayın. Eşleştirme bu kadar — anahtarlar bu tarama sırasında
             değiştirilir ve sabitlenir.</li>
@@ -88,8 +86,9 @@ import Layout from '../../layouts/Layout.astro';
          ev sunucusu veya Docker hostunda çalıştırabileceğiniz küçük, tek bir jar
          dosyasıdır. Yalnızca şifreli metin iletir.</p>
       <ol>
-        <li>Derleyin: <code>./gradlew :relay:fatJar</code> — veya GitHub
-            Releases'dan <code>simtether-relay.jar</code>'ı alın.</li>
+        <li><code>simtether-relay.jar</code>'ı edinin — tek küçük jar
+            dosyasıdır; <a href="mailto:CONTACT-EMAIL">CONTACT-EMAIL</a>
+            adresine yazarak isteyebilirsiniz.</li>
         <li>Çalıştırın: <code>ACCESS_TOKEN=tokenunuz java -jar simtether-relay.jar</code>
             (44711 portunda dinler). Önüne bir TLS sonlandırıcı koyun — Caddy,
             nginx veya herhangi bir ters proxy — böylece uygulamalar ona
@@ -102,13 +101,13 @@ import Layout from '../../layouts/Layout.astro';
       <div class="note">
         Tam olarak bir örnek çalıştırın — odalar bellekte tutulur ve sunucular
         arası sorgulama yoktur. Tüm seçenekler (ortam değişkenleri, limitler) depodaki
-        <code>relay/README.md</code> dosyasındadır.
+        tüm seçenekler (ortam değişkenleri, sınırlar) jar ile birlikte gelir.
       </div>
 
       <h3>Root'lu sürüm</h3>
       <table>
         <tr><th></th><th>Standart</th><th>Root'lu köprü</th></tr>
-        <tr><td>Nerede</td><td>GitHub Releases (Play yakında)</td><td>Yalnızca GitHub Releases</td></tr>
+        <tr><td>Nerede</td><td>Google Play (inceleniyor)</td><td><a href="/downloads/simtether-bridge-rooted.apk">doğrudan indir</a></td></tr>
         <tr><td>SMS + arama kontrolü</td><td>evet</td><td>evet</td></tr>
         <tr><td>Canlı arama sesi</td><td>hayır</td><td>evet — root'lu köprü telefon gerekir</td></tr>
         <tr><td>Durum</td><td>kararlı</td><td><em>geliştirme aşamasında</em></td></tr>
@@ -119,12 +118,12 @@ import Layout from '../../layouts/Layout.astro';
          sürüm ana telefonunuza ses aktarımını ekler; geri kalan her şey aynıdır.</p>
 
       <div class="note warn">
-        Root'lu sürüm deneyseldir — yalnızca resmi GitHub Releases sayfasından
-        kurun. Bir derlemenin gerçekten bize ait olduğunu doğrulamak için imza
-        sertifikasını <a href="https://github.com/wissam53/simtether/blob/master/SECURITY.md">SECURITY.md</a>'de yayınlanan
-        parmak iziyle karşılaştırın:
-        <code>apksigner verify --print-certs dosya.apk</code>. Eşleşmeyen bir
-        parmak izi bizim derlememiz değildir.
+        Root'lu sürüm deneyseldir — yalnızca bu sitedeki bağlantılardan veya
+        Play sayfamızdan kurun. Yayınladığımız her derleme Play sürümüyle aynı
+        sertifikayla imzalanır — <code>apksigner verify --print-certs dosya.apk</code>
+        ile kontrol edin; SHA-256 parmak izimiz:
+        <code>B4:05:CF:6E:A2:90:3D:57:E4:18:1F:B0:0B:16:7E:09:DD:DC:01:A4:4C:A6:93:50:98:64:CA:BA:07:9C:1B:E4</code>.
+        Eşleşmeyen bir parmak izi bizim derlememiz değildir.
       </div>
 
       <h3>Sorun giderme</h3>

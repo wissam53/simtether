@@ -1,0 +1,18 @@
+# Fly.io config — `fly deploy` from the site/ directory.
+app = "simtether-site"
+primary_region = "fra"   # same as the relay — closest to the audience
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Static pages — one shared-cpu machine is plenty; gostatic is a few MB.
+[http_service]
+  internal_port = 8043
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
