@@ -350,6 +350,104 @@ class BridgeWsServerTest {
         assertFalse(server!!.isReady())
     }
 
+    @Test
+    fun `oversize pre-auth frame is rejected`() {
+        val port = startServer()
+        val c = connect(port)
+        c.send(ByteArray(4096))
+        assertTrue("oversize socket not closed",
+            c.closed.await(5, TimeUnit.SECONDS))
+        assertEquals(1009, c.closeCode.get())
+        assertFalse(server!!.isReady())
+    }
+
+    @Test
+    fun `remote auth flood drops the registration socket at the cap`() {
+        startServer()
+        val closed = AtomicReference(false)
+        val fake = Proxy.newProxyInstance(
+            javaClass.classLoader, arrayOf(WebSocket::class.java)
+        ) { proxy, method, args ->
+            when (method.name) {
+                "isOpen" -> true
+                "close", "closeConnection" -> { closed.set(true); null }
+                "equals" -> proxy === args?.firstOrNull()
+                "hashCode" -> System.identityHashCode(proxy)
+                "toString" -> "fake-relay-socket"
+                else -> null
+            }
+        } as WebSocket
+
+        // 4 failed IK attempts are tolerated — the socket is the
+        // room's lifeline, so a single garbage frame can't kill it.
+        repeat(4) {
+            server!!.handleRemoteFrame(fake, ByteBuffer.wrap(byteArrayOf(9, 9, 9)))
+        }
+        assertFalse("dropped before the cap", closed.get())
+        // The 5th hits MAX_REMOTE_AUTH_FAILS — bridge drops its own
+        // registration socket and RelayLink re-dials clean.
+        server!!.handleRemoteFrame(fake, ByteBuffer.wrap(byteArrayOf(9, 9, 9)))
+        assertTrue("flood socket never dropped", closed.get())
+    }
+
+    @Test
+    fun `replayed IK msg1 is rejected and the live session survives`() {
+        // Regression for the replay-DoS: IK msg1 has no freshness, so a
+        // LAN attacker replaying captured msg1 bytes used to be ADOPTED
+        // (token decrypts, pinned client key matches) — kicking the real
+        // client. The bridge now caches admitted initiator ephemerals
+        // and rejects repeats; a legit reconnect always mints a new one.
+        val port = startServer()
+        val real = connect(port)
+        val hs = SecureSession.clientHandshake(bridgeKey.second, token, clientKey.first)
+        real.send(hs.outgoing)
+        val reply = real.frames.poll(5, TimeUnit.SECONDS)
+        assertNotNull("no handshake reply", reply)
+        hs.complete(reply)
+        assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+
+        val attacker = connect(port)
+        attacker.send(hs.outgoing)   // byte-identical replay
+        assertTrue("replay socket not closed",
+            attacker.closed.await(5, TimeUnit.SECONDS))
+        assertEquals(4005, attacker.closeCode.get())
+        assertTrue("live session displaced by replay",
+            server!!.isReady() && real.isOpen)
+    }
+
+    @Test
+    fun `remote close tears down the adopted session`() {
+        startServer()
+        val sent = java.util.concurrent.LinkedBlockingQueue<ByteArray>()
+        val fake = Proxy.newProxyInstance(
+            javaClass.classLoader, arrayOf(WebSocket::class.java)
+        ) { proxy, method, args ->
+            when (method.name) {
+                "send" -> when (val a = args?.firstOrNull()) {
+                    is ByteArray -> sent.add(a)
+                    is ByteBuffer -> sent.add(
+                        ByteArray(a.remaining()).also { a.get(it) })
+                    else -> {}
+                }
+                "isOpen" -> true
+                "close", "closeConnection" -> {}
+                "equals" -> proxy === args?.firstOrNull()
+                "hashCode" -> System.identityHashCode(proxy)
+                "toString" -> "fake-relay-socket"
+                else -> null
+            }
+        } as WebSocket
+
+        val hs = SecureSession.clientHandshake(bridgeKey.second, token, clientKey.first)
+        server!!.handleRemoteFrame(fake, ByteBuffer.wrap(hs.outgoing))
+        assertNotNull(sent.poll(5, TimeUnit.SECONDS))
+        assertTrue(server!!.isReady())
+
+        // Relay reported the spliced client gone — session must die.
+        server!!.handleRemoteClose(fake)
+        assertFalse("session survived remote close", server!!.isReady())
+    }
+
     private fun waitFor(timeoutMs: Long = 5000, cond: () -> Boolean): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {

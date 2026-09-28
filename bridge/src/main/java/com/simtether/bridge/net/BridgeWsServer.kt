@@ -68,6 +68,22 @@ class BridgeWsServer(
     // drops OUR registration socket after enough garbage instead.
     private val authFails = java.util.concurrent.ConcurrentHashMap<WebSocket, Int>()
 
+    // IK msg1 has no freshness: a LAN peer that captured a client's
+    // msg1 could replay the identical bytes — the token decrypts and
+    // the pinned client key matches, so the replayed socket would be
+    // ADOPTED and kick the real client. Confidentiality survives (the
+    // attacker lacks the initiator's ephemeral private key) but
+    // availability doesn't. Cache the ephemerals that completed auth
+    // and reject repeats; a legit reconnect always mints a fresh one,
+    // and failed handshakes never enter the cache so a garbage flood
+    // can't evict real entries.
+    private val seenEphemeral = java.util.Collections.synchronizedMap(
+        object : LinkedHashMap<String, Boolean>() {
+            override fun removeEldestEntry(
+                e: MutableMap.MutableEntry<String, Boolean>?
+            ) = size > MAX_SEEN_EPHEMERAL
+        })
+
     /**
      * App-level heartbeat: a pocketed/dozing client can stall its WS
      * pings, and a half-dead TCP socket can blackhole silently for many
@@ -219,6 +235,17 @@ class BridgeWsServer(
                 } else conn.close(code, why)
             }
             if (bytes.size > 2048) { fail(1009, "oversize"); return }
+            // IK msg1 opens with the initiator's 32-byte ephemeral
+            // (e, es, s, ss) — the replay cache keys on it.
+            val eph = if (bytes.size >= 32)
+                java.util.Base64.getEncoder()
+                    .encodeToString(bytes.copyOfRange(0, 32))
+                else null
+            if (eph != null && seenEphemeral.containsKey(eph)) {
+                Log.w(TAG, "rejected client: replayed handshake")
+                fail(4005, "replayed handshake")
+                return
+            }
             val hs = runCatching {
                 SecureSession.bridgeHandshake(staticKeyPair.first, bytes)
             }.getOrElse {
@@ -240,6 +267,7 @@ class BridgeWsServer(
             val (reply, sess) = hs.complete()
             conn.send(reply)
             // Verified — adopt now, replacing the previous client.
+            if (eph != null) seenEphemeral[eph] = true
             pendingAuth.remove(conn)
             authFails.remove(conn)   // good auth — reset the flood counter
             synchronized(lock) {
@@ -322,5 +350,9 @@ class BridgeWsServer(
         // before we drop the socket — a spliced stranger gets this many
         // X25519 ops per /connect, not an unbounded supply.
         const val MAX_REMOTE_AUTH_FAILS = 5
+        // Bound on the replay cache — 256 recent initiator ephemerals
+        // (~8KB). Eviction only matters if a captured msg1 outlives
+        // 256 sessions, by which time its token has long rotated.
+        const val MAX_SEEN_EPHEMERAL = 256
     }
 }

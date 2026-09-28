@@ -376,6 +376,16 @@ class RelayServerTest {
         }
     }
 
+    /** MAX_REG_PER_WINDOW=20/min per IP: the 21st /register in a burst
+     *  is refused at the handshake even though every earlier socket is
+     *  still holding an unanswered challenge. */
+    @Test
+    fun `register handshake bursts past the window are rejected`() {
+        val socks = (1..20).map { connect("/register/burst$it?token=secret") }
+        socks.forEach { assertTrue(it.opened.await(3, TimeUnit.SECONDS)) }
+        assertRejected("/register/overflow?token=secret")
+    }
+
     /** On a direct-facing self-host the headers are attacker-
      *  controlled — the socket address must stay authoritative. */
     @Test
