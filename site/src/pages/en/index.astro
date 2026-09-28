@@ -97,17 +97,18 @@ const diagram = `<span class="b">bridge phone (your SIM)</span>          <span c
             reject, dial, DTMF. Carrier SMS only — RCS chats can't reach the
             bridge, so keep chat features off in the bridge's messaging app.
             Works on any Android 8.0+ phone, no root needed.
-            The Google Play listing is on the way — until then it lives
-            on GitHub Releases.
+            The Google Play listing is in review — the install page
+            updates when it goes live.
           </p>
         </div>
         <div class="card">
-          <h3>Rooted bridge <span class="badge" style="vertical-align:middle">coming soon</span></h3>
+          <h3>Rooted bridge <span class="badge" style="vertical-align:middle">experimental</span></h3>
           <p>
             An experimental build that can additionally capture live GSM call audio
-            and stream it to your main phone. Requires a rooted bridge phone and is
-            distributed via GitHub Releases only — Google Play doesn't permit it.
-            <em>Currently in development.</em>
+            and stream it to your main phone. Requires a rooted bridge phone —
+            Google Play doesn't permit it, so it's a
+            <a href={getRelativeLocaleUrl('en', 'install')}>direct download</a>
+            from this site. <em>Currently in development.</em>
           </p>
         </div>
       </div>
